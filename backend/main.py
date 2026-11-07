@@ -5,7 +5,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# [TO REFACTOR:(theo)]: placeholder until the brief decides which agents and API routes we need
+# [TO REFACTOR:(theo)]: placeholder until the brief decides which agents
+# and API routes we need
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
     logger.info("backend started: agent_count=%d", 0)

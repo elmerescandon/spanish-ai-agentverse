@@ -12,6 +12,7 @@ Read and follow all rules in [CONVENTIONS.md](CONVENTIONS.md) before writing cod
 ## Most important rules
 
 - Type every function signature; no `Any` without a comment.
+- Lines are at most 79 characters; a longer line needs a reason: `# noqa: E501  <reason>`.
 - Clear names, no obscure abbreviations; constants in `UPPER_SNAKE_CASE` at the top of the file.
 - Validate outside data with Pydantic at the boundary; fail loudly, no swallowed exceptions.
 - Pure logic in `logic.py`, wiring in `agent.py`, external calls through `backend/clients/`.

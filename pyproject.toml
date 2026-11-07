@@ -15,8 +15,13 @@ dev = [
     "watchfiles>=1.3.0",
 ]
 
+[tool.ruff]
+# PEP 8 limit: ruff format wraps code to it, and E501 in ruff check flags
+# what the formatter cannot wrap (long strings, comments, docstrings).
+line-length = 79
+
 [tool.ruff.lint]
-extend-select = ["UP"]
+extend-select = ["UP", "E501"]
 
 [tool.pytest.ini_options]
 markers = ["live: hits real APIs"]

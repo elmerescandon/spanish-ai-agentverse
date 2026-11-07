@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "Multi-agent system built on Fetch.ai uAgents for the Agentverse UCL hackathon"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "httpx>=0.28.0",
+    "numpy>=2.0.0",
+    "pydantic>=2.10.0",
+    "scikit-learn>=1.5.0",
+]
 
 [dependency-groups]
 dev = [

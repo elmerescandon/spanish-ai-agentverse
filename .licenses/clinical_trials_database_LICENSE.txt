@@ -1,0 +1,3 @@
+ClinicalTrials.gov Data Terms Notification
+Timestamp: 2026-11-07T17:28:05Z
+Notice: Clinical trial protocol data is accessed via ClinicalTrials.gov API v2. Please review the terms of use, privacy policies, and data disclaimers at https://clinicaltrials.gov/.

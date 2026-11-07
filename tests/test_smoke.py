@@ -12,7 +12,9 @@ from backend.main import main
 
 def test_main_starts_and_logs_startup(
     caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr("uvicorn.run", lambda *args, **kwargs: None)
     with caplog.at_level(logging.INFO):
         main()
 

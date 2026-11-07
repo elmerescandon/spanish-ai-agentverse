@@ -4,10 +4,15 @@ version = "0.1.0"
 description = "Multi-agent system built on Fetch.ai uAgents for the Agentverse UCL hackathon"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "fastapi>=0.115.0",
+    "pydantic>=2.10.0",
+    "uvicorn>=0.34.0",
+]
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.0",
     "mypy>=2.4.1",
     "pre-commit>=4.7.0",
     "pytest>=9.2.0",

@@ -30,6 +30,9 @@ dev = [
 # PEP 8 limit: ruff format wraps code to it, and E501 in ruff check flags
 # what the formatter cannot wrap (long strings, comments, docstrings).
 line-length = 79
+# Vendored agent skills (npx skills add): reformatting their code samples
+# would break the hashes pinned in skills-lock.json.
+extend-exclude = [".claude"]
 
 [tool.ruff.lint]
 extend-select = ["UP", "E501"]

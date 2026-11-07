@@ -7,7 +7,7 @@ Our multi-agent project for the Agentverse UCL hackathon. The frontend lives in 
 You need [uv](https://docs.astral.sh/uv/) installed.
 
 ```bash
-make install          # installs Python 3.13, dependencies and pre-commit hooks
+make install          # installs Python 3.14, dependencies and pre-commit hooks
 cp .env.example .env  # then fill in the keys
 make dev              # runs the backend with hot reload
 ```

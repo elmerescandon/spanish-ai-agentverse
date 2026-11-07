@@ -3,7 +3,7 @@ name = "spanish-ai-agentverse"
 version = "0.1.0"
 description = "Multi-agent system built on Fetch.ai uAgents for the Agentverse UCL hackathon"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = []
 
 [dependency-groups]

@@ -6,7 +6,7 @@
 
 Automate formatting so the repo is standardised.
 
-- **`uv`** manages Python and dependencies; `uv.lock` and `.python-version` (Python 3.13, via `uv python pin 3.13`) are committed.
+- **`uv`** manages Python and dependencies; `uv.lock` and `.python-version` (Python 3.14, via `uv python pin 3.14`) are committed.
 - **`ruff`** formats and lints. `ruff format` + `ruff check --fix` before every commit.
 - **`mypy`** checks types.
 - **`pre-commit`** runs all three on commit. Don't bypass with `--no-verify`.

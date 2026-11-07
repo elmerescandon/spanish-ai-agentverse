@@ -20,11 +20,12 @@ Automate formatting so the repo is standardised.
 
 | Command | What it does |
 | --- | --- |
-| `make install` | `uv sync` + install pre-commit hooks. Run once after cloning. |
+| `make install` | `uv sync` + install pre-commit hooks + `bun install --cwd frontend`. Run once after cloning. |
 | `make dev` | Run agents with hot reload. |
+| `make dev-frontend` | Run Next.js frontend dev server via Bun. |
 | `make format` | `ruff format` + `ruff check --fix`. |
-| `make lint` | `ruff check` + `mypy`, no fixes. CI runs the same checks plus a format check and tests. |
-| `make test` | All tests except live ones. |
+| `make lint` | `ruff check` + `mypy` + frontend `eslint` + `next typegen && tsc --noEmit`. |
+| `make test` | All backend (`pytest`) and frontend (`bun test`) tests except live ones. |
 | `make check` | format + lint + test in one go. Run before every push. |
 | `make test-live` | Live tests against real APIs. |
 | `make run` | Run agents once, no reload. |
@@ -89,6 +90,15 @@ Tests check the logic thoroughly and intelligently, not just line coverage.
 - **The demo path must have an end-to-end test.** It's the one flow that can't break at 3am.
 - **Test names describe the scenario:** `test_triage_escalates_when_score_above_threshold`, not `test_triage_2`.
 - **A bug fix comes with a test** that would have caught it.
+
+### Frontend testing (`bun test` + React Testing Library)
+
+Frontend tests live in `frontend/src/__tests__/` and focus on **functional workflows and contract alignment** — making sure core user journeys and API schemas don't break, rather than exhaustive UI edge cases.
+
+- **Native `bun:test` runner:** Preloaded via `frontend/bunfig.toml` and `frontend/src/__tests__/setup.ts` (which provides `jsdom`, `@testing-library/jest-dom` matchers, automatic DOM `cleanup()`, browser API stubs like `ResizeObserver` / `IntersectionObserver` / `matchMedia`, and default `next/navigation` App Router mocks).
+- **Cross-stack schema & contract alignment (`contract.test.ts`):** `frontend/src/__tests__/contract.test.ts` extracts the live OpenAPI schema from FastAPI (`backend.main:app.openapi()`) and asserts that enum values, model property keys, component fallback data, and test fixtures in `frontend/src/__tests__/fixtures.ts` match `backend/api/schemas.py`. Any schema change in `backend/api/` must update `frontend/src/lib/api.ts` and `fixtures.ts` in the same PR.
+- **Query by user-visible roles and text:** Use `screen.getByRole`, `screen.getByText`, and `screen.queryByText` (for asserting absence) rather than CSS classes or DOM structure, and drive interactions with `userEvent.setup()`.
+- **Clean up mocks and timers:** Call `mock.restore()` in `beforeEach`, keep interactive state in `"use client"` components, and always clear `setTimeout` / `setInterval` timers in `useEffect` cleanup functions so async work never leaks across tests.
 
 ## Comments
 

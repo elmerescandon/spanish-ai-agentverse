@@ -1,10 +1,39 @@
-export type ProtocolStatus = "uploaded" | "analyzing" | "ready";
+export const PROTOCOL_STATUSES = ["uploaded", "analyzing", "ready"] as const;
+export type ProtocolStatus = (typeof PROTOCOL_STATUSES)[number];
 
-export type PipelineStep = "completeness" | "comparison" | "cohort";
+export const PIPELINE_STEPS = ["completeness", "comparison", "cohort"] as const;
+export type PipelineStep = (typeof PIPELINE_STEPS)[number];
 
-export type Severity = "info" | "warning" | "critical";
+export const SEVERITIES = ["info", "warning", "critical"] as const;
+export type Severity = (typeof SEVERITIES)[number];
 
-export type RecommendationStatus = "pending" | "accepted" | "rejected";
+export const RECOMMENDATION_STATUSES = [
+  "pending",
+  "accepted",
+  "rejected",
+] as const;
+export type RecommendationStatus = (typeof RECOMMENDATION_STATUSES)[number];
+
+export const PROTOCOL_SUMMARY_KEYS = [
+  "protocol_id",
+  "title",
+  "status",
+  "data",
+] as const;
+
+export const RECOMMENDATION_KEYS = [
+  "recommendation_id",
+  "protocol_id",
+  "source_step",
+  "severity",
+  "title",
+  "description",
+  "status",
+  "comment",
+  "details",
+] as const;
+
+export const UPDATE_RECOMMENDATION_KEYS = ["status", "comment"] as const;
 
 export interface ProtocolSummary {
   protocol_id: string;

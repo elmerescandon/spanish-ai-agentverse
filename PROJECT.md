@@ -44,8 +44,8 @@ flowchart TD
         A1["Part 1: Computable rules & patient filtering (MIMIC-IV / Synthea)"] --> A2["Part 2: Benchmark eligible cohort vs peer trials & pinpoint steepest drops"]
     end
 
-    subgraph Step4["Step 4: Reporting"]
-        R1["Group recommendation results & present insightful Decision Cards"]
+    subgraph Step4["Step 4: Reporting, UI & Cloud Demo (Raul)"]
+        R1["Group recommendation results, Decision Cards UI & cloud workflow presentation"]
     end
 
     S1 -.-> C1
@@ -99,9 +99,10 @@ flowchart TD
 - [ ] Compare simulated cohort to previous trials (test for similar diversity, representation, and recruitment feasibility).
 - [ ] Name the criteria that drive the biggest drops. Run peer trials' criteria on the same simulated cohort so each result is benchmarked: the share of patients and of each subgroup this protocol keeps compared with similar trials, and which criteria explain the difference (separating strict-but-normal field criteria from trial-specific bottlenecks).
 
-### 6. Fourth Step: Reporting (Team)
+### 6. Fourth Step: Reporting, UI & Cloud Demo (Raul)
 - [ ] Group recommendation results into structured **Decision Cards** (verbatim evidence + page, estimated impact, options, and decision owner; dismissed findings require a reason).
 - [ ] Present insightful summary information for the clinical team.
+- [ ] Build the interactive UI and deploy the live workflow demo presentation on the cloud.
 
 ### 7. Pitch Deck (Team)
 - [ ] User Journey
@@ -111,7 +112,7 @@ flowchart TD
 
 ## Agent Architecture & Repository Mapping
 
-Each step in the pipeline maps to a dedicated agent module communicating via typed schemas:
+Each step in the pipeline maps to a dedicated module communicating via typed schemas:
 
 | Module / Path | Owner | Role & Responsibility |
 | :--- | :--- | :--- |
@@ -119,6 +120,7 @@ Each step in the pipeline maps to a dedicated agent module communicating via typ
 | `backend/agents/completeness/` | Alex | Evaluates protocol completeness against SPIRIT 2025 / ICH M11 guidelines (`present`, `weak`, `missing`) and runs cross-section consistency checks. |
 | `backend/agents/comparison/` | Theo | Fetches historical Diabetes trials from ClinicalTrials.gov / AACT, evaluates templated rules, and surfaces outlier flags with reasoning traces. |
 | `backend/agents/cohort/` | Alvaro | Converts protocol criteria into computable OMOP/SQL rules, simulates patient cohort attrition on MIMIC-IV / Synthea, and benchmarks diversity gaps against peer trials. |
+| `frontend/` & `backend/api/` | Raul | Reporting aggregation, interactive **Decision Cards** UI, and cloud deployment/demo presentation of the end-to-end workflow. |
 | `backend/shared/messages.py` | Shared contract | Defines Pydantic message models, shared data contracts (`ProtocolDocument`, `DecisionCard`, rule definitions), and inter-agent payloads. |
 
 ---

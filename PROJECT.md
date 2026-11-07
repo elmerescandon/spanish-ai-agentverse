@@ -72,3 +72,211 @@ Everything the core needs is public or open after a short credentialing step. Th
 
 > [!NOTE]
 > MIMIC-IV is a single center and mostly ICU patients, so it is not representative of most outpatient trial populations. Use it to test the method, and state that limit in every result.
+
+---
+
+## Phase 1: Core
+
+**Goal:** One protocol in, one report out, end to end, for one disease area. Done when the agent produces a report on any protocol in our corpus, and we have a retrospective evaluation on a held-out set of trials.
+
+### Step 1: Pick the Disease Area and Build the Corpus
+
+- **Action:** Pull every trial in the chosen disease area from AACT (Aggregate Analysis of ClinicalTrials.gov) that has an associated protocol PDF, plus its History of Changes and termination reason.
+- **Corpus Contents:** Protocol PDFs, Statistical Analysis Plans (SAPs), informed consent forms (when available), and longitudinal amendment histories.
+- **Metadata Harvested:** Detailed trial metadata including phase, intervention class, official title, sponsor type (industry vs. academic), start year, enrollment targets, actual accrual, and termination status/reasons.
+
+### Step 2: Parse Protocols into a Shared Structure
+
+- **Action:** Convert unstructured protocol PDFs into standardized JSON format.
+- **Shared Schema (The System Contract):**
+  - Section contents mapped to standard **ICH M11** headings.
+  - The **Schedule of Activities (SoA)** extracted as an explicit, structured visit × procedure table.
+  - Each **eligibility criterion** represented as its own discrete item, preserving verbatim text, categorization (inclusion vs. exclusion), and context.
+- **Parser Design & Validation:**
+  - Build the parser as an agent that classifies sections by substantive semantic content rather than superficial heading names.
+  - This schema acts as the foundational contract between all downstream modules and must be finalized and frozen first.
+  - Evaluate extraction accuracy and section classification against a held-out gold set of hand-labeled protocols (covering both industry and academic trials) before downstream components build on it.
+
+### Step 3: Completeness & Consistency Checker
+
+#### Completeness Checker
+- **Evaluation Framework:** Score each item from the **SPIRIT 2025** checklist and **ICH M11** template as `present`, `weak`, or `missing`, with mandatory citations of exact document page numbers.
+- **Standardized Rubric:** Each checklist item corresponds to a rubric entry detailing explicit requirements and providing concrete examples of `present`, `weak`, and `missing` implementations.
+- **Three-Way Validation Methodology:**
+  1. *Independent Clinical Labeling:* A doctor and a biomedical engineer label protocols independently. Their inter-rater agreement defines the empirical performance ceiling; the agent is scored against their consensus.
+  2. *Deletion Test:* Remove specific sections or elements from complete, compliant protocols and verify that the agent systematically detects and flags the omissions.
+  3. *Evidence Check:* An automated verification pass ensuring that every quote cited by the agent exists verbatim in the source document and directly supports the assigned score.
+
+#### Consistency Checks (Biomedical Engineer)
+- **Failure Modes Caught:** Endpoints defined in the text that are never collected in the schedule of activities, clinical procedures scheduled in the protocol that are missing from the informed consent form, or contradictory visit windows between text narrative and schedule tables.
+- **Mechanism:**
+  - Extract every visit, procedure, and endpoint from the protocol body text, Schedule of Activities table, Statistical Analysis Plan (SAP), and consent form into unified comparative lists.
+  - Cross-compare extracted lists across document boundaries.
+  - An LLM evaluates potential discrepancies to judge whether each mismatch constitutes a genuine operational or clinical contradiction.
+- **Output:** One dedicated decision card per validated mismatch, citing and quoting both contradictory document passages side-by-side.
+
+### Step 4: Comparison with Past Protocols
+
+- **Retrieval:** Retrieve the most similar peer trials from AACT based on matching clinical condition, trial phase, intervention class/mechanism, and start date (within the last ~10 years).
+- **Core Comparison Dimensions:** Start from a fixed list of approximately 10 structured dimensions agreed upon with the clinical doctor:
+  1. Laboratory thresholds (e.g., eGFR, AST/ALT, platelets, ANC)
+  2. Age boundaries (minimum and maximum limits)
+  3. Performance status requirements (e.g., ECOG / Karnofsky thresholds)
+  4. Washout periods (durations required off prior therapies)
+  5. Total number and breadth of exclusion criteria
+  6. Visit frequency and number of invasive procedures
+  7. Sample size target and underlying design assumptions
+  8. Primary and secondary endpoint types
+  9. Overall trial duration and follow-up timeline
+  10. Essential protocol elements common across peer trials
+- **Outlier Detection ("Peer Data Defines Normal"):**
+  - Flag parameters outside the 10th–90th percentile of peer trials (e.g., requiring eGFR ≥ 60 mL/min when 85% of peers accept ≥ 45 mL/min).
+  - No hard-coded or arbitrary "correct" values; normal is derived entirely from peer empirical distributions.
+- **Phase 2 Extensibility:** In Phase 2, users gain interactive controls to filter peer sets (by calendar years, industry vs. academic sponsors, geography/regulatory region), toggle active comparison dimensions, and introduce ad-hoc plain-language check rules.
+
+### Step 5: Turn Criteria into Computable Queries
+
+- **Translation Engine:** Decompose every free-text eligibility criterion into structured computable logic:
+  $$\text{Criterion} \longrightarrow \big[\text{Clinical Concept},\ \text{Value Threshold},\ \text{Time Window},\ \text{Negation Status}\big] \longrightarrow \text{OMOP Concept Set}$$
+  *Example:* "Exclude eGFR <60 within 28 days before enrollment" decomposes to Concept = eGFR lab measurement, Threshold = < 60 mL/min, Window = 28 days prior to enrollment index, Negation = true (must not match).
+- **Standardized Vocabularies & Portability:**
+  - Map concepts to standardized OMOP Common Data Model vocabularies (via Athena) to group all synonymous clinical and billing codes.
+  - Because Synthea and MIMIC-IV provide established OMOP mappings, the identical cohort query runs portably across both datasets.
+  - Execution handled via OHDSI ecosystem tools (ATLAS cohort definitions and SQL generation).
+- **Explicit Limits & Verification:**
+  - Criteria that clinical data cannot reliably express (e.g., subjective ECOG scores, clinical life expectancy, specific prior intolerance nuances) are explicitly tagged as `"cannot simulate"` rather than guessed.
+  - A clinician manually audits a representative sample of translated queries against source criteria to verify semantic fidelity.
+
+### Step 6: Simulate the Cohort
+
+- **Staged Execution:**
+  - First, run and debug computable queries on **Synthea** synthetic patient records during active pipeline development.
+  - Second, execute validated queries on real-world electronic health records in **MIMIC-IV** (with PhysioNet CITI-credentialed access).
+- **Output:** Total eligible patient count, followed by a full attrition waterfall tracking exactly how many candidate patients each consecutive criterion excludes.
+
+### Step 7: Analyze Cohort Gaps
+
+- **Subgroup Representation Analysis:** Compare the demographic and clinical profile of the simulated eligible pool against the baseline disease population across key strata: age brackets, biological sex, race/ethnicity, renal/hepatic function stages, and common comorbid conditions.
+- **Root-Cause Identification:** Pinpoint the specific criteria that drive the steepest drop-offs in representation for vulnerable or target subgroups.
+- **Peer Cohort Benchmarking:**
+  - Simultaneously execute the eligibility criteria of peer comparator trials on the exact same patient cohort.
+  - Benchmark the proportion of total patients and specific demographic subgroups retained by this protocol versus peer trials.
+  - **Diagnostic Value:** Clearly distinguishes between criteria that are strict but standard practice for the therapeutic field versus idiosyncratic restrictions that represent an unforced trial-specific recruitment problem.
+
+### Step 8: Report as Decision Cards
+
+- **Standardized Card Architecture:** Every flagged finding is packaged into a discrete, actionable decision card containing:
+  - *Evidence:* Exact quotation with document page and section reference.
+  - *Estimated Impact:* Quantitative effect on eligible patient pool, subgroup accrual, or operational burden.
+  - *Options:* Pragmatic alternative paths (e.g., align threshold with peer standard, introduce stratified safety monitoring, accept remote lab draws).
+  - *Decision Routing:* Designates who owns the decision (e.g., Principal Investigator, Medical Monitor, Study Biostatistician, Clinical Operations Lead).
+- **Accountability:** The agent proposes; human clinical teams decide. If a recommendation is dismissed, the user must log a structured reason, capturing organizational rationale and preserving an audit trail.
+
+---
+
+## Phase 2: Further Features
+
+**Goal:** Make findings deeper and directly actionable. Each feature stands alone as a modular capability that can be prioritized and built independently once the core pipeline is operational.
+
+### 1. Burden Score (Biomedical Engineer)
+- **Measures:** Overall patient and site burden quantified through number of in-person clinic visits, frequency of invasive procedures (e.g., tissue biopsies, contrast-enhanced CT/MRI scans), volume and cadence of blood draws, and cumulative hours per visit.
+- **Methodology:**
+  - Transform the Schedule of Activities table into an explicit visit × procedure matrix.
+  - Assign standardized weightings to procedures according to invasiveness, discomfort, risk, and time commitment (weights calibrated in consultation with the clinical doctor).
+  - Benchmark the cumulative trial score against peer-trial percentiles in the same phase and indication.
+- **Output:** An aggregate Protocol Burden Score, a breakdown of top operational cost and burden drivers, and explicit identification of visits that could be conducted remotely or locally (e.g., electronic patient-reported questionnaires, decentralized safety lab draws).
+
+### 2. Statistical Sanity Check (Computer Scientist 2)
+- **Methodology:**
+  - Extract declared sample-size design assumptions from the protocol and SAP: expected treatment effect size, assumed control-arm event or response rate, projected patient dropout/lost-to-follow-up rate, and target statistical power ($1 - \beta$) at significance level $\alpha$.
+  - Recompute the statistical power and required sample size using standard formulas.
+  - Compare the assumed control-arm event rate with actual historical outcomes posted by completed peer trials in AACT.
+- **Output:** Automated sanity flag whenever protocol assumptions are unrealistically optimistic (e.g., underestimating control event rates or assuming negligible dropouts), presented alongside empirical peer trial benchmarks.
+
+### 3. What-If Relaxations (Computer Scientist 2 + Doctor)
+- **Methodology:**
+  - Precompute cohort simulation passes across stepped relaxation tiers for restrictive numerical lab criteria (e.g., evaluating eGFR thresholds at ≥ 60, ≥ 45, and ≥ 30 mL/min; or platelet cutoffs at ≥ 100k, ≥ 75k, and ≥ 50k/μL).
+  - Cache results in memory to enable instantaneous UI slider responses without requiring live database re-queries.
+- **Output:** Live display showing the incremental number and percentage of patients recovered—both overall and stratified per demographic/clinical subgroup—paired with the prerequisite clinical safety questions that the team must resolve (e.g., "Is the investigational product cleared renally or hepatically?").
+
+### 4. Amendment-Risk Model (Computer Scientist 2)
+- **Data Formulation:** Extract historical protocols and their associated ClinicalTrials.gov History of Changes; label each original criterion as having undergone a subsequent protocol amendment (`amended = 1`) or remained unchanged (`amended = 0`).
+- **Feature Engineering:** Parameterize criteria by semantic criterion category (lab threshold, washout, comorbid exclusion, diagnostic test), relative strictness compared to peer trial percentiles, trial phase, sponsor type (industry vs. academic/consortium), and therapeutic indication.
+- **Modeling & Evaluation:**
+  - Train baseline logistic regression and gradient-boosted decision tree classifiers.
+  - Evaluate predictive performance using AUROC (Area Under the Receiver Operating Characteristic curve) on a strictly held-out test set of historical trials.
+- **Output:** Calibrated amendment risk score per eligibility criterion, flagging restrictions most prone to mid-trial revision.
+
+### 5. Before/After View (Computer Scientist 1)
+- **Methodology:** Rerun the entire end-to-end analytical pipeline on an edited or proposed protocol revision.
+- **Output:** Comparative delta view illustrating net change in the eligible patient pool, improvements in under-represented subgroup coverage, shift in Protocol Burden Score, and an audit status of previously flagged findings (resolved, partially addressed, or newly introduced).
+
+### 6. Draft Amendment Text (Computer Scientist 1)
+- **Methodology:** When a clinical team selects an option on a decision card to modify an eligibility criterion or visit procedure, an LLM drafts publication-ready redlined protocol wording.
+- **Supporting Rationale:** Automatically generates an accompanying regulatory and scientific rationale paragraph, synthesizing citations from peer trials, FDA guidance, and drug label pharmacology.
+- **Human Oversight:** All drafted modifications require explicit review, editing, and approval by authorized clinical personnel before export.
+
+---
+
+## Phase 3: Extensions
+
+**Goal:** Turn "who is missing" into "where to find them". Every output produced in this phase represents an aggregated estimate at the county or medical center level, never disclosing or handling individual patient records. This phase serves as the primary centerpiece for interactive demonstration.
+
+### 1. Prioritize Missing Subgroups (Doctor)
+- **Gap Calculation:** For each patient subgroup $g$, compute the clinical representation gap:
+  $$\text{Gap}_g = \text{Share of Disease Population}_g - \text{Share of Eligible Pool}_g$$
+- **Multi-Factor Scoring:** Evaluate each identified gap using a weighted sum across the five validated dimensions established in the system design:
+  - *Disease burden:* Proportion of total disease incidence/prevalence represented by this group.
+  - *Clinical and safety relevance:* Necessity of safety/pharmacokinetic data for real-world prescribing (e.g., renal impairment, elderly populations under ICH E7).
+  - *Regulatory expectation:* Prioritization within FDA Diversity Action Plans and regulatory mandates.
+  - *Statistical need:* Pre-specified subgroup analysis requirements in the SAP requiring adequate statistical power (`n`).
+  - *Scientific value:* Suspected heterogeneity of treatment effect, known pharmacogenomic modulators, or biomarker differences.
+- **Weight Governance & Sensitivity Check:**
+  - Weights are managed in an editable configuration file curated by the clinical lead, ensuring transparent governance rather than opaque agent heuristics.
+  - Robustness check: Test whether the resulting priority ranking shifts when each individual weight is perturbed by ±20%.
+- **Output:** A ranked prioritization list of under-represented subgroups, each accompanied by a concise, one-line clinical justification.
+
+### 2. Estimate Where They Are (Data Engineer + Computer Scientist 2)
+- **County-Level Estimation Formula:** For each county, estimate the pool of eligible and missing subgroup patients:
+  $$\hat{N}_{g,\text{county}} = \text{Disease Cases}_{\text{county}} \times \text{Subgroup Share}_{\text{county}} \times \text{Subgroup Pass Rate}_{\text{sim}}$$
+  - *Disease Cases:* Regional incidence/prevalence derived from SEER, US Cancer Statistics, or CDC PLACES.
+  - *Subgroup Share:* Demographic distributions from US Census American Community Survey (ACS) and localized chronic comorbidity prevalence from CDC PLACES.
+  - *Subgroup Pass Rate:* Empirical fraction of subgroup $g$ surviving trial criteria in the OMOP cohort simulation.
+- **Uncertainty Quantification:** Bootstrap the simulation pass rates to output a confidence interval / plausible range rather than a deceptive point estimate.
+- **Governing Assumption:** Every location output explicitly documents the foundational modeling assumption that a subgroup's criteria pass rate remains consistent across geographic regions.
+
+### 3. Narrow the Centers (Computer Scientist 2)
+- **Candidate Center Identification:** Extract hospitals, health systems, and specialty clinics from NPPES (National Plan and Provider Enumeration System) verified to handle real disease volume using CMS Medicare physician utilization data and CMS Part D prescriber registries for relevant therapeutic classes.
+- **Catchment Area Modeling:** Define the geographic catchment area around each facility using a radial distance threshold (e.g., 50 miles) initially, progressing to road network drive-time isochrones in later iterations.
+- **Output:** Ranked center recommendations accompanied by plain-language rationales (e.g., *"Large pool of patients aged 65+ with CKD within 50 miles, no active competing trials nearby, historical site for 2 successful peer trials"*).
+
+### 4. Account for Competing Trials (Data Engineer)
+- **Identification:** Query AACT for actively recruiting trials in the same disease indication whose eligibility criteria overlap with the candidate trial (benchmarked by running both criteria sets on the shared simulated cohort) and that operate active trial sites within the center's catchment area.
+- **County / Catchment Saturation Metric:**
+  $$S_c = \frac{\sum \text{Enrollment Targets of Competing Recruiting Trials}}{\text{Estimated Total Eligible Patients in Catchment Area}}$$
+  Bounded between 0 (no competition) and 1 (fully saturated recruitment environment).
+
+### 5. Map View (Computer Scientist 1 + Data Engineer)
+- **Interactive Geospatial Visualization:**
+  - County polygons shaded choropleth-style by the density of estimated missing high-priority patients.
+  - Candidate clinical centers rendered as interactive map pins, sized proportionally to their center ranking score.
+  - Overlay of existing active trial sites to visualize geographic coverage voids.
+- **Dynamic Interaction:** Interactive subgroup filter toggles linked bidirectionally to the Phase 2 what-if relaxation slider, such that loosening an eligibility criterion dynamically updates the map shading, patient counts, and center rankings in real time.
+
+### 6. Optional: Voice Screening Interview
+- **Demonstration Showcase:** A simulated interactive patient voice prescreening agent designed for the project demo.
+- **Purpose:** Inquire about practical trial participation barriers that electronic health records never document (e.g., transportation access, willingness to travel, visit scheduling flexibility, caregiver availability), providing a holistic recruitment feasibility assessment.
+
+---
+
+### Center Ranking Formula
+
+A first ranking formula for candidate center $c$, summed over prioritized missing subgroups $g$ (to be refined in collaboration with the clinical lead):
+
+$$\text{score}(c) = \Big[\sum_{g} w_g \cdot \hat{N}_{g,c}\Big] \cdot \big(1 - S_c\big) \cdot E_c$$
+
+Where:
+- `w_g` is the priority weight assigned to missing subgroup `g` (configured in the clinical governance settings).
+- `N̂_g,c` is the estimated count of eligible patients belonging to subgroup `g` residing within the catchment area of center `c`.
+- `S_c` is the recruitment saturation index from competing clinical trials in the catchment area (`0 <= S_c <= 1`).
+- `E_c` is an empirical experience weighting factor reflecting center `c`'s demonstrated track record and operational volume in conducting similar clinical trials.

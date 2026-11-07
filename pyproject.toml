@@ -1,12 +1,13 @@
 [project]
 name = "spanish-ai-agentverse"
 version = "0.1.0"
-description = "Multi-agent system built on Fetch.ai uAgents for the Agentverse UCL hackathon"
+description = "Multi-agent system for the Agentverse UCL hackathon"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.115.0",
     "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
     "uvicorn>=0.34.0",
 ]
 

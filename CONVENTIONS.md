@@ -8,6 +8,7 @@ Automate formatting so the repo is standardised.
 
 - **`uv`** manages Python and dependencies; `uv.lock` and `.python-version` (Python 3.14, via `uv python pin 3.14`) are committed.
 - **`ruff`** formats and lints. `ruff format` + `ruff check --fix` before every commit.
+- **79 characters per line, unless justified.** `ruff format` wraps code to 79, and `ruff check` (rule `E501`) fails on anything the formatter can't wrap: long strings, comments and docstrings. Split long strings with implicit concatenation and long comments over several lines. When a line genuinely can't be split (a verbatim quote a test must match, a generated value), justify it on that line: `# noqa: E501  verbatim protocol quote`. A bare `# noqa: E501` with no reason doesn't pass review. Comments that end in a long URL are allowed automatically.
 - **`mypy`** checks types.
 - **`pre-commit`** runs all three on commit. Don't bypass with `--no-verify`.
 - **`Makefile`** holds every command (table below). New recurring command → new target.
@@ -31,7 +32,7 @@ Automate formatting so the repo is standardised.
 
 **Pre-commit hooks** (on every `git commit`): `ruff format`, `ruff check --fix`, `mypy`. Tests stay out of pre-commit to keep commits fast; CI runs them.
 
-**CI** in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull request (and each new commit to it) and on merge into `main`. Each check is its own named step, so a red run shows which one failed: formatting (`ruff format --check`), lint (`ruff check`), types (`mypy`), tests (`pytest`, live tests skipped). It installs with `uv sync --locked`, so a stale `uv.lock` fails CI: run `uv sync` locally and commit the lock file.
+**CI** in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull request (and each new commit to it) and on merge into `main`. Each check is its own named step, so a red run shows which one failed: formatting (`ruff format --check`), lint (`ruff check`, including the 79-character limit), types (`mypy`), tests (`pytest`, live tests skipped). It installs with `uv sync --locked`, so a stale `uv.lock` fails CI: run `uv sync` locally and commit the lock file.
 
 Turn on branch protection for `main` so a red CI blocks the merge.
 
@@ -62,7 +63,9 @@ def fetch_patient_record(
 
 ```python
 MAX_RETRIES = 3
-LLM_TIMEOUT_SECONDS = 30  # upper bound so a hung LLM call can't stall the agent
+LLM_TIMEOUT_SECONDS = (
+    30  # upper bound so a hung LLM call can't stall the agent
+)
 URGENCY_THRESHOLD = 0.7  # score above which triage escalates to a doctor
 ```
 

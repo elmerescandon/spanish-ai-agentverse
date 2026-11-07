@@ -106,3 +106,63 @@ flowchart TD
 ### 7. Pitch Deck (Team)
 - [ ] User Journey
 - [ ] Valid metrics
+
+---
+
+## Agent Architecture & Repository Mapping
+
+Each step in the pipeline maps to a dedicated agent module communicating via typed schemas:
+
+| Module / Path | Owner | Role & Responsibility |
+| :--- | :--- | :--- |
+| `backend/agents/parser/` | Alex | Parses draft protocol PDFs into the shared ICH M11 JSON structure (`ProtocolDocument`: sections, schedule table, discrete criteria). |
+| `backend/agents/completeness/` | Alex | Evaluates protocol completeness against SPIRIT 2025 / ICH M11 guidelines (`present`, `weak`, `missing`) and runs cross-section consistency checks. |
+| `backend/agents/comparison/` | Theo | Fetches historical Diabetes trials from ClinicalTrials.gov / AACT, evaluates templated rules, and surfaces outlier flags with reasoning traces. |
+| `backend/agents/cohort/` | Alvaro | Converts protocol criteria into computable OMOP/SQL rules, simulates patient cohort attrition on MIMIC-IV / Synthea, and benchmarks diversity gaps against peer trials. |
+| `backend/shared/messages.py` | Shared contract | Defines Pydantic message models, shared data contracts (`ProtocolDocument`, `DecisionCard`, rule definitions), and inter-agent payloads. |
+
+---
+
+## Core Data Sources
+
+Our core pipeline relies on the following primary data sources:
+
+| Source | Role in Core Pipeline |
+| :--- | :--- |
+| **[AACT](https://aact.ctti-clinicaltrials.org/) / ClinicalTrials.gov API & PDFs** | Peer Diabetes protocols, structured eligibility criteria, baseline demographics, and History of Changes (amendments). |
+| **SPIRIT 2025 & ICH M11** | Stefan's clinical completeness and consistency rubric (standard section headings, estimands, safety stopping rules). |
+| **Synthea** | Synthetic patient data for rapid local pipeline development, rule validation, and deterministic end-to-end testing. |
+| **MIMIC-IV** | Real-world EHR patient records for cohort filtering, attrition waterfall generation, and subgroup representation analysis (*noting single-center/ICU cohort limitations*). |
+| **OMOP Vocabularies (Athena)** | Standardized clinical concept sets (SNOMED, RxNorm, LOINC) for translating eligibility criteria into computable cohort queries. |
+
+---
+
+## Evaluation & Validation Metrics
+
+| Component | Metric | Ground Truth |
+| :--- | :--- | :--- |
+| **Parser** | Extraction accuracy per section and per criterion | Hand-labeled sample of protocols |
+| **Completeness checker** | Precision and recall per checklist item | Doctor and clinical expert labels |
+| **Comparison with past protocols** | Share of flags judged real problems; hit rate on criteria later amended | Clinical review; History of Changes on AACT |
+| **Criteria-to-rules translation** | Share of criteria translated correctly | Doctor's review of a sample |
+| **Cohort simulation and gaps** | Predicted eligible demographics vs demographics actually enrolled | Baseline results on ClinicalTrials.gov; FDA Drug Trials Snapshots |
+
+---
+
+## Key Risks & Mitigations
+
+| Risk | Mitigation |
+| :--- | :--- |
+| **Protocol PDFs parse badly (tables, complex layouts)** | Start with clean native protocol PDFs; measure parser accuracy on gold sample before downstream pipeline execution. |
+| **Criteria translate into wrong queries, silently distorting counts** | Clinician reviews a sample of queries; display generated rule logic side-by-side with verbatim criterion in Decision Cards. |
+| **Patient data lacks key clinical variables** | Mark criteria that cannot be mapped in EHR data as `"cannot simulate"` rather than guessing or silently omitting them. |
+| **MIMIC-IV representativeness (single-center/ICU setting)** | Treat cohort simulation as methodological validation; evaluate criteria drops comparatively against peer trials run on the identical cohort. |
+| **Deliberate strict safety criteria flagged as outliers** | Present findings as options and route recommendations to the clinical doctor; never automatically relax safety-critical criteria without approval. |
+
+---
+
+## Sources
+
+- Getz et al. 2024, amendment frequency and avoidability (Tufts CSDD slide summary)
+- One in five cancer trials fail to meet accrual targets (Wong et al., JNCI 2020 / Tufts CSDD)
+- [AACT database](https://aact.ctti-clinicaltrials.org/) (Aggregate Analysis of ClinicalTrials.gov)

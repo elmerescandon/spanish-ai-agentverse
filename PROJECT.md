@@ -280,3 +280,124 @@ Where:
 - `N̂_g,c` is the estimated count of eligible patients belonging to subgroup `g` residing within the catchment area of center `c`.
 - `S_c` is the recruitment saturation index from competing clinical trials in the catchment area (`0 <= S_c <= 1`).
 - `E_c` is an empirical experience weighting factor reflecting center `c`'s demonstrated track record and operational volume in conducting similar clinical trials.
+
+---
+
+## Agent Inventory & Repository Mapping
+
+Each step in the pipeline maps to a dedicated uAgent module in `backend/agents/` communicating via typed schemas in `backend/shared/messages.py`:
+
+| Agent Folder | Owner | Role |
+| :--- | :--- | :--- |
+| `backend/agents/parser/` | Alex | Parses protocol PDFs, SAPs, and consent forms into the shared ICH M11 JSON contract (`ProtocolDocument`). |
+| `backend/agents/completeness/` | Alex | Scores SPIRIT 2025 / ICH M11 rubric items (`present` / `weak` / `missing` with verified page citations) and runs cross-document consistency checks. |
+| `backend/agents/comparison/` | Theo | Retrieves peer trials from ClinicalTrials.gov / AACT and flags outliers across the 10 clinical comparison dimensions. |
+| `backend/agents/cohort/` | Alvaro | Translates eligibility criteria into computable OMOP queries, simulates attrition waterfalls on Synthea / MIMIC-IV, and benchmarks subgroup gaps against peer cohorts. |
+| `backend/agents/extension/` | Team | Prioritizes missing subgroups, projects county-level eligible/missing counts (SEER / CDC PLACES / ACS), and ranks candidate clinical centers. |
+
+---
+
+## Team Responsibilities & Execution Checklist
+
+### Define Protocol Information (Stefan)
+- [x] Choose disease area: **Diabetes**
+- [ ] Search source of protocols
+  - [ ] Patient profile information per cohort
+  - [ ] Protocol related data
+- [ ] Guidelines of the protocol
+- [ ] Create a set of rules template for the agent to analyze
+- [ ] Find an example of the protocol to test
+
+### Zero Step: Data Ingestion (Alex)
+- [ ] Parse protocols into a shared structure (PDF to JSON)
+
+### First Step: Completeness and Consistency Check (Alex)
+- [ ] Apply Completeness & consistency checker (Based on Stefan guidelines)
+- [ ] Add human in the loop to verify the completeness
+  - [ ] If necessary, human must add information that the agent is not able to
+- [ ] Apply automated changes to the protocol (A)
+
+### Second Step: Protocol Comparison (Agent 2) (Theo)
+- [ ] Fetch similar cohort protocols (A)
+- [ ] Compares it with previous protocols using the templated rules (A)
+- [ ] Formats results based on a template (A)
+- [ ] Add human in the loop doctor review templated results with reasoning traces associated with each section
+- [ ] Apply changes to the protocol (A)
+
+### Third Step: Cohort Comparison (Alvaro)
+
+#### Part 1 (Alvaro)
+- [ ] Turn protocol values into rules
+- [ ] Filter patients from the eligible cohort
+- [ ] Fetch similar previous cohort
+- [ ] Fetch information from the patients (variables)
+- [ ] Filter MIMIC data according to those values
+
+#### Part 2 (Alvaro)
+- [ ] Compare cohort to previous trials (test for similar diversity, representation, feasibility)
+- [ ] Name the criteria that drive the biggest drops. Also run the peer trials' criteria on the same simulated cohort, so each result is benchmarked: the share of patients and of each subgroup this protocol keeps, compared with similar trials, and which criteria explain the difference. That separates criteria that are strict but normal for the field from criteria that are a real problem for this trial.
+
+### Fourth Step: Reporting
+- [ ] Group recommendation results
+- [ ] Present insightful information
+
+### Pitch Deck
+- [ ] User Journey
+- [ ] Valid metrics
+
+---
+
+## Evaluation and Milestones
+
+The headline result is retrospective: run the agent on the original protocols of completed trials and check its findings against what actually happened.
+
+| Component | Metric | Ground truth |
+| :--- | :--- | :--- |
+| **Parser** | Extraction accuracy per section and per criterion | Hand-labeled sample of protocols |
+| **Completeness checker** | Precision and recall per checklist item | Doctor and biomedical engineer labels |
+| **Comparison with past protocols** | Share of flags judged real problems; hit rate on criteria later amended | Clinical review; History of Changes |
+| **Criteria-to-query translation** | Share of criteria translated correctly | Doctor's review of a sample |
+| **Cohort simulation and gaps** | Predicted eligible demographics vs demographics actually enrolled | Baseline results on ClinicalTrials.gov; FDA Drug Trials Snapshots |
+| **Low-accrual prediction** | AUROC (area under the ROC curve) | Trials terminated for low accrual (AACT) |
+| **Center ranking (extension)** | Overlap between top-ranked centers and the sites of trials that met their enrollment target | AACT site lists |
+
+### Milestone Gates (dates to be set by the team)
+
+- Disease area chosen and shared protocol schema agreed
+- Corpus built; MIMIC-IV access granted
+- Gold set labeled
+- Core runs end to end on one protocol
+- Retrospective evaluation of the core on the held-out set
+- Phase 2 features chosen and built
+- Extension prototype: priority, location, center ranking
+- Demo and write-up
+
+---
+
+## Risks and Open Questions
+
+| Risk | Mitigation |
+| :--- | :--- |
+| **Protocol PDFs parse badly (tables, scans)** | Start with the cleanest protocols; measure parser accuracy before building on it |
+| **Criteria translate into the wrong queries, silently distorting counts** | Doctor reviews a sample; show the query next to each criterion in the report |
+| **Patient data lacks key variables (ECOG, biomarkers, lines of therapy)** | Report those criteria as "cannot simulate" rather than guessing; choose a disease area where data is richer |
+| **MIMIC-IV is not representative; Synthea is not real** | Present results as a test of the method; move to All of Us for real conclusions |
+| **County-level projection assumes pass rates are the same everywhere** | Adjust with CDC PLACES; state the assumption in every location output |
+| **Strict criteria can be deliberate (safety, enrichment)** | Cards offer options and route the decision to the right person; never recommend relaxing outright |
+| **Scope creep across three phases** | Phase 1 end to end before anything else |
+
+### Open Questions for the Team
+
+- **Which disease area?** It decides most data sources. Lung cancer has strong SEER data and the Trial Pathfinder precedent; Diabetes is checked in the initial task breakdown.
+- **What is the deadline, and is the goal a paper, a demo, or both?**
+- **Which LLM, and what is the compute budget?**
+- **Who completes CITI training for MIMIC-IV access?**
+- **Project name.**
+
+---
+
+## Sources
+
+- Getz et al. 2024, amendment frequency and avoidability (slide summary)
+- One in five cancer trials fail to meet accrual targets
+- [AACT database](https://aact.ctti-clinicaltrials.org/) (Aggregate Analysis of ClinicalTrials.gov)

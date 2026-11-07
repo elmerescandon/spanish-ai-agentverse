@@ -2,12 +2,12 @@
 
 import pytest
 
-from backend.protocols.models import (
+from backend.protocol_clinicaltrials.models import (
     ClusterProfile,
     ProtocolFeatures,
     TrialPhase,
 )
-from backend.protocols.recommender import evaluate_candidate_protocol
+from backend.protocol_clinicaltrials.recommender import evaluate_candidate_protocol
 
 
 @pytest.fixture

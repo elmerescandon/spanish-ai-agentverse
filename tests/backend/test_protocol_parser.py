@@ -2,7 +2,7 @@
 
 import pytest
 
-from backend.protocols.models import (
+from backend.protocol_clinicaltrials.models import (
     AllocationType,
     InterventionModelType,
     MaskingType,
@@ -10,7 +10,7 @@ from backend.protocols.models import (
     TerminationCategory,
     TrialPhase,
 )
-from backend.protocols.parser import (
+from backend.protocol_clinicaltrials.parser import (
     categorize_termination_reason,
     extract_protocol_features,
     parse_age_to_years,

@@ -6,7 +6,7 @@ eligibility complexity, endpoint burden, and regulatory governance.
 
 import math
 
-from backend.protocols.models import (
+from backend.protocol_clinicaltrials.models import (
     ClusterProfile,
     ProtocolEvaluationReport,
     ProtocolFeatures,

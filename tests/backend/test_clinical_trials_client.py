@@ -3,7 +3,10 @@
 import httpx
 import pytest
 
-from backend.clients.clinical_trials import ClinicalTrialsClient, StudySearchResult
+from backend.protocol_clinicaltrials.client import (
+    ClinicalTrialsClient,
+    StudySearchResult,
+)
 
 
 def test_search_studies_parses_response_correctly(

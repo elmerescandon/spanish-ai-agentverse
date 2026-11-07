@@ -2,8 +2,8 @@
 
 import pytest
 
-from backend.protocols.clustering import ProtocolClusteringEngine
-from backend.protocols.models import (
+from backend.protocol_clinicaltrials.clustering import ProtocolClusteringEngine
+from backend.protocol_clinicaltrials.models import (
     AllocationType,
     InterventionModelType,
     MaskingType,

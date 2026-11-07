@@ -9,7 +9,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer  # type: ignore[impo
 from sklearn.neighbors import NearestNeighbors  # type: ignore[import-untyped]
 from sklearn.preprocessing import StandardScaler  # type: ignore[import-untyped]
 
-from backend.protocols.models import (
+from backend.protocol_clinicaltrials.models import (
     ClusterProfile,
     OverallStatus,
     ProtocolFeatures,

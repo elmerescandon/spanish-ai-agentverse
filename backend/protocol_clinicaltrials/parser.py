@@ -3,7 +3,7 @@
 import re
 from typing import Final
 
-from backend.protocols.models import (
+from backend.protocol_clinicaltrials.models import (
     AllocationType,
     InterventionModelType,
     MaskingType,

@@ -10,9 +10,9 @@ project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from backend.clients.clinical_trials import ClinicalTrialsClient
-from backend.protocols import (
+from backend.protocol_clinicaltrials import (
     AllocationType,
+    ClinicalTrialsClient,
     InterventionModelType,
     MaskingType,
     OverallStatus,

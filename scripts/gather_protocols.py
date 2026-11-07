@@ -16,9 +16,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from backend.clients.clinical_trials import ClinicalTrialsClient
-from backend.protocols.clustering import ProtocolClusteringEngine
-from backend.protocols.parser import extract_protocol_features
+from backend.protocol_clinicaltrials import (
+    ClinicalTrialsClient,
+    ProtocolClusteringEngine,
+    extract_protocol_features,
+)
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"

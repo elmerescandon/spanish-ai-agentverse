@@ -11,16 +11,17 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from backend.clients.clinical_trials import ClinicalTrialsClient
-from backend.protocols.clustering import ProtocolClusteringEngine
-from backend.protocols.models import (
+from backend.protocols import (
     AllocationType,
     InterventionModelType,
     MaskingType,
     OverallStatus,
+    ProtocolClusteringEngine,
     ProtocolFeatures,
     TrialPhase,
+    evaluate_candidate_protocol,
+    extract_protocol_features,
 )
-from backend.protocols.parser import extract_protocol_features
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
@@ -156,6 +157,11 @@ def main() -> None:
     matched_cluster_id = engine.predict_cluster(candidate)
     matched_profile = next(p for p in profiles if p.cluster_id == matched_cluster_id)
     peer_cohort = engine.find_peer_cohort(candidate, top_k=3)
+    similarity = peer_cohort[0][1] if peer_cohort else 1.0
+
+    report = evaluate_candidate_protocol(
+        candidate, matched_profile, similarity_score=similarity
+    )
 
     print(f"Candidate: {candidate.title}")
     print(
@@ -165,28 +171,10 @@ def main() -> None:
         f"Cluster Baseline Termination Risk: {matched_profile.termination_rate * 100:.1f}%\n"
     )
 
-    print("Defect & Feasibility Warnings:")
-    if candidate.num_exclusion_criteria > matched_profile.p90_exclusion_count:
-        print(
-            f"  [HIGH RISK] Excessive Exclusion Criteria: Candidate has {candidate.num_exclusion_criteria} "
-            f"exclusion criteria vs cluster median of {matched_profile.median_exclusion_count:.0f} "
-            f"(P90: {matched_profile.p90_exclusion_count:.0f}). High risk of enrollment shortfall!"
-        )
-    if candidate.patients_per_site > matched_profile.median_patients_per_site * 3:
-        print(
-            f"  [HIGH RISK] Unrealistic Site Accrual Burden: Candidate plans {candidate.patients_per_site:.1f} "
-            f"patients/site vs cluster median of {matched_profile.median_patients_per_site:.1f} pts/site. "
-            f"Recommend expanding to at least {max(10, int(candidate.target_enrollment / max(1.0, matched_profile.median_patients_per_site)))} sites."
-        )
-    if candidate.phase == TrialPhase.PHASE3 and not candidate.has_dmc:
-        print(
-            "  [REGULATORY WARNING] Missing Data Monitoring Committee (DMC) for Phase 3 study."
-        )
-    if candidate.num_secondary_outcomes > 15:
-        print(
-            f"  [BURDEN WARNING] Excessive Secondary Endpoints: {candidate.num_secondary_outcomes} endpoints "
-            f"(cluster median: {matched_profile.median_secondary_outcomes:.0f}). Risk of protocol non-compliance."
-        )
+    print(f"Defect & Feasibility Warnings ({len(report.recommendations)} detected):")
+    for rec in report.recommendations:
+        print(f"  [{rec.severity}] {rec.category}: {rec.message}")
+        print(f"         Action: {rec.recommended_action}")
 
     print("\nTop-3 Most Structurally Similar Historical Trials:")
     for peer, score in peer_cohort:

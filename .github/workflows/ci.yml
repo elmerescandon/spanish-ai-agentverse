@@ -33,3 +33,21 @@ jobs:
 
       - name: Run tests (pytest, live tests skipped)
         run: uv run pytest
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        run: bun install --cwd frontend --frozen-lockfile
+
+      - name: Lint frontend (eslint)
+        run: bun run --cwd frontend lint
+
+      - name: Type-check frontend (tsc)
+        run: bun run --cwd frontend typecheck
+
+      - name: Run frontend tests (bun test)
+        run: bun run --cwd frontend test
+
+      - name: Build frontend (next build)
+        run: bun run --cwd frontend build

@@ -1,0 +1,24 @@
+[project]
+name = "spanish-ai-agentverse"
+version = "0.1.0"
+description = "Multi-agent system built on Fetch.ai uAgents for the Agentverse UCL hackathon"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.1",
+    "pre-commit>=4.7.0",
+    "pytest>=9.2.0",
+    "ruff>=0.17.4",
+    "watchfiles>=1.3.0",
+]
+
+[tool.ruff.lint]
+extend-select = ["UP"]
+
+[tool.pytest.ini_options]
+markers = ["live: hits real APIs"]
+addopts = "-m 'not live'"
+pythonpath = ["."]

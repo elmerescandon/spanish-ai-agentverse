@@ -1,4 +1,4 @@
-.PHONY: install dev run format lint test test-live check demo
+.PHONY: install dev dev-frontend run format lint test test-live check demo
 
 install:
 	uv sync
@@ -6,6 +6,9 @@ install:
 
 dev:
 	uv run watchfiles "python -m backend.main" backend
+
+dev-frontend:
+	npm --prefix frontend run dev
 
 run:
 	uv run python -m backend.main

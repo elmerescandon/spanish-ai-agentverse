@@ -1,0 +1,102 @@
+[
+  {
+    "cluster_id": 0,
+    "name": "Cluster 0: NA, PHASE2, PHASE4 | Diabetes Mellitus, Type 2, Diabetes Mellitus",
+    "study_count": 46,
+    "completed_count": 35,
+    "terminated_count": 11,
+    "termination_rate": 0.239,
+    "top_mesh_conditions": [
+      "Diabetes Mellitus, Type 2",
+      "Diabetes Mellitus",
+      "Obesity"
+    ],
+    "top_phases": [
+      "NA",
+      "PHASE2",
+      "PHASE4"
+    ],
+    "median_enrollment": 70.5,
+    "median_exclusion_count": 5.0,
+    "p90_exclusion_count": 17.5,
+    "median_primary_outcomes": 1.0,
+    "median_secondary_outcomes": 3.0,
+    "median_site_count": 1.0,
+    "median_patients_per_site": 61.0
+  },
+  {
+    "cluster_id": 1,
+    "name": "Cluster 1: NA, PHASE2, PHASE1/PHASE2 | Diabetes Mellitus, Type 1, Diabetes Mellitus",
+    "study_count": 28,
+    "completed_count": 8,
+    "terminated_count": 20,
+    "termination_rate": 0.714,
+    "top_mesh_conditions": [
+      "Diabetes Mellitus, Type 1",
+      "Diabetes Mellitus",
+      "Diabetes Mellitus, Type 2"
+    ],
+    "top_phases": [
+      "NA",
+      "PHASE2",
+      "PHASE1/PHASE2"
+    ],
+    "median_enrollment": 3.5,
+    "median_exclusion_count": 7.0,
+    "p90_exclusion_count": 18.0,
+    "median_primary_outcomes": 1.0,
+    "median_secondary_outcomes": 2.0,
+    "median_site_count": 1.0,
+    "median_patients_per_site": 2.75
+  },
+  {
+    "cluster_id": 2,
+    "name": "Cluster 2: NA, PHASE1, PHASE3 | Diabetes Mellitus, Type 2, Diabetes Mellitus",
+    "study_count": 15,
+    "completed_count": 13,
+    "terminated_count": 2,
+    "termination_rate": 0.133,
+    "top_mesh_conditions": [
+      "Diabetes Mellitus, Type 2",
+      "Diabetes Mellitus",
+      "Glucose Intolerance"
+    ],
+    "top_phases": [
+      "NA",
+      "PHASE1",
+      "PHASE3"
+    ],
+    "median_enrollment": 42.0,
+    "median_exclusion_count": 5.0,
+    "p90_exclusion_count": 25.0,
+    "median_primary_outcomes": 1.0,
+    "median_secondary_outcomes": 3.0,
+    "median_site_count": 1.0,
+    "median_patients_per_site": 42.0
+  },
+  {
+    "cluster_id": 3,
+    "name": "Cluster 3: PHASE3, PHASE2, NA | Diabetes Mellitus, Diabetes Mellitus, Type 2",
+    "study_count": 11,
+    "completed_count": 4,
+    "terminated_count": 7,
+    "termination_rate": 0.636,
+    "top_mesh_conditions": [
+      "Diabetes Mellitus",
+      "Diabetes Mellitus, Type 2",
+      "Diabetes Mellitus, Type 1"
+    ],
+    "top_phases": [
+      "PHASE3",
+      "PHASE2",
+      "NA"
+    ],
+    "median_enrollment": 311.0,
+    "median_exclusion_count": 14.0,
+    "p90_exclusion_count": 42.0,
+    "median_primary_outcomes": 1.0,
+    "median_secondary_outcomes": 4.0,
+    "median_site_count": 38.0,
+    "median_patients_per_site": 5.91
+  }
+]

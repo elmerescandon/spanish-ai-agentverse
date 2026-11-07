@@ -43,3 +43,6 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 scratch/
+
+# Raw gathered protocol data dumps
+data/protocols/*_studies.json

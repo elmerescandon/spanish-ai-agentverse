@@ -12,7 +12,7 @@ Automate formatting so the repo is standardised.
 - **`pre-commit`** runs all three on commit. Don't bypass with `--no-verify`.
 - **`Makefile`** holds every command (table below). New recurring command → new target.
 - **`make dev` auto-restarts agents on save** (via `watchfiles`), so the edit-run loop takes seconds.
-- **GitHub Actions CI** runs lint, type checks and the full test suite (`make lint test`) on every PR and push to main, so a broken `main` is caught before merge, not at the demo.
+- **GitHub Actions CI** checks formatting, lint, types and the full test suite on every PR and push to main, so a broken `main` is caught before merge, not at the demo.
 - **`scratch/` is gitignored** for notebooks and throwaway experiments. Prototype there, then move clean code into the package.
 
 ## Commands, pre-commit and CI
@@ -22,7 +22,7 @@ Automate formatting so the repo is standardised.
 | `make install` | `uv sync` + install pre-commit hooks. Run once after cloning. |
 | `make dev` | Run agents with hot reload. |
 | `make format` | `ruff format` + `ruff check --fix`. |
-| `make lint` | `ruff check` + `mypy`, no fixes. What CI runs. |
+| `make lint` | `ruff check` + `mypy`, no fixes. CI runs the same checks plus a format check and tests. |
 | `make test` | All tests except live ones. |
 | `make check` | format + lint + test in one go. Run before every push. |
 | `make test-live` | Live tests against real APIs. |
@@ -31,23 +31,7 @@ Automate formatting so the repo is standardised.
 
 **Pre-commit hooks** (on every `git commit`): `ruff format`, `ruff check --fix`, `mypy`. Tests stay out of pre-commit to keep commits fast; CI runs them.
 
-**CI** in `.github/workflows/ci.yml` runs lint, types and tests on every pull request (and each new commit to it) and on merge into `main`:
-
-```yaml
-name: CI
-on:
-  push:
-    branches: [main]
-  pull_request:
-jobs:
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-      - run: uv sync
-      - run: make lint test
-```
+**CI** in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull request (and each new commit to it) and on merge into `main`. Each check is its own named step, so a red run shows which one failed: formatting (`ruff format --check`), lint (`ruff check`), types (`mypy`), tests (`pytest`, live tests skipped). It installs with `uv sync --locked`, so a stale `uv.lock` fails CI: run `uv sync` locally and commit the lock file.
 
 Turn on branch protection for `main` so a red CI blocks the merge.
 

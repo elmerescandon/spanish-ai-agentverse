@@ -1,5 +1,7 @@
 """Tests for typed environment configuration and validation."""
 
+from pathlib import Path
+
 import pytest
 
 from backend.shared.config import (
@@ -11,6 +13,51 @@ from backend.shared.config import (
     get_settings,
     load_settings,
 )
+
+
+@pytest.fixture(autouse=True)
+def isolate_from_local_env_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Run each test in an empty directory.
+
+    Settings reads .env relative to the working directory, so without this
+    a developer's real .env leaks into the expected defaults.
+    """
+    monkeypatch.chdir(tmp_path)
+
+
+def test_settings_read_env_file_in_working_directory_by_default(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / ".env").write_text("GEMINI_MODEL=model-from-dotenv\n")
+    assert load_settings().gemini_model == "model-from-dotenv"
+
+
+def test_disabled_env_file_ignores_env_file_on_disk(tmp_path: Path) -> None:
+    (tmp_path / ".env").write_text("GEMINI_MODEL=model-from-dotenv\n")
+    settings = Settings(
+        _env_file=None,  # type: ignore[call-arg]
+    )
+    assert settings.gemini_model == DEFAULT_GEMINI_MODEL
+
+
+def test_custom_env_file_parses_comma_separated_origins(
+    tmp_path: Path,
+) -> None:
+    custom_env_file = tmp_path / "custom.env"
+    custom_env_file.write_text(
+        "GEMINI_MODEL=model-from-custom-file\n"
+        "ALLOWED_ORIGINS=https://a.example.com, https://b.example.com\n"
+    )
+    settings = Settings(
+        _env_file=custom_env_file,  # type: ignore[call-arg]
+    )
+    assert settings.gemini_model == "model-from-custom-file"
+    assert settings.allowed_origins == [
+        "https://a.example.com",
+        "https://b.example.com",
+    ]
 
 
 def test_default_settings() -> None:

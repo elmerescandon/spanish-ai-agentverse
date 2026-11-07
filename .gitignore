@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+frontend/node_modules/
 __pycache__/
 *.py[cod]
 venv/
@@ -10,7 +11,13 @@ dist/
 build/
 *.egg-info/
 .next/
+frontend/.next/
 out/
+.vercel/
+frontend/.vercel/
+*.tsbuildinfo
+next-env.d.ts
+frontend/next-env.d.ts
 
 # Environment variables
 .env

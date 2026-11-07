@@ -128,9 +128,9 @@ Everyone's AI agent follows these rules too, or we get four styles.
 - Add `CLAUDE.md` and `AGENTS.md` at the repo root (Cursor reads `AGENTS.md`), each containing: `Follow all rules in CONVENTIONS.md.` plus the run/test commands.
 - **You own what your AI writes.** Read the diff before committing; the same rules apply to generated code.
 
-## [TO BE COMPLETED] Project layout
+## Project layout
 
-Frontend and backend split; inside the backend, one folder per agent. Which agents we need waits on the brief, so names below are placeholders.
+Frontend and backend split; inside the backend, one folder per agent. See [PROJECT.md](PROJECT.md) for the concrete agent definitions, domain models, and project architecture.
 
 ```text
 .
@@ -154,6 +154,7 @@ Frontend and backend split; inside the backend, one folder per agent. Which agen
 ├── Makefile
 ├── pyproject.toml
 ├── .env.example
+├── PROJECT.md
 ├── CONVENTIONS.md
 ├── CLAUDE.md
 └── AGENTS.md
@@ -164,7 +165,9 @@ Frontend and backend split; inside the backend, one folder per agent. Which agen
 - **Agents import from `shared/` and `clients/`, never from each other.** They talk only through messages.
 - **New agent = copy an existing folder**, rename, add its tests. Frontend tests live in `frontend/` with its own tooling.
 
-## [TO BE COMPLETED] Agents
+## Agents
+
+See [PROJECT.md](PROJECT.md) for the concrete agent inventory, responsibilities, and interaction flows.
 
 - **All message schemas live in one shared module** (e.g. `shared/messages.py`). It is the contract between agents: changes go through the team, not one person's branch.
 - **One clear role per agent**, describable in one sentence ("triages symptoms and escalates urgent cases" is fine). Put that sentence in the agent's module docstring. Don't split further than you need: every extra agent is more messages to define and debug.

@@ -19,3 +19,4 @@ Read and follow all rules in [CONVENTIONS.md](CONVENTIONS.md) before writing cod
 - Tests check behaviour and edge cases, with the LLM mocked.
 - Never change `backend/shared/messages.py` or `backend/api/` without flagging it: other people's code depends on them.
 - Keep diffs small and focused on the task; no drive-by refactors.
+- Before every `git pull`: check `git status` and run `make check`. If it fails, report and stop. If it passes, run `git pull` and then run `make check` again to validate the updated code.

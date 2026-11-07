@@ -1,0 +1,362 @@
+[
+  {
+    "nct_id": "NCT01131676",
+    "title": "EMPA-REG OUTCOME: Empagliflozin Cardiovascular Outcome Event Trial in Type 2 Diabetes Mellitus Patients",
+    "phase": "PHASE3",
+    "status": "COMPLETED",
+    "target_enrollment": 7020,
+    "min_age_years": 18.0,
+    "max_age_years": null,
+    "criteria": [
+      {
+        "criterion_id": "PEER1-IN-01",
+        "kind": "INCLUSION",
+        "text": "Adults aged >= 18 years with diagnosis of Type 2 Diabetes Mellitus",
+        "page_number": 12
+      },
+      {
+        "criterion_id": "PEER1-IN-02",
+        "kind": "INCLUSION",
+        "text": "HbA1c between 7.0% and 10.0% inclusive at screening",
+        "page_number": 12
+      },
+      {
+        "criterion_id": "PEER1-IN-03",
+        "kind": "INCLUSION",
+        "text": "BMI <= 45.0 kg/m2 at screening visit",
+        "page_number": 12
+      },
+      {
+        "criterion_id": "PEER1-EX-01",
+        "kind": "EXCLUSION",
+        "text": "Severe renal impairment defined as eGFR < 30 mL/min/1.73m2 (MDRD/CKD-EPI)",
+        "page_number": 13
+      },
+      {
+        "criterion_id": "PEER1-EX-02",
+        "kind": "EXCLUSION",
+        "text": "Hepatic impairment with ALT > 3.0 x ULN (120 U/L) or AST > 3.0 x ULN (120 U/L)",
+        "page_number": 13
+      },
+      {
+        "criterion_id": "PEER1-EX-03",
+        "kind": "EXCLUSION",
+        "text": "Uncontrolled hyperglycemia with fasting plasma glucose > 240 mg/dL",
+        "page_number": 13
+      },
+      {
+        "criterion_id": "PEER1-EX-04",
+        "kind": "EXCLUSION",
+        "text": "History of bariatric surgery within the past 2 years",
+        "page_number": 14
+      },
+      {
+        "criterion_id": "PEER1-EX-05",
+        "kind": "EXCLUSION",
+        "text": "Pregnant or nursing women",
+        "page_number": 14
+      }
+    ],
+    "published_baseline": {
+      "enrolled_n": 7020,
+      "mean_age": 63.1,
+      "age_65_plus_pct": 44.5,
+      "female_pct": 28.5,
+      "mean_hba1c": 8.07,
+      "mean_bmi": 30.6,
+      "mean_egfr": 74.0
+    }
+  },
+  {
+    "nct_id": "NCT01730534",
+    "title": "DECLARE-TIMI 58: Multicenter Trial to Evaluate the Effect of Dapagliflozin on Cardiovascular Events in T2DM",
+    "phase": "PHASE3",
+    "status": "COMPLETED",
+    "target_enrollment": 17160,
+    "min_age_years": 40.0,
+    "max_age_years": null,
+    "criteria": [
+      {
+        "criterion_id": "PEER2-IN-01",
+        "kind": "INCLUSION",
+        "text": "Diagnosis of Type 2 Diabetes Mellitus, aged >= 40 years",
+        "page_number": 15
+      },
+      {
+        "criterion_id": "PEER2-IN-02",
+        "kind": "INCLUSION",
+        "text": "HbA1c >= 6.5% and < 12.0% at screening",
+        "page_number": 15
+      },
+      {
+        "criterion_id": "PEER2-EX-01",
+        "kind": "EXCLUSION",
+        "text": "Creatinine clearance / eGFR < 60 mL/min/1.73m2 at screening",
+        "page_number": 16
+      },
+      {
+        "criterion_id": "PEER2-EX-02",
+        "kind": "EXCLUSION",
+        "text": "AST or ALT > 3x ULN (120 U/L)",
+        "page_number": 16
+      },
+      {
+        "criterion_id": "PEER2-EX-03",
+        "kind": "EXCLUSION",
+        "text": "Severe uncontrolled blood pressure with SBP >= 180 mmHg or DBP >= 100 mmHg",
+        "page_number": 16
+      },
+      {
+        "criterion_id": "PEER2-EX-04",
+        "kind": "EXCLUSION",
+        "text": "Active malignancy / history of cancer within 5 years",
+        "page_number": 17
+      },
+      {
+        "criterion_id": "PEER2-EX-05",
+        "kind": "EXCLUSION",
+        "text": "Pregnant women",
+        "page_number": 17
+      }
+    ],
+    "published_baseline": {
+      "enrolled_n": 17160,
+      "mean_age": 63.9,
+      "age_65_plus_pct": 46.1,
+      "female_pct": 37.4,
+      "mean_hba1c": 8.3,
+      "mean_bmi": 32.1,
+      "mean_egfr": 85.2
+    }
+  },
+  {
+    "nct_id": "NCT02054897",
+    "title": "SUSTAIN-1: Efficacy and Safety of Semaglutide Once-weekly in Treatment-naive Subjects With Type 2 Diabetes",
+    "phase": "PHASE3",
+    "status": "COMPLETED",
+    "target_enrollment": 388,
+    "min_age_years": 18.0,
+    "max_age_years": null,
+    "criteria": [
+      {
+        "criterion_id": "PEER3-IN-01",
+        "kind": "INCLUSION",
+        "text": "Male or female aged >= 18 years diagnosed with Type 2 Diabetes Mellitus",
+        "page_number": 18
+      },
+      {
+        "criterion_id": "PEER3-IN-02",
+        "kind": "INCLUSION",
+        "text": "HbA1c between 7.0% and 10.0% (both inclusive)",
+        "page_number": 18
+      },
+      {
+        "criterion_id": "PEER3-EX-01",
+        "kind": "EXCLUSION",
+        "text": "Impaired renal function defined as eGFR < 30 mL/min/1.73m2",
+        "page_number": 19
+      },
+      {
+        "criterion_id": "PEER3-EX-02",
+        "kind": "EXCLUSION",
+        "text": "Heart failure (congestive heart failure NYHA Class IV)",
+        "page_number": 19
+      },
+      {
+        "criterion_id": "PEER3-EX-03",
+        "kind": "EXCLUSION",
+        "text": "Proliferative retinopathy or maculopathy requiring acute treatment",
+        "page_number": 19
+      },
+      {
+        "criterion_id": "PEER3-EX-04",
+        "kind": "EXCLUSION",
+        "text": "History of malignant neoplasms within the past 5 years",
+        "page_number": 20
+      },
+      {
+        "criterion_id": "PEER3-EX-05",
+        "kind": "EXCLUSION",
+        "text": "Females who are pregnant or breast-feeding",
+        "page_number": 20
+      }
+    ],
+    "published_baseline": {
+      "enrolled_n": 388,
+      "mean_age": 53.7,
+      "age_65_plus_pct": 21.4,
+      "female_pct": 45.9,
+      "mean_hba1c": 8.05,
+      "mean_bmi": 32.9,
+      "mean_egfr": 94.1
+    }
+  },
+  {
+    "nct_id": "NCT02065791",
+    "title": "CREDENCE: Canagliflozin and Renal Events in Diabetes With Established Nephropathy Clinical Evaluation",
+    "phase": "PHASE3",
+    "status": "COMPLETED",
+    "target_enrollment": 4401,
+    "min_age_years": 30.0,
+    "max_age_years": null,
+    "criteria": [
+      {
+        "criterion_id": "PEER4-IN-01",
+        "kind": "INCLUSION",
+        "text": "Subjects aged >= 30 years with Type 2 Diabetes Mellitus",
+        "page_number": 21
+      },
+      {
+        "criterion_id": "PEER4-IN-02",
+        "kind": "INCLUSION",
+        "text": "HbA1c >= 6.5% and <= 12.0%",
+        "page_number": 21
+      },
+      {
+        "criterion_id": "PEER4-IN-03",
+        "kind": "INCLUSION",
+        "text": "Estimated glomerular filtration rate (eGFR) >= 30 mL/min/1.73m2",
+        "page_number": 21
+      },
+      {
+        "criterion_id": "PEER4-EX-01",
+        "kind": "EXCLUSION",
+        "text": "History of diabetic ketoacidosis (DKA) or Type 1 Diabetes Mellitus",
+        "page_number": 22
+      },
+      {
+        "criterion_id": "PEER4-EX-02",
+        "kind": "EXCLUSION",
+        "text": "ALT > 100 U/L or AST > 100 U/L at screening",
+        "page_number": 22
+      },
+      {
+        "criterion_id": "PEER4-EX-03",
+        "kind": "EXCLUSION",
+        "text": "Pregnant or nursing women",
+        "page_number": 22
+      }
+    ],
+    "published_baseline": {
+      "enrolled_n": 4401,
+      "mean_age": 63.0,
+      "age_65_plus_pct": 46.8,
+      "female_pct": 33.9,
+      "mean_hba1c": 8.27,
+      "mean_bmi": 31.3,
+      "mean_egfr": 56.2
+    }
+  },
+  {
+    "nct_id": "NCT03170518",
+    "title": "Phase 3 Trial of Canagliflozin in Children and Adolescents With Type 2 Diabetes Mellitus",
+    "phase": "PHASE3",
+    "status": "COMPLETED",
+    "target_enrollment": 171,
+    "min_age_years": 10.0,
+    "max_age_years": 18.0,
+    "criteria": [
+      {
+        "criterion_id": "PEER5-IN-01",
+        "kind": "INCLUSION",
+        "text": "Participants with Type 2 Diabetes Mellitus",
+        "page_number": 14
+      },
+      {
+        "criterion_id": "PEER5-IN-02",
+        "kind": "INCLUSION",
+        "text": "HbA1c of >= 6.5% to <= 11.0% at screening",
+        "page_number": 15
+      },
+      {
+        "criterion_id": "PEER5-EX-01",
+        "kind": "EXCLUSION",
+        "text": "Estimated glomerular filtration rate (eGFR) < 60 mL/min/1.73m2",
+        "page_number": 36
+      },
+      {
+        "criterion_id": "PEER5-EX-02",
+        "kind": "EXCLUSION",
+        "text": "History of diabetic ketoacidosis (DKA)",
+        "page_number": 36
+      },
+      {
+        "criterion_id": "PEER5-EX-03",
+        "kind": "EXCLUSION",
+        "text": "ALT > 100 U/L at screening",
+        "page_number": 37
+      }
+    ],
+    "published_baseline": {
+      "enrolled_n": 171,
+      "mean_age": 14.8,
+      "age_65_plus_pct": 0.0,
+      "female_pct": 66.1,
+      "mean_hba1c": 8.0,
+      "mean_bmi": 34.5,
+      "mean_egfr": 115.0
+    }
+  },
+  {
+    "nct_id": "NCT04828785",
+    "title": "Food As MedicinE for Diabetes (FAME-D) Randomized Controlled Trial",
+    "phase": "PHASE2",
+    "status": "COMPLETED",
+    "target_enrollment": 200,
+    "min_age_years": 18.0,
+    "max_age_years": null,
+    "criteria": [
+      {
+        "criterion_id": "PEER6-IN-01",
+        "kind": "INCLUSION",
+        "text": "Adults aged >= 18 years with Type 2 diabetes diagnosis",
+        "page_number": 22
+      },
+      {
+        "criterion_id": "PEER6-IN-02",
+        "kind": "INCLUSION",
+        "text": "HbA1c >= 7.0% and <= 11.5%",
+        "page_number": 22
+      },
+      {
+        "criterion_id": "PEER6-IN-03",
+        "kind": "INCLUSION",
+        "text": "BMI >= 25.0 kg/m2",
+        "page_number": 22
+      },
+      {
+        "criterion_id": "PEER6-IN-04",
+        "kind": "INCLUSION",
+        "text": "Positive screen on Hunger Vital Sign (food insecurity)",
+        "page_number": 22
+      },
+      {
+        "criterion_id": "PEER6-EX-01",
+        "kind": "EXCLUSION",
+        "text": "History of bariatric surgery",
+        "page_number": 22
+      },
+      {
+        "criterion_id": "PEER6-EX-02",
+        "kind": "EXCLUSION",
+        "text": "Creatinine clearance / eGFR < 45 mL/min/1.73m2",
+        "page_number": 22
+      },
+      {
+        "criterion_id": "PEER6-EX-03",
+        "kind": "EXCLUSION",
+        "text": "Currently pregnant",
+        "page_number": 22
+      }
+    ],
+    "published_baseline": {
+      "enrolled_n": 200,
+      "mean_age": 56.4,
+      "age_65_plus_pct": 29.0,
+      "female_pct": 58.0,
+      "mean_hba1c": 8.6,
+      "mean_bmi": 34.2,
+      "mean_egfr": 79.5
+    }
+  }
+]

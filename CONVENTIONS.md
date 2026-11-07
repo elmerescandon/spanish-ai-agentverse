@@ -113,6 +113,7 @@ Frontend tests live in `frontend/src/__tests__/` and focus on **functional workf
 - **Small PRs**, glanced over by one teammate. Fast review beats thorough review this weekend. The PR description points to the one or two spots that need eyes; the reviewer checks those, and always any change to `shared/messages.py`.
 - **No reviewer free within X minutes? Merge it yourself** once CI is green, and say so in the chat. Waiting is the most expensive thing this weekend.
 - **Commit messages say what and why** in the imperative: `add triage agent retry on timeout`, not `fix stuff`.
+- **Before every `git pull`**: check `git status` and run `make check`. If it fails, report and stop. If it passes, run `git pull` and then run `make check` again to validate the updated code.
 
 **PR template** in `.github/pull_request_template.md`. It isn't created for you: commit the file once, and from then on GitHub pre-fills every new PR description with it:
 

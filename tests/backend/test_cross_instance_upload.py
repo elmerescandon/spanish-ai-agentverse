@@ -59,7 +59,7 @@ def _flagged_comparison(
     monkeypatch: pytest.MonkeyPatch, fake_blob: FakeBlobBackend
 ) -> Generator[None]:
     monkeypatch.setattr(
-        agent_runners, "compare_demo_draft", flagged_demo_comparison
+        agent_runners, "compare_with_registry_peers", flagged_demo_comparison
     )
     reset_mock_state()
     _switch_to_another_instance()
@@ -173,7 +173,9 @@ def test_accepts_of_different_fields_from_two_instances_are_both_kept(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        agent_runners, "compare_demo_draft", out_of_line_demo_comparison
+        agent_runners,
+        "compare_with_registry_peers",
+        out_of_line_demo_comparison,
     )
     protocol_id = _upload(client, tmp_path)
     _run_peers(client, protocol_id)

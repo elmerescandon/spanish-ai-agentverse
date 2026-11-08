@@ -9,7 +9,12 @@
     "backend": {
       "root": ".",
       "framework": "fastapi",
-      "entrypoint": "backend.main:app"
+      "entrypoint": "backend.main:app",
+      "functions": {
+        "backend/main.py": {
+          "maxDuration": "max"
+        }
+      }
     },
     "frontend": {
       "root": "frontend/",

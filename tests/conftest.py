@@ -9,30 +9,42 @@ from fpdf import FPDF
 from pydantic import BaseModel
 from vercel import blob
 
-from backend.agents.protocol_comparison.agent import compare_registry_draft
+from backend.agents.protocol_comparison.agent import (
+    ProtocolComparison,
+    compare_registry_draft,
+)
 from backend.agents.protocol_comparison.comparison import (
     Category,
+    DimensionComparison,
     FlagRule,
 )
 from backend.agents.protocol_comparison.demo import (
     DEMO_DRAFT_NCT_ID,
     DEMO_PEER_QUERY,
     DEMO_PROTOCOL_DATE,
-    DemoComparison,
     compare_demo_draft,
+    load_demo_peers,
 )
 from backend.agents.protocol_comparison.dimensions import DimensionId
-from backend.agents.protocol_comparison.peer_store import PeerStore
+from backend.agents.protocol_comparison.eligibility import (
+    LabReading,
+)
+from backend.agents.protocol_comparison.peer_store import (
+    PeerSource,
+    PeerStore,
+)
 from backend.agents.protocol_comparison.review import (
     ReasoningStatus,
     SuggestionCard,
 )
 from backend.agents.protocol_comparison.suggestions import Suggestion
+from backend.api import agent_runners
 from backend.api.protocol_pipeline import (
     ProtocolPipeline,
     set_protocol_pipeline,
 )
 from backend.clients import document_store
+from backend.clients.clinicaltrials_gov import PeerSearchQuery, StudyRecord
 from backend.clients.document_store import (
     MemoryDocumentStore,
     set_document_store,
@@ -178,15 +190,53 @@ def _offline_protocol_pipeline(
     set_protocol_pipeline(None)
 
 
+async def search_committed_demo_peers(
+    _query: PeerSearchQuery,
+) -> list[StudyRecord]:
+    """Offline stand-in for a registry search: the committed demo peers."""
+    return load_demo_peers(PeerStore())
+
+
+@pytest.fixture(autouse=True)
+def _offline_peer_search(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Keep API tests off ClinicalTrials.gov; live tests search for real."""
+    if request.node.get_closest_marker("live") is None:
+        monkeypatch.setattr(
+            agent_runners,
+            "_peer_source",
+            PeerSource(PeerStore(), search=search_committed_demo_peers),
+        )
+
+
 # Values a test card offers for the HbA1c upper bound, one per peer group.
 OFFERED_HBA1C_VALUES = {Category.ALL: 10.5, Category.RECENT: 10.0}
 
 
-async def flagged_demo_comparison() -> DemoComparison:
+def as_protocol_comparison(
+    results: tuple[DimensionComparison, ...],
+    cards: tuple[SuggestionCard, ...],
+) -> ProtocolComparison:
+    """Registry-draft results in the shape the PEERS runner returns."""
+    return ProtocolComparison(
+        review_date=DEMO_PROTOCOL_DATE,
+        peer_search=DEMO_PEER_QUERY,
+        results=results,
+        cards=cards,
+        draft_lab_reading=LabReading(
+            trial_id=DEMO_DRAFT_NCT_ID, values={}, rejected=()
+        ),
+    )
+
+
+async def flagged_demo_comparison(*_: object) -> ProtocolComparison:
     """Theo's real demo comparison plus one card for the HbA1c upper bound.
 
     The committed peer snapshot flags nothing for the demo draft, so this
     adds the card a flag would produce, letting tests accept a value.
+    Takes and ignores any arguments, so it can stand in for
+    compare_with_registry_peers.
     """
     comparison = await compare_demo_draft()
     result = next(
@@ -208,12 +258,7 @@ async def flagged_demo_comparison() -> DemoComparison:
         reasoning=None,
         reasoning_status=ReasoningStatus.SKIPPED,
     )
-    return DemoComparison(
-        draft_trial_id=comparison.draft_trial_id,
-        protocol_date=comparison.protocol_date,
-        results=comparison.results,
-        cards=(card,),
-    )
+    return as_protocol_comparison(comparison.results, (card,))
 
 
 # Registry values far outside the demo peers, so Theo's own rules flag them.
@@ -222,7 +267,7 @@ OUT_OF_LINE_MAXIMUM_AGE = "99 Years"
 OUT_OF_LINE_ENROLLMENT = 5000
 
 
-async def out_of_line_demo_comparison() -> DemoComparison:
+async def out_of_line_demo_comparison(*_: object) -> ProtocolComparison:
     """Theo's real comparison of a demo draft with three values out of line.
 
     The draft's minimum age, maximum age and enrollment are pushed far
@@ -262,12 +307,7 @@ async def out_of_line_demo_comparison() -> DemoComparison:
     results, cards = await compare_registry_draft(
         draft, DEMO_PROTOCOL_DATE, peers, store
     )
-    return DemoComparison(
-        draft_trial_id=DEMO_DRAFT_NCT_ID,
-        protocol_date=DEMO_PROTOCOL_DATE,
-        results=results,
-        cards=cards,
-    )
+    return as_protocol_comparison(results, cards)
 
 
 @pytest.fixture

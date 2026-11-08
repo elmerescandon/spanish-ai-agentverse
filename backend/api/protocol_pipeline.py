@@ -252,6 +252,14 @@ class ProtocolPipeline:
             self._llm = _create_gemini_client()
         return self._llm
 
+    def llm(self) -> JsonGenerator:
+        """The Gemini client the pipeline's jobs share.
+
+        Raises:
+            AnalysisFailedError: Gemini is not configured.
+        """
+        return self._client()
+
     async def parse(self, pdf_path: Path) -> ProtocolDocument:
         """Parse a protocol PDF into a ProtocolDocument.
 

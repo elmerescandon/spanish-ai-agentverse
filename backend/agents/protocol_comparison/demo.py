@@ -3,6 +3,9 @@
 The sponsor loosened HbA1c and ALT limits in Amendment 4 (2020) after slow
 recruitment. The demo reviews the protocol as first issued, against peers
 that had started by then, to see whether the agent flags the same limits.
+This registry draft and its fixed peer search only serve the /protocols
+routes, which have no uploaded PDF; an uploaded protocol gets its own
+peer search (agent.compare_with_registry_peers).
 
 Run `make demo-peers` to refresh the committed peer snapshot.
 """
@@ -29,6 +32,7 @@ from backend.clients.clinicaltrials_gov import (
     PeerSearchQuery,
     Phase,
     Population,
+    StudyRecord,
 )
 from backend.clients.gemini import JsonGenerator
 
@@ -67,10 +71,26 @@ class DemoComparison:
     cards: tuple[SuggestionCard, ...]
 
 
+def load_demo_peers(store: PeerStore) -> list[StudyRecord]:
+    """The demo peers from the committed ClinicalTrials.gov snapshot.
+
+    Raises:
+        PeerStoreError: the demo peers are not cached; run
+            `make demo-peers`.
+    """
+    peer_studies = store.load_studies(DEMO_PEER_QUERY)
+    if peer_studies is None:
+        raise PeerStoreError(
+            "expected cached demo peers in data/peers, found none; "
+            "run `make demo-peers`"
+        )
+    return peer_studies
+
+
 async def compare_demo_draft(
     store: PeerStore | None = None, llm: JsonGenerator | None = None
 ) -> DemoComparison:
-    """Compare the demo draft with its cached peers.
+    """Compare the demo draft's registry record with its cached peers.
 
     Uses only the committed cache (data/peers) unless an LLM is given,
     so it is fast and repeatable.
@@ -79,15 +99,8 @@ async def compare_demo_draft(
         PeerStoreError: the demo peers or draft are not cached; run
             `make demo-peers`.
     """
-    # [TO REFACTOR:(theo)]: every protocol is compared as the demo draft
-    # until the parsed protocol's values feed the comparison.
     store = store or PeerStore()
-    peer_studies = store.load_studies(DEMO_PEER_QUERY)
-    if peer_studies is None:
-        raise PeerStoreError(
-            "expected cached demo peers in data/peers, found none; "
-            "run `make demo-peers`"
-        )
+    peer_studies = load_demo_peers(store)
     draft_study = store.load_study(DEMO_DRAFT_NCT_ID)
     results, cards = await compare_registry_draft(
         draft_study, DEMO_PROTOCOL_DATE, peer_studies, store, llm

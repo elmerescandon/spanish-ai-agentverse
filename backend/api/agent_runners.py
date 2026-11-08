@@ -11,6 +11,7 @@ run in parallel and a retried call is safe.
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 from typing import cast
 
 from pydantic import JsonValue
@@ -27,11 +28,16 @@ from backend.agents.completeness.rules import load_rule_catalogue
 from backend.agents.protocol_comparison.agent import (
     AGENT_NAME as COMPARISON_AGENT_NAME,
 )
-from backend.agents.protocol_comparison.demo import (
-    DemoComparison,
-    compare_demo_draft,
+from backend.agents.protocol_comparison.agent import (
+    ProtocolComparison,
+    SessionLabReadingCache,
+    compare_with_registry_peers,
 )
-from backend.agents.protocol_comparison.peer_store import PeerStoreError
+from backend.agents.protocol_comparison.peer_store import (
+    PeerSource,
+    PeerStore,
+    PeerStoreError,
+)
 from backend.agents.protocol_comparison.step_data import (
     to_step_data as comparison_step_data,
 )
@@ -60,9 +66,18 @@ from backend.api.schemas import (
     TraceEntry,
     TraceKind,
 )
+from backend.clients.clinicaltrials_gov import ClinicalTrialsGovError
+from backend.clients.gemini import JsonGenerator
 from backend.shared.messages import ProtocolDocument
 
 logger = logging.getLogger(__name__)
+
+# Committed peer data plus, in memory only, every new registry search
+# and lab reading: the deployed filesystem is read-only, and a repeat
+# request for the same protocol must not search or call Gemini again.
+_peer_store = PeerStore()
+_peer_source = PeerSource(_peer_store)
+_comparison_lab_cache = SessionLabReadingCache(_peer_store)
 
 
 def _step_logged(document: ProtocolDocument, step: StepData) -> StepData:
@@ -197,11 +212,25 @@ async def run_checklist_agent(document: ProtocolDocument) -> StepData:
     return _step_logged(document, step)
 
 
+def _comparison_llm(document: ProtocolDocument) -> JsonGenerator | None:
+    """Gemini for reading the draft's lab limits, or None if absent."""
+    try:
+        return get_protocol_pipeline().llm()
+    except AnalysisFailedError:
+        logger.warning(
+            "comparison without Gemini, lab limits not read: agent=%s "
+            "protocol_id=%s",
+            COMPARISON_AGENT_NAME,
+            document.protocol_id,
+        )
+        return None
+
+
 @dataclass(frozen=True)
 class ComparisonStep:
     """Theo's comparison and the PEERS section built from it."""
 
-    comparison: DemoComparison
+    comparison: ProtocolComparison
     step: StepData
 
 
@@ -210,31 +239,38 @@ async def run_protocol_comparison_agent(
 ) -> ComparisonStep:
     """Return the PEERS section (comparison with similar trials).
 
-    Compares the demo draft with the committed peer snapshot and no LLM,
-    so the step is fast and gives the same result when called twice. The
-    comparison is returned too, so the caller can store the values it
-    offers; the runner itself writes nothing.
+    Searches ClinicalTrials.gov for peers matching the protocol's parsed
+    phase and ages, then compares its parsed values (ages, enrollment,
+    drugs, and lab limits Gemini reads from the eligibility criteria)
+    with theirs. Searches and readings are kept in memory, so a repeat
+    call neither searches nor calls Gemini again. Without Gemini the lab
+    limits are left out, with a warning on the step. The comparison is
+    returned too, so the caller can store the values it offers; the
+    runner itself writes nothing to disk (the deployed filesystem is
+    read-only).
 
     Raises:
-        PeerStoreError: the peer snapshot in data/peers is missing or
+        ClinicalTrialsGovError: the registry search failed; the route
+            answers with a server error.
+        PeerStoreError: the committed peer snapshot in data/peers is
             invalid; the route answers with a server error.
     """
     try:
-        comparison = await compare_demo_draft()
-    except PeerStoreError:
+        comparison = await compare_with_registry_peers(
+            document,
+            date.today(),
+            _peer_source,
+            _comparison_lab_cache,
+            _comparison_llm(document),
+        )
+    except ClinicalTrialsGovError, PeerStoreError:
         logger.exception(
             "comparison failed: agent=%s protocol_id=%s",
             COMPARISON_AGENT_NAME,
             document.protocol_id,
         )
         raise
-    step = comparison_step_data(
-        document,
-        comparison.draft_trial_id,
-        comparison.protocol_date,
-        comparison.results,
-        comparison.cards,
-    )
+    step = comparison_step_data(document, comparison)
     return ComparisonStep(comparison, _step_logged(document, step))
 
 

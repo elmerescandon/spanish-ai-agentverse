@@ -1,5 +1,5 @@
 # Completeness & Consistency Checker — Rule Catalogue
-# Families: REG (39), EST (26), XS (22), DM (45), ELQ (23), EX (50).
+# Families: REG (39), EST (26), XS (22), DM (45), ELQ (23), EX (50), AMD (7).
 # All titles, triggers (flag_if), and fixes are written in project-own wording
 # and cite public regulatory/registry standards.
 
@@ -3153,3 +3153,112 @@ fix = "Use the narrower form: exclude adults lacking capacity only with a justif
 source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
 source_tier = "final_guidance"
 library_tag = "BREADTH"
+
+# ---------------------------------------------------------------------------
+# Family AMD: Amendment apparatus, amended protocols only (AMD-01 to AMD-07)
+# ---------------------------------------------------------------------------
+
+[[rule]]
+id = "AMD-01"
+family = "AMD"
+severity = "S1"
+detection = ["F", "X"]
+applies_when = ["IS_AMENDED"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Current protocol version not uniquely identified"
+flag_if = "The version number, version date and amendment number on the title page and elsewhere do not agree, so the current version cannot be identified."
+fix = "Reconcile the version number, date and amendment number everywhere they appear."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "AMD-02"
+family = "AMD"
+severity = "S2"
+detection = ["J"]
+applies_when = ["IS_AMENDED"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OTHER"]
+check = "judgement"
+title = "Primary-measure change not classed as strategy"
+flag_if = "A change to the primary estimand, primary endpoint or related measures is not classed as a change of strategy in the amendment summary."
+fix = "Reclassify the primary reason for the amendment as a change of strategy."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "AMD-03"
+family = "AMD"
+severity = "S2"
+detection = ["F"]
+applies_when = ["IS_AMENDED"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OTHER"]
+check = "judgement"
+title = "Amendment changes lack a rationale"
+flag_if = "Changes in the amendment summary are listed without a brief scientific reason, especially changes to eligibility."
+fix = "Give a short scientific reason for each change."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "AMD-04"
+family = "AMD"
+severity = "S3"
+detection = ["F"]
+applies_when = ["IS_AMENDED"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OTHER"]
+check = "judgement"
+title = "Earlier amendments not in the amendment history"
+flag_if = "Summaries of earlier amendments are not collected in the protocol amendment history appendix."
+fix = "Move earlier amendment summaries into the amendment history appendix."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "AMD-05"
+family = "AMD"
+severity = "S2"
+detection = ["F"]
+applies_when = ["IS_AMENDED"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OTHER"]
+check = "judgement"
+title = "Enrolment at time of amendment not stated"
+flag_if = "The amendment does not say how many participants were enrolled when it was made."
+fix = "State the (estimated) enrolment at the time of the amendment."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "AMD-06"
+family = "AMD"
+severity = "S1"
+detection = ["J"]
+applies_when = ["IS_AMENDED"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OTHER"]
+check = "judgement"
+title = "Amendment impact answered 'No' incorrectly"
+flag_if = "An impact question is answered 'No' although the change affects dosing, safety monitoring, eligibility or the primary analysis."
+fix = "Answer 'Yes' and explain the impact."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "AMD-07"
+family = "AMD"
+severity = "S2"
+detection = ["X"]
+applies_when = ["IS_AMENDED"]
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS", "PROTOCOL_SUMMARY", "OTHER"]
+check = "judgement"
+title = "Eligibility change without population sensitivity"
+flag_if = "Eligibility changed mid-trial but no analysis checks its effect on the estimand population (for example a pre- versus post-amendment sensitivity analysis)."
+fix = "Add a sensitivity analysis comparing participants enrolled before and after the change."
+source = "ICH E9(R1) Estimands and Sensitivity Analysis"
+source_tier = "ich"

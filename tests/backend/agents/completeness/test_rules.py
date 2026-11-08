@@ -26,6 +26,7 @@ EXPECTED_RULE_IDS: frozenset[str] = frozenset(
     + [f"DM-{index:02d}" for index in EXPECTED_DM_NUMBERS]
     + [f"ELQ-{index:02d}" for index in range(1, 24)]
     + [f"EX-{index:02d}" for index in range(1, 51)]
+    + [f"AMD-{index:02d}" for index in range(1, 8)]
 )
 EXPECTED_FAMILY_COUNTS: dict[RuleFamily, int] = {
     RuleFamily.XS: 22,
@@ -34,6 +35,7 @@ EXPECTED_FAMILY_COUNTS: dict[RuleFamily, int] = {
     RuleFamily.DM: 45,
     RuleFamily.ELQ: 23,
     RuleFamily.EX: 50,
+    RuleFamily.AMD: 7,
 }
 
 
@@ -311,3 +313,15 @@ def test_exclusion_library_tags_and_class_conditions() -> None:
             assert set(rule.applies_when) - {
                 ApplicabilityCondition.DIABETES_TYPE_T2D
             }, rule.id
+
+
+def test_amendment_rules_apply_only_to_amended_protocols() -> None:
+    amendment_rules = [
+        rule
+        for rule in load_rule_catalogue().rules
+        if rule.family == RuleFamily.AMD
+    ]
+
+    assert amendment_rules
+    for rule in amendment_rules:
+        assert ApplicabilityCondition.IS_AMENDED in rule.applies_when

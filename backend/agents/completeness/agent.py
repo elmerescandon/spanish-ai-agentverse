@@ -108,10 +108,11 @@ async def check_protocol(
     """
     rule_catalogue = catalogue or load_rule_catalogue()
     profile = await extract_trial_profile(document, llm)
-    findings = [
+    evaluated = [
         evaluate_rule(rule, document, profile, available_inputs, checks)
         for rule in rule_catalogue.rules
     ]
+    findings = [item.finding for item in evaluated]
     report = assemble_report(document, profile, rule_catalogue, findings)
     logger.info(
         "protocol checked: agent=%s protocol_id=%s score=%.1f",

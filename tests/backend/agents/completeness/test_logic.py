@@ -5,6 +5,7 @@ import pytest
 from backend.agents.completeness.logic import (
     PERFECT_SCORE,
     CheckOutcome,
+    EvaluatedRule,
     assemble_report,
     compute_run_result,
     condition_holds,
@@ -398,13 +399,15 @@ def test_report_rejects_findings_that_do_not_cover_the_catalogue() -> None:
 
 
 def test_rule_without_a_check_is_cannot_assess_not_implemented() -> None:
-    finding = evaluate_rule(
+    evaluated = evaluate_rule(
         _rule(), _document(), TrialProfile(), frozenset(), {}
     )
 
-    assert finding.status == RuleStatus.CANNOT_ASSESS
-    assert finding.status_reason is not None
-    assert "not implemented" in finding.status_reason
+    assert isinstance(evaluated, EvaluatedRule)
+    assert evaluated.needs_second_opinion is False
+    assert evaluated.finding.status == RuleStatus.CANNOT_ASSESS
+    assert evaluated.finding.status_reason is not None
+    assert "not implemented" in evaluated.finding.status_reason
 
 
 def test_registered_check_decides_the_rule() -> None:
@@ -417,12 +420,52 @@ def test_registered_check_decides_the_rule() -> None:
             evidence=(_citation(),),
         )
 
-    finding = evaluate_rule(
+    evaluated = evaluate_rule(
         _rule(), _document(), TrialProfile(), frozenset(), {"XS-05": fires}
     )
 
-    assert finding.status == RuleStatus.FIRED
-    assert finding.check_method == CheckMethod.DETERMINISTIC
+    assert evaluated.needs_second_opinion is False
+    assert evaluated.finding.status == RuleStatus.FIRED
+    assert evaluated.finding.check_method == CheckMethod.DETERMINISTIC
+
+
+def test_absence_fire_sets_second_opinion_and_fills_searched_locations() -> (
+    None
+):
+    def fires_on_absence(
+        document: ProtocolDocument, profile: TrialProfile
+    ) -> CheckOutcome:
+        return CheckOutcome(
+            status=RuleStatus.FIRED,
+            finding="No sample-size calculation found.",
+            needs_second_opinion=True,
+        )
+
+    document = ProtocolDocument(
+        protocol_id="NCT00000000",
+        title="Example protocol",
+        page_count=10,
+        pages=[PageText(page_number=1, text=QUOTE)],
+        sections=[
+            _section(M11Heading.PROTOCOL_SUMMARY, 1, 2),
+            _section(M11Heading.TRIAL_DESIGN, 3, 6),
+        ],
+    )
+    evaluated = evaluate_rule(
+        _rule(),
+        document,
+        TrialProfile(),
+        frozenset(),
+        {"XS-05": fires_on_absence},
+    )
+
+    assert evaluated.needs_second_opinion is True
+    assert evaluated.finding.status == RuleStatus.FIRED
+    assert evaluated.finding.evidence == []
+    assert [
+        (loc.heading, loc.section_title, loc.start_page, loc.end_page)
+        for loc in evaluated.finding.searched_locations
+    ] == [(M11Heading.TRIAL_DESIGN, "TRIAL_DESIGN", 3, 6)]
 
 
 def test_pre_decided_rule_never_runs_its_check() -> None:
@@ -434,11 +477,12 @@ def test_pre_decided_rule_never_runs_its_check() -> None:
     rule = _rule(applies_when=(ApplicabilityCondition.CONTROL_IS_PLACEBO,))
     profile = _profile(control_type=ControlType.ACTIVE)
 
-    finding = evaluate_rule(
+    evaluated = evaluate_rule(
         rule, _document(), profile, frozenset(), {"XS-05": must_not_run}
     )
 
-    assert finding.status == RuleStatus.NOT_APPLICABLE
+    assert evaluated.finding.status == RuleStatus.NOT_APPLICABLE
+    assert evaluated.needs_second_opinion is False
 
 
 # --- profile page selection --------------------------------------------

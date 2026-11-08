@@ -140,6 +140,15 @@ class CheckOutcome:
     location: FindingLocation = field(default_factory=FindingLocation)
     status_reason: str | None = None
     confidence: float = 1.0
+    needs_second_opinion: bool = False
+
+
+@dataclass(frozen=True)
+class EvaluatedRule:
+    """Evaluated rule finding and whether an absence fire needs review."""
+
+    finding: RuleFinding
+    needs_second_opinion: bool = False
 
 
 type DeterministicCheck = Callable[
@@ -274,13 +283,42 @@ def finding_from_outcome(
     )
 
 
+def _default_searched_locations(
+    rule: RuleDefinition, document: ProtocolDocument
+) -> tuple[SearchedLocation, ...]:
+    """Build searched_locations from rule.sections using document.sections."""
+    wanted = set(rule.sections)
+    matched = tuple(
+        SearchedLocation(
+            heading=section.heading,
+            section_title=section.title,
+            start_page=section.start_page,
+            end_page=section.end_page,
+        )
+        for section in document.sections or []
+        if section.heading in wanted
+    )
+    if matched:
+        return matched
+    end_page = max(1, document.page_count)
+    return tuple(
+        SearchedLocation(
+            heading=heading,
+            section_title=None,
+            start_page=1,
+            end_page=end_page,
+        )
+        for heading in rule.sections
+    )
+
+
 def evaluate_rule(
     rule: RuleDefinition,
     document: ProtocolDocument,
     profile: TrialProfile,
     available_inputs: frozenset[RequiredInput],
     checks: Mapping[str, DeterministicCheck],
-) -> RuleFinding:
+) -> EvaluatedRule:
     """Decide one rule: pre-decision, else its code check, else unassessed.
 
     A rule with no registered check yet is reported as cannot_assess rather
@@ -288,7 +326,10 @@ def evaluate_rule(
     """
     pre_decision = pre_decide(rule, profile, document.design, available_inputs)
     if pre_decision is not None:
-        return finding_from_outcome(rule, pre_decision, rule.check)
+        return EvaluatedRule(
+            finding=finding_from_outcome(rule, pre_decision, rule.check),
+            needs_second_opinion=pre_decision.needs_second_opinion,
+        )
     check = checks.get(rule.id)
     if check is None:
         not_implemented = CheckOutcome(
@@ -296,9 +337,29 @@ def evaluate_rule(
             finding="Not assessed yet.",
             status_reason=NOT_IMPLEMENTED_REASON,
         )
-        return finding_from_outcome(rule, not_implemented, rule.check)
-    return finding_from_outcome(
-        rule, check(document, profile), CheckMethod.DETERMINISTIC
+        return EvaluatedRule(
+            finding=finding_from_outcome(rule, not_implemented, rule.check),
+            needs_second_opinion=False,
+        )
+    outcome = check(document, profile)
+    if (
+        outcome.status == RuleStatus.FIRED
+        and not outcome.evidence
+        and not outcome.searched_locations
+    ):
+        outcome = CheckOutcome(
+            status=outcome.status,
+            finding=outcome.finding,
+            evidence=outcome.evidence,
+            searched_locations=_default_searched_locations(rule, document),
+            location=outcome.location,
+            status_reason=outcome.status_reason,
+            confidence=outcome.confidence,
+            needs_second_opinion=outcome.needs_second_opinion,
+        )
+    return EvaluatedRule(
+        finding=finding_from_outcome(rule, outcome, CheckMethod.DETERMINISTIC),
+        needs_second_opinion=outcome.needs_second_opinion,
     )
 
 

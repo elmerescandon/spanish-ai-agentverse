@@ -45,6 +45,7 @@ from backend.api.schemas import (
     StepRecommendationRequest,
     UploadFileResponse,
 )
+from backend.clients.document_store import get_document_store
 from backend.clients.pdf_reader import UnreadablePdfError
 from backend.clients.protocol_db import (
     ProtocolRecord,
@@ -66,7 +67,6 @@ router = APIRouter(prefix="/api")
 
 _protocols: dict[str, ProtocolSummary] = {}
 _recommendations: dict[str, dict[str, Recommendation]] = {}
-_documents: dict[str, ProtocolDocument] = {}
 # Protocols whose comparison-agent recommendations are already loaded.
 _comparison_loaded: set[str] = set()
 
@@ -110,7 +110,6 @@ def reset_mock_state() -> None:
     """Reset in-memory protocols and recommendations to default demo state."""
     _protocols.clear()
     _recommendations.clear()
-    _documents.clear()
     _comparison_loaded.clear()
 
     demo_proto = ProtocolSummary(
@@ -322,7 +321,7 @@ async def upload_file(file: UploadFile) -> UploadFileResponse:
             "title": Path(filename).stem,
         }
     )
-    _documents[document.protocol_id] = document
+    await get_document_store().save(document)
     await get_protocol_db().save_protocol(
         ProtocolRecord(
             protocol_id=document.protocol_id,
@@ -348,9 +347,16 @@ async def upload_file(file: UploadFile) -> UploadFileResponse:
     )
 
 
-def _get_document(protocol_id: str) -> ProtocolDocument:
-    """Return the uploaded document or raise a 404 naming the id."""
-    document = _documents.get(protocol_id)
+async def _get_document(protocol_id: str) -> ProtocolDocument:
+    """Return the uploaded document or raise a 404 naming the id.
+
+    The document is read from the shared store, not process memory:
+    another server instance may have handled the upload.
+
+    Raises:
+        DocumentStoreError: the store failed (answered with 503).
+    """
+    document = await get_document_store().load(protocol_id)
     if document is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -364,7 +370,7 @@ async def _run_step(
     runner: Callable[[ProtocolDocument], Awaitable[StepData]],
 ) -> StepData:
     """Look up the document and run one step's adapter."""
-    return await runner(_get_document(request.protocol_id))
+    return await runner(await _get_document(request.protocol_id))
 
 
 @router.post("/checklist-recommendation", response_model=StepData)
@@ -388,7 +394,7 @@ async def protocol_recommendation(
     Raises:
         ProtocolStoreError: the database failed (answered with 503).
     """
-    document = _get_document(request.protocol_id)
+    document = await _get_document(request.protocol_id)
     run = await run_protocol_comparison_agent(document)
     await get_protocol_db().save_offers(
         document.protocol_id,

@@ -63,6 +63,8 @@ JUDGEMENT_BATCH_INSTRUCTIONS = (
     "absent in the protocol text; state a one-line status_reason.\n"
     '- Status "cannot_assess" requires a one-line status_reason.\n'
     "- Never invent facts not present in the protocol pages.\n"
+    "- When a finding concerns specific eligibility criteria, list their "
+    "criterion_id values (from eligibility_criteria) in criterion_ids.\n"
     '- Always cite any FDA draft guidance as "FDA draft guidance '
     '(non-binding)".\n'
     "- Set confidence between 0.0 and 1.0 reflecting your certainty."

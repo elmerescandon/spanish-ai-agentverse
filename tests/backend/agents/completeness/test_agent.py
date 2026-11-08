@@ -23,6 +23,7 @@ from backend.agents.completeness.rules import (
 )
 from backend.clients.gemini import LlmCallFailedError, ThinkingLevel
 from backend.shared.messages import (
+    NON_SCORED_RULE_STATUSES,
     AnalysisPlanExtraction,
     CheckMethod,
     Citation,
@@ -150,7 +151,7 @@ async def test_check_protocol_returns_one_finding_per_catalogue_rule() -> None:
     rule_count = len(load_rule_catalogue().rules)
     assert report.rules_evaluated == len(report.findings) == rule_count
     statuses = {finding.status for finding in report.findings}
-    assert statuses <= {RuleStatus.NOT_APPLICABLE, RuleStatus.CANNOT_ASSESS}
+    assert statuses <= NON_SCORED_RULE_STATUSES
     type_1_rule = next(f for f in report.findings if f.rule_id == "DM-43")
     assert type_1_rule.status == RuleStatus.NOT_APPLICABLE
     assert report.before.registration_gate.is_partial

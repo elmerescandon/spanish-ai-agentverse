@@ -8,6 +8,9 @@ from collections.abc import Mapping
 
 from backend.agents.completeness.checks.consistency import CONSISTENCY_CHECKS
 from backend.agents.completeness.checks.diabetes import DIABETES_CHECKS
+from backend.agents.completeness.checks.eligibility import (
+    ELIGIBILITY_CHECKS,
+)
 from backend.agents.completeness.checks.estimands import ESTIMAND_CHECKS
 from backend.agents.completeness.checks.prechecks import (
     JUDGEMENT_PRECHECKS,
@@ -27,4 +30,5 @@ DETERMINISTIC_CHECKS: Mapping[str, DeterministicCheck] = {
     **ESTIMAND_CHECKS,
     **CONSISTENCY_CHECKS,
     **DIABETES_CHECKS,
+    **ELIGIBILITY_CHECKS,
 }

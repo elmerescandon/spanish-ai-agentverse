@@ -177,6 +177,7 @@ class JudgementVerdict(BaseModel):
     evidence: list[Citation] = Field(default_factory=list)
     status_reason: str | None = None
     confidence: float = Field(default=0.8, ge=0.0, le=1.0)
+    criterion_ids: list[str] = Field(default_factory=list)
 
 
 class JudgementVerdicts(BaseModel):
@@ -773,7 +774,11 @@ def resolve_judgement_batch(
             verified_citations[0].page_number if verified_citations else None
         )
         default_heading = rule.sections[0] if rule.sections else None
-        location = FindingLocation(heading=default_heading, page=first_page)
+        location = FindingLocation(
+            section=", ".join(verdict.criterion_ids) or None,
+            heading=default_heading,
+            page=first_page,
+        )
         outcome = _with_default_searched_locations(
             rule,
             document,

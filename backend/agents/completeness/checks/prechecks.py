@@ -44,6 +44,7 @@ HYPOGLYCEMIA_ENDPOINT_PATTERN = re.compile(
 
 # REG-39: first-person wording. Case-sensitive so "US" (the country) does
 # not match the pronoun "us".
+BMI_PATTERN = re.compile(r"\bbmi\b|body\s+mass\s+index", re.IGNORECASE)
 FIRST_PERSON_PATTERN = re.compile(r"\b(?:[Ww]e|[Oo]ur|us)\b")
 
 MIN_SIX_MONTH_WEEKS = 25.0
@@ -424,6 +425,29 @@ def precheck_reg_39(
     )
 
 
+def precheck_elq_12(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """ELQ-12: Passes with no upper age limit; else Gemini judges it."""
+    if document.design is None or document.design.max_age_years is not None:
+        return None
+    return passed_outcome("No upper age limit is set.")
+
+
+def precheck_elq_19(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """ELQ-19: Passes when no criterion mentions BMI; else Gemini judges."""
+    if document.eligibility_criteria is None:
+        return None
+    if any(
+        BMI_PATTERN.search(c.text) is not None
+        for c in document.eligibility_criteria
+    ):
+        return None
+    return passed_outcome("No eligibility criterion limits BMI.")
+
+
 JUDGEMENT_PRECHECKS: Mapping[str, JudgementPrecheck] = {
     "EST-07": precheck_est_07,
     "EST-08": precheck_est_08,
@@ -442,4 +466,6 @@ JUDGEMENT_PRECHECKS: Mapping[str, JudgementPrecheck] = {
     "REG-17": precheck_reg_17,
     "REG-21": precheck_reg_21,
     "REG-39": precheck_reg_39,
+    "ELQ-12": precheck_elq_12,
+    "ELQ-19": precheck_elq_19,
 }

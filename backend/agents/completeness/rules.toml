@@ -1,5 +1,5 @@
 # Completeness & Consistency Checker — Rule Catalogue
-# Families: REG (39), EST (26), XS (22), DM (16).
+# Families: REG (39), EST (26), XS (22), DM (16), ELQ (23).
 # All titles, triggers (flag_if), and fixes are written in project-own wording
 # and cite public regulatory/registry standards.
 
@@ -1562,4 +1562,353 @@ title = "Type 1 diabetes protocol omits DKA ketone monitoring"
 flag_if = "A Type 1 diabetes protocol lacks diabetic ketoacidosis (DKA) monitoring and mitigation procedures (blood/urine ketone testing and sick-day management rules)."
 fix = "Add blood ketone monitoring thresholds, sick-day insulin/hydration rules, and DKA evaluation triggers."
 source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+# ---------------------------------------------------------------------------
+# Family ELQ: Eligibility-criteria quality (ELQ-01 to ELQ-23)
+# ---------------------------------------------------------------------------
+
+[[rule]]
+id = "ELQ-01"
+family = "ELQ"
+severity = "S1"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "deterministic"
+title = "Criterion not answerable yes/no"
+flag_if = "A criterion relies on a vague term such as 'poorly controlled', 'significant' or 'clinically relevant' with no threshold or named diagnosis."
+fix = "Replace the vague term with a numeric threshold or a named diagnosis."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "ELQ-02"
+family = "ELQ"
+severity = "S1"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Lab criterion lacks value, unit or laboratory"
+flag_if = "A laboratory-based criterion does not give the cut-off value, its unit, or whether the central or local laboratory result applies."
+fix = "State the value, the unit and which laboratory's result is used."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "ELQ-03"
+family = "ELQ"
+severity = "S2"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "deterministic"
+title = "History criterion has no look-back window"
+flag_if = "A 'history of' criterion does not say how far back it looks (for example within 6 months, or ever)."
+fix = "Add the look-back window to each history criterion."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "ELQ-04"
+family = "ELQ"
+severity = "S2"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Accepted prior result has no maximum age"
+flag_if = "A criterion accepts an existing result (such as a recent eye exam) without saying how old that result may be."
+fix = "State the maximum age of an accepted result, for example within 90 days."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "ELQ-05"
+family = "ELQ"
+severity = "S2"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Criterion does not say when it is assessed"
+flag_if = "A criterion does not say whether it is checked at screening, at randomisation or at the end of run-in."
+fix = "State the timepoint at which each criterion is assessed."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "ELQ-06"
+family = "ELQ"
+severity = "S2"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Two or more conditions fused in one criterion"
+flag_if = "A single criterion joins two or more independent conditions that a site would have to check separately."
+fix = "Split the criterion so each one states a single condition."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "ELQ-07"
+family = "ELQ"
+severity = "S3"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Inclusion and exclusion mirror each other"
+flag_if = "An exclusion criterion simply restates an inclusion criterion in the negative (or the reverse)."
+fix = "Keep the rule once, in whichever list reads most naturally."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "ELQ-08"
+family = "ELQ"
+severity = "S3"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Investigator-discretion criterion with no examples"
+flag_if = "A criterion is wholly left to investigator opinion ('any condition that in the investigator's opinion...') without examples."
+fix = "Keep the catch-all but add concrete examples of what it covers."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "ELQ-09"
+family = "ELQ"
+severity = "S3"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "deterministic"
+title = "HbA1c or eGFR units incomplete"
+flag_if = "HbA1c is given in % without mmol/mol, or an eGFR limit does not name the estimating equation (such as CKD-EPI 2021)."
+fix = "Give HbA1c in both % and mmol/mol and name the eGFR equation."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "ELQ-10"
+family = "ELQ"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION", "ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Criterion needs a test missing from screening"
+flag_if = "A criterion depends on a test or measurement that does not appear at the screening visit of the schedule of activities."
+fix = "Add the test to the screening column of the schedule of activities."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "ELQ-11"
+family = "ELQ"
+severity = "S2"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION", "INTRODUCTION"]
+check = "judgement"
+title = "Exclusion has no stated reason"
+flag_if = "An exclusion criterion has no safety or scientific reason that can be traced to the investigator's brochure, the drug's mechanism or a trial objective."
+fix = "State the reason for the exclusion, or remove it."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "ELQ-12"
+family = "ELQ"
+severity = "S2"
+detection = ["P"]
+applies_when = ["IS_PHASE_3"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_POPULATION"]
+check = "judgement"
+title = "Upper age limit in a phase 3 trial"
+flag_if = "A phase 3 trial sets a maximum age (for example 65 or 75 years) without a stated safety reason."
+fix = "Remove the upper age limit or state the safety reason for it."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "ELQ-13"
+family = "ELQ"
+severity = "S2"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Blanket organ exclusion instead of a graded cut-off"
+flag_if = "An exclusion names a whole organ disease ('renal disease', 'hepatic disease') instead of a graded measure such as an eGFR band, Child-Pugh class or ALT multiple of ULN."
+fix = "Replace the blanket exclusion with a graded cut-off."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "ELQ-14"
+family = "ELQ"
+severity = "S2"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Blanket comorbidity exclusion"
+flag_if = "An exclusion removes everyone with a condition (cardiovascular disease, HIV, any cancer history) where only a specific sub-state carries the risk."
+fix = "Narrow it to the risky sub-state, for example NYHA class IV or MI within 90 days."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "ELQ-15"
+family = "ELQ"
+severity = "S2"
+detection = ["C"]
+applies_when = []
+needs_inputs = ["comparator_corpus"]
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Exclusion carried over despite new safety data"
+flag_if = "An exclusion is copied unchanged from an earlier-phase protocol of the same drug although newer safety data no longer support it."
+fix = "Broaden the criterion and cite the newer safety data."
+source = "Comparison with prior protocols of the same drug"
+source_tier = "comparator_norm"
+
+[[rule]]
+id = "ELQ-16"
+family = "ELQ"
+severity = "S2"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Stable common comorbidities excluded"
+flag_if = "People with stable, treated conditions that are common in type 2 diabetes (hypertension, dyslipidaemia, controlled hypothyroidism) are excluded."
+fix = "Allow these conditions when they have been stable on treatment for a set period."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "ELQ-17"
+family = "ELQ"
+severity = "S3"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "deterministic"
+title = "Language requirement with no translation plan"
+flag_if = "Participants who are not fluent in the local language are excluded and no translated materials or interpreters are planned."
+fix = "Plan translated materials or interpreters instead of excluding on language."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "ELQ-18"
+family = "ELQ"
+severity = "S2"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Women of childbearing potential fully excluded"
+flag_if = "Women of childbearing potential are excluded outright when a contraception requirement would manage the risk."
+fix = "Replace the exclusion with a contraception requirement."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "ELQ-19"
+family = "ELQ"
+severity = "S2"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "BMI ceiling without a pharmacokinetic reason"
+flag_if = "A BMI upper limit (for example below 35 kg/m²) removes a large share of the type 2 diabetes population with no pharmacokinetic reason given."
+fix = "Raise or remove the BMI ceiling, or state the reason for it."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "ELQ-20"
+family = "ELQ"
+severity = "S2"
+detection = ["J", "C"]
+applies_when = ["IS_PHASE_3"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION", "INTRODUCTION"]
+check = "judgement"
+title = "Eligibility narrower than the label population"
+flag_if = "Phase 3 eligibility is tighter than the population expected to use the drug, with no plan to study the excluded groups elsewhere."
+fix = "Plan a sub-study for the excluded groups or justify the narrower population."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "ELQ-21"
+family = "ELQ"
+severity = "S3"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "deterministic"
+title = "More than 25 exclusion criteria"
+flag_if = "The protocol lists more than about 25 exclusion criteria."
+fix = "Consolidate overlapping exclusions."
+source = "Eligibility complexity heuristic (screen failure and amendment risk)"
+source_tier = "heuristic"
+
+[[rule]]
+id = "ELQ-22"
+family = "ELQ"
+severity = "S3"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES", "TRIAL_DESIGN"]
+check = "judgement"
+title = "No remote options for frequent or fasting visits"
+flag_if = "The trial has frequent or fasting visits and does not consider remote or decentralised options."
+fix = "Note which visits or procedures could be done remotely."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "ELQ-23"
+family = "ELQ"
+severity = "S3"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION", "TRIAL_DESIGN"]
+check = "judgement"
+title = "No recruitment plan for the intended population"
+flag_if = "The protocol does not describe recruitment or site selection that reaches the people likely to use the drug."
+fix = "Add a recruitment and site-selection note covering the intended population."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
 source_tier = "final_guidance"

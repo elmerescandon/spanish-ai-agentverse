@@ -907,3 +907,22 @@ def test_summary_batches_also_read_the_title_page_and_front_matter() -> None:
 
     assert [p.page_number for p in summary_pages] == [1, 2, 3, 4]
     assert [p.page_number for p in design_pages] == [5, 6]
+
+
+def test_judgement_verdict_criterion_ids_become_the_finding_location() -> None:
+    batch = build_judgement_batches([_judgement_rule("EST-01")])[0]
+    verdicts = JudgementVerdicts(
+        verdicts=[
+            JudgementVerdict(
+                rule_id="EST-01",
+                status=JudgementStatus.FIRED,
+                finding="Two exclusions have no stated rationale.",
+                evidence=[Citation(page_number=1, quote=QUOTE)],
+                criterion_ids=["EX-03", "IN-02"],
+            )
+        ]
+    )
+
+    [evaluated] = resolve_judgement_batch(batch, verdicts, _document())
+
+    assert evaluated.finding.location.section == "EX-03, IN-02"

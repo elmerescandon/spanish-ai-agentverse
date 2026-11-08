@@ -229,3 +229,36 @@ def test_store_outage_is_answered_with_503_not_a_false_404(
 
     assert response.status_code == 503
     assert "document store failed" in response.json()["detail"]
+
+
+def test_sample_review_saved_on_one_instance_shows_in_report_on_another(
+    client: TestClient,
+) -> None:
+    stored = client.post(
+        "/api/protocols/sample",
+        json={"title": "Sample protocol", "page_count": 86},
+    )
+    assert stored.status_code == 200, stored.text
+    protocol_id = stored.json()["protocol_id"]
+    _switch_to_another_instance()
+    saved = client.post(
+        f"/api/protocols/{protocol_id}/reviews",
+        json={
+            "decision_id": "d-coh-01",
+            "status": "accepted",
+            "proposed_change": {
+                "path": "5.4 Recruitment",
+                "before": "No target",
+                "after": "Enrol women against a 45% target.",
+            },
+        },
+    )
+    assert saved.status_code == 200, saved.text
+    _switch_to_another_instance()
+
+    report = client.get("/api/protocols/latest/review").json()
+
+    assert report["protocol_id"] == protocol_id
+    assert [change["new_value"] for change in report["changes"]] == [
+        "Enrol women against a 45% target."
+    ]

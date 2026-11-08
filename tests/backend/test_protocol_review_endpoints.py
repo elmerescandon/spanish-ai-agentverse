@@ -157,6 +157,81 @@ def test_review_survives_reopen_and_only_current_accept_enters_report(
     assert "45% target" not in str(_fields(client, protocol_id))
 
 
+SAMPLE_REVIEW = {
+    "decision_id": "d-coh-01",
+    "option_id": None,
+    "status": "accepted",
+    "proposed_change": {
+        "path": "5.4 Recruitment",
+        "before": "No target",
+        "after": "Enrol women against a 45% target.",
+    },
+}
+
+
+def _store_sample(client: TestClient) -> str:
+    response = client.post(
+        "/api/protocols/sample",
+        json={"title": "SGLT2_T2D_Phase3_Protocol_v0.3", "page_count": 86},
+    )
+    assert response.status_code == 200, response.text
+    return str(response.json()["protocol_id"])
+
+
+def test_sample_review_reaches_the_latest_report(
+    client: TestClient,
+) -> None:
+    protocol_id = _store_sample(client)
+
+    saved = client.post(
+        f"/api/protocols/{protocol_id}/reviews", json=SAMPLE_REVIEW
+    )
+
+    assert saved.status_code == 200, saved.text
+    report = client.get("/api/protocols/latest/review").json()
+    assert report["protocol_id"] == protocol_id
+    assert report["title"] == "SGLT2_T2D_Phase3_Protocol_v0.3"
+    assert [change["new_value"] for change in report["changes"]] == [
+        "Enrol women against a 45% target."
+    ]
+    pdf = client.get("/api/protocols/latest/report.pdf")
+    text = "".join(
+        page.extract_text()
+        for page in PdfReader(io.BytesIO(pdf.content)).pages
+    )
+    assert "45% target" in text
+
+
+def test_each_sample_load_starts_an_empty_review(
+    client: TestClient,
+) -> None:
+    first_id = _store_sample(client)
+    client.post(f"/api/protocols/{first_id}/reviews", json=SAMPLE_REVIEW)
+
+    second_id = _store_sample(client)
+
+    assert second_id != first_id
+    report = client.get("/api/protocols/latest/review").json()
+    assert report["protocol_id"] == second_id
+    assert report["changes"] == []
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"title": "", "page_count": 86},
+        {"title": "Sample", "page_count": 0},
+        {"page_count": 86},
+    ],
+)
+def test_sample_with_invalid_identity_is_rejected(
+    client: TestClient, body: dict[str, object]
+) -> None:
+    response = client.post("/api/protocols/sample", json=body)
+
+    assert response.status_code == 422
+
+
 def test_review_cannot_be_saved_for_unknown_protocol(
     client: TestClient,
 ) -> None:

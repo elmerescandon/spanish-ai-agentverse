@@ -6,6 +6,8 @@ import type { Severity } from "@/lib/api";
 
 export const STEP_IDS = ["ingest", "check", "peers", "cohort"] as const;
 export type StepId = (typeof STEP_IDS)[number];
+// Steps after ingest, each backed by its own recommendation endpoint.
+export type RecommendationStepId = Exclude<StepId, "ingest">;
 
 export const EVIDENCE_SOURCES = [
   "protocol",

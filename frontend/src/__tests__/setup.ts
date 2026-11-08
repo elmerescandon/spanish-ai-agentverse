@@ -38,6 +38,11 @@ const mockMatchMedia = (query: string) => ({
   dispatchEvent: () => false,
 });
 
+// jsdom has no animation frames; run the callback on the next tick.
+const mockRequestAnimationFrame = (callback: FrameRequestCallback) =>
+  setTimeout(() => callback(performance.now()), 0) as unknown as number;
+const mockCancelAnimationFrame = (handle: number) => clearTimeout(handle);
+
 Object.assign(globalThis, {
   window: dom.window,
   document: dom.window.document,
@@ -55,6 +60,8 @@ Object.assign(globalThis, {
   MutationObserver: dom.window.MutationObserver,
   ResizeObserver: MockResizeObserver,
   IntersectionObserver: MockIntersectionObserver,
+  requestAnimationFrame: mockRequestAnimationFrame,
+  cancelAnimationFrame: mockCancelAnimationFrame,
   matchMedia: mockMatchMedia,
   getComputedStyle: dom.window.getComputedStyle.bind(dom.window),
   IS_REACT_ACT_ENVIRONMENT: true,
@@ -63,6 +70,8 @@ Object.assign(globalThis, {
 Object.assign(dom.window, {
   ResizeObserver: MockResizeObserver,
   IntersectionObserver: MockIntersectionObserver,
+  requestAnimationFrame: mockRequestAnimationFrame,
+  cancelAnimationFrame: mockCancelAnimationFrame,
   matchMedia: mockMatchMedia,
 });
 

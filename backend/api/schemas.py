@@ -1,9 +1,12 @@
 """Pydantic schemas and enums for the backend HTTP API."""
 
+from datetime import datetime
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, JsonValue
+
+from backend.shared.messages import M11Heading
 
 
 class ProtocolStatus(StrEnum):
@@ -79,3 +82,313 @@ class RecommendationDecisionRequest(BaseModel):
 
     status: RecommendationStatus
     comment: str | None = None
+
+
+# --- Demo pipeline contract -------------------------------------------------
+# One endpoint per /demo section: upload fills "ingest", then the three
+# recommendation endpoints run in parallel and each fills its own step.
+# Mirrors frontend/src/lib/demo/types.ts.
+#
+# Deliberately wide: agents fill every field they can, and the frontend
+# decides what to show. Only the core fields are required; everything
+# else defaults to empty so an agent can grow into the schema without a
+# contract change. `details` is the escape hatch for agent-specific data
+# that has no typed home yet; promote a key to a typed field once the
+# frontend relies on it.
+
+
+class StepId(StrEnum):
+    """Section of the /demo page a response fills."""
+
+    INGEST = "ingest"
+    CHECK = "check"
+    PEERS = "peers"
+    COHORT = "cohort"
+
+
+class StepStatus(StrEnum):
+    """How completely an agent produced its step."""
+
+    COMPLETED = "completed"
+    PARTIAL = "partial"
+    FAILED = "failed"
+
+
+class EvidenceSource(StrEnum):
+    """Where a piece of evidence was taken from."""
+
+    PROTOCOL = "protocol"
+    CONSENT = "consent"
+    AACT = "aact"
+    MIMIC = "mimic"
+    NHANES = "nhanes"
+    GUIDELINE = "guideline"
+    LITERATURE = "literature"
+    OTHER = "other"
+
+
+class TraceKind(StrEnum):
+    """Kind of reasoning step in an agent's trace."""
+
+    RETRIEVE = "retrieve"
+    RULE = "rule"
+    COMPARE = "compare"
+    CONCLUDE = "conclude"
+
+
+class MetricTone(StrEnum):
+    """Colour cue for a metric on the /demo page."""
+
+    NEUTRAL = "neutral"
+    GOOD = "good"
+    WARN = "warn"
+    RISK = "risk"
+
+
+class ChangeType(StrEnum):
+    """What a proposed protocol edit does."""
+
+    ADD = "add"
+    MODIFY = "modify"
+    REMOVE = "remove"
+
+
+class ChartKind(StrEnum):
+    """How the frontend should draw a chart."""
+
+    BAR = "bar"
+    STACKED_BAR = "stacked_bar"
+    WATERFALL = "waterfall"
+    LINE = "line"
+    HISTOGRAM = "histogram"
+    COMPARISON = "comparison"
+
+
+# Arbitrary JSON an agent attaches without a typed field yet.
+DetailMap = dict[str, JsonValue]
+
+
+class Evidence(BaseModel):
+    """Verbatim quote backing a decision."""
+
+    evidence_id: str
+    source: EvidenceSource
+    document: str
+    page: int | None = None
+    quote: str
+    is_verified: bool = False
+    section_title: str | None = None
+    # Surrounding text so a reviewer can read the quote in context.
+    context: str | None = None
+    url: str | None = None
+    confidence: float | None = Field(default=None, ge=0, le=1)
+
+
+class TraceEntry(BaseModel):
+    """One step of the reasoning that led to a decision."""
+
+    agent: str
+    kind: TraceKind
+    text: str
+    evidence_ids: list[str] = Field(default_factory=list)
+    trace_id: str | None = None
+    timestamp: datetime | None = None
+    duration_ms: int | None = Field(default=None, ge=0)
+    details: DetailMap = Field(default_factory=dict)
+
+
+class ProposedChange(BaseModel):
+    """Suggested edit to the protocol text."""
+
+    path: str
+    before: str
+    after: str
+    change_type: ChangeType = ChangeType.MODIFY
+    section_title: str | None = None
+    page: int | None = None
+    rationale: str | None = None
+
+
+class MetricBenchmark(BaseModel):
+    """Reference value a metric is compared against (e.g. peer median)."""
+
+    label: str
+    value: str
+    numeric_value: float | None = None
+
+
+class Metric(BaseModel):
+    """Labelled figure shown on a step or decision."""
+
+    label: str
+    value: str
+    tone: MetricTone = MetricTone.NEUTRAL
+    metric_id: str | None = None
+    numeric_value: float | None = None
+    unit: str | None = None
+    description: str | None = None
+    benchmarks: list[MetricBenchmark] = Field(default_factory=list)
+
+
+class ChartPoint(BaseModel):
+    """One labelled value, with an optional uncertainty range."""
+
+    label: str
+    value: float
+    lower: float | None = None
+    upper: float | None = None
+    annotation: str | None = None
+
+
+class ChartSeries(BaseModel):
+    """Named sequence of points, e.g. "this protocol" or "peer median"."""
+
+    name: str
+    points: list[ChartPoint] = Field(default_factory=list)
+
+
+class Chart(BaseModel):
+    """Data for one chart; the frontend picks colours and layout."""
+
+    chart_id: str
+    kind: ChartKind
+    title: str
+    description: str | None = None
+    x_label: str | None = None
+    y_label: str | None = None
+    unit: str | None = None
+    series: list[ChartSeries] = Field(default_factory=list)
+
+
+class TableColumn(BaseModel):
+    """Column of a data table; `key` indexes each row."""
+
+    key: str
+    label: str
+    unit: str | None = None
+
+
+class DataTable(BaseModel):
+    """Generic table, e.g. checklist items, peer trials, attrition."""
+
+    table_id: str
+    title: str
+    description: str | None = None
+    columns: list[TableColumn] = Field(default_factory=list)
+    rows: list[DetailMap] = Field(default_factory=list)
+
+
+class DataSource(BaseModel):
+    """Dataset or registry an agent read to produce its step."""
+
+    source: EvidenceSource
+    name: str
+    description: str | None = None
+    url: str | None = None
+    version: str | None = None
+    record_count: int | None = Field(default=None, ge=0)
+
+
+class StepWarning(BaseModel):
+    """Non-fatal issue the reviewer should know about."""
+
+    code: str
+    message: str
+    severity: Severity = Severity.WARNING
+
+
+class ProtocolLocation(BaseModel):
+    """Where in the protocol a decision applies."""
+
+    section_heading: M11Heading | None = None
+    section_title: str | None = None
+    start_page: int | None = None
+    end_page: int | None = None
+    criterion_id: str | None = None
+
+
+class GuidelineReference(BaseModel):
+    """Rule or guideline a decision is judged against."""
+
+    label: str
+    url: str | None = None
+    quote: str | None = None
+
+
+class DecisionOption(BaseModel):
+    """One course of action the reviewer can pick for a decision."""
+
+    option_id: str
+    title: str
+    rationale: str
+    is_recommended: bool = False
+    proposed_change: ProposedChange | None = None
+    # Projected effect of picking this option (e.g. eligible % after).
+    impact: list[Metric] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+
+
+class Decision(BaseModel):
+    """A finding the clinical team reviews (a Decision Card)."""
+
+    decision_id: str
+    step_id: StepId
+    severity: Severity
+    title: str
+    claim: str
+    evidence: list[Evidence] = Field(default_factory=list)
+    trace: list[TraceEntry] = Field(default_factory=list)
+    proposed_change: ProposedChange | None = None
+    # Decisions from earlier steps this one builds on (traceability).
+    derived_from: list[str] = Field(default_factory=list)
+    category: str | None = None
+    confidence: float | None = Field(default=None, ge=0, le=1)
+    location: ProtocolLocation | None = None
+    impact: list[Metric] = Field(default_factory=list)
+    options: list[DecisionOption] = Field(default_factory=list)
+    references: list[GuidelineReference] = Field(default_factory=list)
+    decision_owner: str | None = None
+    review_status: RecommendationStatus = RecommendationStatus.PENDING
+    reviewer_comment: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    tables: list[DataTable] = Field(default_factory=list)
+    charts: list[Chart] = Field(default_factory=list)
+    details: DetailMap = Field(default_factory=dict)
+
+
+class StepData(BaseModel):
+    """Everything one /demo section shows: summary, metrics, decisions."""
+
+    id: StepId
+    title: str
+    summary: str
+    headline: Metric
+    metrics: list[Metric] = Field(default_factory=list)
+    decisions: list[Decision] = Field(default_factory=list)
+    status: StepStatus = StepStatus.COMPLETED
+    agent: str | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    duration_ms: int | None = Field(default=None, ge=0)
+    warnings: list[StepWarning] = Field(default_factory=list)
+    data_sources: list[DataSource] = Field(default_factory=list)
+    tables: list[DataTable] = Field(default_factory=list)
+    charts: list[Chart] = Field(default_factory=list)
+    details: DetailMap = Field(default_factory=dict)
+
+
+class UploadFileResponse(BaseModel):
+    """Result of uploading a protocol PDF; protocol_id keys later calls."""
+
+    protocol_id: str
+    title: str
+    page_count: int
+    step: StepData
+    filename: str | None = None
+    file_size_bytes: int | None = Field(default=None, ge=0)
+
+
+class StepRecommendationRequest(BaseModel):
+    """Body of every recommendation endpoint."""
+
+    protocol_id: str = Field(min_length=1)

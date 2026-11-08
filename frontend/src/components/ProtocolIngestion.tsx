@@ -18,6 +18,9 @@ const NEXT_PROCESS_STEPS: { id: PipelineStep; label: string }[] = [
 export interface ProtocolIngestionProps {
   onProtocolLoaded?: (protocol: ProtocolSummary) => void;
   onStepSelected?: (step: PipelineStep) => void;
+  // When set, PDFs go to the caller untouched (e.g. a real upload to the
+  // backend) instead of the local createProtocol flow.
+  onPdfSelected?: (file: File) => void;
   activeProtocolId?: string;
   isAnalyzing?: boolean;
   // Hides the section and card titles when the page supplies its own CTA.
@@ -55,6 +58,7 @@ function cleanFilenameToTitle(filename: string): string {
 export default function ProtocolIngestion({
   onProtocolLoaded,
   onStepSelected,
+  onPdfSelected,
   isAnalyzing = false,
   isCompact = false,
   className = "",
@@ -83,6 +87,12 @@ export default function ProtocolIngestion({
   };
 
   const processFile = async (file: File) => {
+    if (onPdfSelected && file.name.toLowerCase().endsWith(".pdf")) {
+      setErrorMessage(null);
+      onPdfSelected(file);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setIsProcessing(true);
     setErrorMessage(null);
     setSelectedStep(null);

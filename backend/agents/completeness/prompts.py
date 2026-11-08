@@ -70,6 +70,23 @@ JUDGEMENT_BATCH_INSTRUCTIONS = (
     "- Set confidence between 0.0 and 1.0 reflecting your certainty."
 )
 
+LIBRARY_MATCH_INSTRUCTIONS = (
+    "For each library item above, decide whether the protocol's "
+    "eligibility criteria cover it. Return JSON matching the LibraryMatches "
+    "schema with one entry per rule_id.\n\n"
+    "Rules:\n"
+    "- is_present: true when an exclusion criterion (or a mirror-image "
+    "inclusion criterion) covers the item, even with different wording or "
+    "a different threshold.\n"
+    "- criterion_ids: the criterion_id values that cover it, exactly as "
+    "listed; empty when is_present is false.\n"
+    "- is_operable: true when those criteria are answerable yes/no, with a "
+    "threshold, unit, test and look-back window where one is needed.\n"
+    "- has_rationale: true only when the protocol pages state a safety or "
+    "scientific reason for the exclusion.\n"
+    "- Never invent criteria. Set confidence between 0.0 and 1.0."
+)
+
 SECOND_OPINION_INSTRUCTIONS = (
     "Review each flagged protocol finding above against the provided "
     "protocol pages and evidence. Return JSON matching the "

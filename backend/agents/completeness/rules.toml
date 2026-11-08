@@ -1,5 +1,5 @@
 # Completeness & Consistency Checker — Rule Catalogue
-# Families: REG (39), EST (26), XS (22), DM (16), ELQ (23).
+# Families: REG (39), EST (26), XS (22), DM (16), ELQ (23), EX (50).
 # All titles, triggers (flag_if), and fixes are written in project-own wording
 # and cite public regulatory/registry standards.
 
@@ -1912,3 +1912,809 @@ flag_if = "The protocol does not describe recruitment or site selection that rea
 fix = "Add a recruitment and site-selection note covering the intended population."
 source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
 source_tier = "final_guidance"
+
+# ---------------------------------------------------------------------------
+# Family EX: Eligibility exclusion library for adult T2D (EX-01 to EX-50)
+# CORE fires when absent; CLASS fires when absent and the drug class
+# matches; BREADTH fires when present without a stated reason (ELQ-11).
+# ---------------------------------------------------------------------------
+
+[[rule]]
+id = "EX-01"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: non-type 2 diabetes (T1D, LADA, other)"
+flag_if = "No eligibility criterion excludes non-type 2 diabetes (T1D, LADA, other)."
+fix = "Exclude non-type 2 diabetes by history, with GAD antibodies when in doubt."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-02"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "CONTROL_IS_PLACEBO"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: HbA1c above a ceiling for placebo exposure"
+flag_if = "No eligibility criterion excludes HbA1c above a ceiling for placebo exposure."
+fix = "Exclude HbA1c above about 10.5 to 11.0% at screening when placebo is given."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-03"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: recent DKA or hyperosmolar state"
+flag_if = "No eligibility criterion excludes recent DKA or hyperosmolar state."
+fix = "Exclude DKA or hyperosmolar hyperglycaemic state within the last 6 months."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-04"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: severe hypoglycaemia or unawareness"
+flag_if = "No eligibility criterion excludes severe hypoglycaemia or unawareness."
+fix = "Exclude level 3 hypoglycaemia or hypoglycaemia unawareness within 6 months."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-05"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: recent non-protocol glucose-lowering drugs"
+flag_if = "No eligibility criterion excludes recent non-protocol glucose-lowering drugs."
+fix = "Exclude glucose-lowering drugs other than protocol background within 90 days."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-06"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: recent insulin use beyond short courses"
+flag_if = "No eligibility criterion excludes recent insulin use beyond short courses."
+fix = "Exclude insulin use for more than 14 days within the last 90 days."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-07"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: prior use of the investigational drug's class"
+flag_if = "No eligibility criterion excludes prior use of the investigational drug's class."
+fix = "Exclude use of the same pharmacological class within 90 days."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-08"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: recent change in background therapy dose"
+flag_if = "No eligibility criterion excludes recent change in background therapy dose."
+fix = "Exclude background dose changes within 8 to 12 weeks before randomisation."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-09"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_INCRETIN"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: active retinopathy or no recent eye exam"
+flag_if = "No eligibility criterion excludes active retinopathy or no recent eye exam."
+fix = "Exclude proliferative or severe retinopathy needing treatment; require fundoscopy within 90 days."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-10"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_INCRETIN"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: low C-peptide (no beta-cell reserve)"
+flag_if = "No eligibility criterion excludes low C-peptide (no beta-cell reserve)."
+fix = "Exclude fasting C-peptide below a threshold such as 0.3 nmol/L."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-11"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Broad exclusion: reduced kidney function (eGFR cut-off)"
+flag_if = "The protocol excludes reduced kidney function (eGFR cut-off) without a stated safety or scientific reason (fires ELQ-11)."
+fix = "Use the narrower form: a graded eGFR cut-off such as below 30 (or below 15 / dialysis) by CKD-EPI 2021, keeping CKD stages 3 to 4 eligible."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+library_tag = "BREADTH"
+
+[[rule]]
+id = "EX-12"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: kidney transplant or dialysis"
+flag_if = "No eligibility criterion excludes kidney transplant or dialysis."
+fix = "Exclude a current kidney transplant or dialysis."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-13"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: raised ALT or AST"
+flag_if = "No eligibility criterion excludes raised ALT or AST."
+fix = "Exclude ALT or AST above 3 x ULN."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-14"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: raised total bilirubin"
+flag_if = "No eligibility criterion excludes raised total bilirubin."
+fix = "Exclude total bilirubin above 2 x ULN, allowing Gilbert's syndrome."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-15"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Broad exclusion: liver disease"
+flag_if = "The protocol excludes liver disease without a stated safety or scientific reason (fires ELQ-11)."
+fix = "Use the narrower form: exclude only decompensated cirrhosis (Child-Pugh B/C) or active viral hepatitis; keep MASLD eligible."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+library_tag = "BREADTH"
+
+[[rule]]
+id = "EX-16"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: recent MI, stroke, TIA, unstable angina"
+flag_if = "No eligibility criterion excludes recent MI, stroke, TIA, unstable angina."
+fix = "Exclude MI, stroke, TIA, unstable angina or revascularisation within 60 to 180 days."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-17"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Broad exclusion: heart failure"
+flag_if = "The protocol excludes heart failure without a stated safety or scientific reason (fires ELQ-11)."
+fix = "Use the narrower form: exclude only NYHA class IV heart failure."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+library_tag = "BREADTH"
+
+[[rule]]
+id = "EX-18"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: uncontrolled hypertension"
+flag_if = "No eligibility criterion excludes uncontrolled hypertension."
+fix = "Exclude systolic BP of 160 mmHg or more, or diastolic BP of 100 mmHg or more."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-19"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = ["investigators_brochure"]
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: QTc prolongation or significant arrhythmia"
+flag_if = "No eligibility criterion excludes QTc prolongation or significant arrhythmia."
+fix = "Exclude QTcF above 450 ms (men) or 470 ms (women) when the brochure shows a QT signal."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-20"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_INCRETIN"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: high resting heart rate"
+flag_if = "No eligibility criterion excludes high resting heart rate."
+fix = "Exclude a resting heart rate above 100 bpm."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-21"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_INCRETIN"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: acute or chronic pancreatitis"
+flag_if = "No eligibility criterion excludes acute or chronic pancreatitis."
+fix = "Exclude chronic pancreatitis ever, or acute pancreatitis within 6 months."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-22"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_INCRETIN"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: raised lipase or amylase"
+flag_if = "No eligibility criterion excludes raised lipase or amylase."
+fix = "Exclude lipase or amylase above 3 x ULN."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-23"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_INCRETIN"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: gastroparesis, bariatric surgery or GI disease"
+flag_if = "No eligibility criterion excludes gastroparesis, bariatric surgery or GI disease."
+fix = "Exclude gastroparesis, past or planned bariatric surgery, or GI disease altering absorption."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-24"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_INCRETIN"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: symptomatic gallbladder disease"
+flag_if = "No eligibility criterion excludes symptomatic gallbladder disease."
+fix = "Exclude symptomatic gallbladder disease within 6 months."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-25"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_GLP1_RA"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: medullary thyroid carcinoma or MEN2"
+flag_if = "No eligibility criterion excludes medullary thyroid carcinoma or MEN2."
+fix = "Exclude a personal or family history of medullary thyroid carcinoma or MEN2."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-26"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_GLP1_RA"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: raised calcitonin"
+flag_if = "No eligibility criterion excludes raised calcitonin."
+fix = "Exclude calcitonin of 50 ng/L or more."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-27"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_INCRETIN"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: very high fasting triglycerides"
+flag_if = "No eligibility criterion excludes very high fasting triglycerides."
+fix = "Exclude fasting triglycerides above 500 mg/dL (5.6 mmol/L)."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-28"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: haemoglobinopathy or haemolytic anaemia"
+flag_if = "No eligibility criterion excludes haemoglobinopathy or haemolytic anaemia."
+fix = "Exclude haemoglobin variants that interfere with the HbA1c assay, or haemolytic anaemia."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-29"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: anaemia"
+flag_if = "No eligibility criterion excludes anaemia."
+fix = "Exclude haemoglobin below about 10 to 11 g/dL."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-30"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: recent transfusion, blood loss or donation"
+flag_if = "No eligibility criterion excludes recent transfusion, blood loss or donation."
+fix = "Exclude transfusion, blood loss or donation above 500 mL within 90 days."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-31"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: recently started erythropoietin or iron"
+flag_if = "No eligibility criterion excludes recently started erythropoietin or iron."
+fix = "Exclude erythropoietin or iron therapy started within 90 days."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-32"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Broad exclusion: cancer history"
+flag_if = "The protocol excludes cancer history without a stated safety or scientific reason (fires ELQ-11)."
+fix = "Use the narrower form: exclude only malignancy within 5 years, except treated non-melanoma skin cancer or carcinoma in situ."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+library_tag = "BREADTH"
+
+[[rule]]
+id = "EX-33"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: uncontrolled thyroid, Cushing's or acromegaly"
+flag_if = "No eligibility criterion excludes uncontrolled thyroid, Cushing's or acromegaly."
+fix = "Exclude uncontrolled thyroid disease (TSH out of range at screening), Cushing's or acromegaly."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-34"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: chronic systemic glucocorticoids"
+flag_if = "No eligibility criterion excludes chronic systemic glucocorticoids."
+fix = "Exclude systemic glucocorticoids for more than 14 days within 90 days; allow inhaled or topical use."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-35"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: recent weight change or weight-loss drugs"
+flag_if = "No eligibility criterion excludes recent weight change or weight-loss drugs."
+fix = "Exclude weight change above 5% or weight-loss drugs within 90 days."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-36"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_SGLT2"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: recurrent genital or urinary tract infections"
+flag_if = "No eligibility criterion excludes recurrent genital or urinary tract infections."
+fix = "Exclude two or more genital mycotic or urinary tract infections in 12 months."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-37"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_SGLT2"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: foot ulcer, gangrene or recent amputation"
+flag_if = "No eligibility criterion excludes foot ulcer, gangrene or recent amputation."
+fix = "Exclude an active foot ulcer, gangrene or amputation within 6 months."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-38"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = ["investigators_brochure"]
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: strong CYP3A4 or P-gp inhibitors/inducers"
+flag_if = "No eligibility criterion excludes strong CYP3A4 or P-gp inhibitors/inducers."
+fix = "Exclude concurrent strong CYP3A4 or P-gp inhibitors or inducers named in the brochure."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-39"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Broad exclusion: HIV infection"
+flag_if = "The protocol excludes HIV infection without a stated safety or scientific reason (fires ELQ-11)."
+fix = "Use the narrower form: exclude only uncontrolled HIV (detectable viral load); keep controlled HIV eligible."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+library_tag = "BREADTH"
+
+[[rule]]
+id = "EX-40"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_GLP1_RA"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: suicidal behaviour or ideation"
+flag_if = "No eligibility criterion excludes suicidal behaviour or ideation."
+fix = "Exclude C-SSRS type 4 to 5 ideation or behaviour within 6 months."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-41"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: alcohol or substance use disorder"
+flag_if = "No eligibility criterion excludes alcohol or substance use disorder."
+fix = "Exclude alcohol or substance use disorder within 12 months."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-42"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: planned major surgery or hospitalisation"
+flag_if = "No eligibility criterion excludes planned major surgery or hospitalisation."
+fix = "Exclude major surgery or hospitalisation already planned at screening."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-43"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: pregnancy, breastfeeding or no contraception"
+flag_if = "No eligibility criterion excludes pregnancy, breastfeeding or no contraception."
+fix = "Exclude pregnancy, breastfeeding, planned pregnancy, or unwillingness to use required contraception."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-44"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: hypersensitivity to study drugs"
+flag_if = "No eligibility criterion excludes hypersensitivity to study drugs."
+fix = "Exclude known hypersensitivity to the study drug, excipients, comparator or rescue drug."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-45"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: recent participation in another trial"
+flag_if = "No eligibility criterion excludes recent participation in another trial."
+fix = "Exclude another interventional trial within 30 days or 5 half-lives, whichever is longer."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-46"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: prior randomisation or study-drug exposure"
+flag_if = "No eligibility criterion excludes prior randomisation or study-drug exposure."
+fix = "Exclude anyone previously randomised in this trial or exposed to the study drug."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-47"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: unable to use meter/CGM, inject or keep diary"
+flag_if = "No eligibility criterion excludes unable to use meter/CGM, inject or keep diary."
+fix = "Exclude people unable to use a glucose meter or CGM, self-inject or keep a diary after training."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-48"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_INSULIN"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: shift work or irregular meals"
+flag_if = "No eligibility criterion excludes shift work or irregular meals."
+fix = "Exclude night-shift work or irregular meals in prandial insulin or hypoglycaemia studies."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CLASS"
+
+[[rule]]
+id = "EX-49"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Not excluded: site or sponsor staff and their families"
+flag_if = "No eligibility criterion excludes site or sponsor staff and their families."
+fix = "Exclude site staff, sponsor staff and their family members."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+library_tag = "CORE"
+
+[[rule]]
+id = "EX-50"
+family = "EX"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Broad exclusion: adults unable to consent"
+flag_if = "The protocol excludes adults unable to consent without a stated safety or scientific reason (fires ELQ-11)."
+fix = "Use the narrower form: exclude adults lacking capacity only with a justification in the population rationale."
+source = "FDA final guidance: Enhancing Participation in Clinical Trials: Eligibility Criteria, Enrollment Practices, and Trial Designs (Dec 2025)"
+source_tier = "final_guidance"
+library_tag = "BREADTH"

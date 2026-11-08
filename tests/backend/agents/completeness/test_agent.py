@@ -12,11 +12,14 @@ from backend.agents.completeness.logic import (
     JudgementStatus,
     JudgementVerdict,
     JudgementVerdicts,
+    LibraryItemMatch,
+    LibraryMatches,
     SecondOpinionVerdict,
     SecondOpinionVerdicts,
 )
 from backend.agents.completeness.rules import (
     ApplicabilityCondition,
+    LibraryTag,
     RuleCatalogue,
     RuleDefinition,
     load_rule_catalogue,
@@ -29,7 +32,9 @@ from backend.shared.messages import (
     Citation,
     CitedValue,
     ControlType,
+    CriterionKind,
     DiabetesType,
+    EligibilityCriterion,
     Endpoint,
     EndpointKind,
     InterventionType,
@@ -440,3 +445,83 @@ async def test_second_opinion_runs_in_groups_that_fail_independently() -> None:
     assert all(by_id[rule_id].confidence == 0.5 for rule_id in rule_ids[:10])
     assert all(by_id[rule_id].confidence == 0.9 for rule_id in rule_ids[10:])
     assert all(f.status == RuleStatus.FIRED for f in report.findings)
+
+
+def _library_rule(rule_id: str) -> RuleDefinition:
+    return RuleDefinition(
+        id=rule_id,
+        family=RuleFamily.EX,
+        severity=RuleSeverity.S2,
+        detection=("J",),
+        sections=(M11Heading.TRIAL_POPULATION,),
+        check=CheckMethod.JUDGEMENT,
+        title="Example library item",
+        flag_if="No criterion excludes the example condition.",
+        fix="Exclude the example condition.",
+        source="EMA CPMP/EWP/1080/00 Rev. 2",
+        source_tier=SourceTier.FINAL_GUIDANCE,
+        library_tag=LibraryTag.CORE,
+    )
+
+
+async def test_library_items_are_matched_then_absences_second_checked() -> (
+    None
+):
+    document = _document().model_copy(
+        update={
+            "eligibility_criteria": [
+                EligibilityCriterion(
+                    criterion_id="EX-01",
+                    kind=CriterionKind.EXCLUSION,
+                    text="Type 1 diabetes",
+                    citation=Citation(
+                        page_number=1,
+                        quote=POPULATION_QUOTE,
+                        is_verified=True,
+                    ),
+                )
+            ]
+        }
+    )
+    catalogue = RuleCatalogue(
+        rules=(_library_rule("EX-01"), _library_rule("EX-03"))
+    )
+    matches = LibraryMatches(
+        matches=[
+            LibraryItemMatch(
+                rule_id="EX-01", is_present=True, criterion_ids=["EX-01"]
+            ),
+            LibraryItemMatch(rule_id="EX-03", is_present=False),
+        ]
+    )
+    confirmation = SecondOpinionVerdicts(
+        verdicts=[
+            SecondOpinionVerdict(
+                rule_id="EX-03", confirmed=True, reason="ok", confidence=0.7
+            )
+        ]
+    )
+    llm = FakeJsonGenerator([_profile_answer(), matches, confirmation])
+
+    report = await check_protocol(
+        document, llm, catalogue=catalogue, checks={}, prechecks={}
+    )
+
+    by_id = {finding.rule_id: finding for finding in report.findings}
+    assert "Library items:" in llm.prompts[1]
+    assert by_id["EX-01"].status == RuleStatus.PASSED
+    assert by_id["EX-03"].status == RuleStatus.FIRED
+    assert by_id["EX-03"].confidence == 0.7
+
+
+async def test_library_is_not_assessed_without_extracted_criteria() -> None:
+    catalogue = RuleCatalogue(rules=(_library_rule("EX-03"),))
+    llm = FakeJsonGenerator([_profile_answer()])
+
+    report = await check_protocol(
+        _document(), llm, catalogue=catalogue, checks={}, prechecks={}
+    )
+
+    [finding] = report.findings
+    assert finding.status == RuleStatus.CANNOT_ASSESS
+    assert len(llm.prompts) == 1

@@ -42,6 +42,7 @@ EXPECTED_RULE_IDS: frozenset[str] = frozenset(
     + [f"REG-{index:02d}" for index in range(1, 40)]
     + [f"DM-{index:02d}" for index in EXPECTED_DM_NUMBERS]
     + [f"ELQ-{index:02d}" for index in range(1, 24)]
+    + [f"EX-{index:02d}" for index in range(1, 51)]
 )
 EXPECTED_FAMILY_COUNTS: dict[RuleFamily, int] = {
     RuleFamily.XS: 22,
@@ -49,6 +50,7 @@ EXPECTED_FAMILY_COUNTS: dict[RuleFamily, int] = {
     RuleFamily.REG: 39,
     RuleFamily.DM: 16,
     RuleFamily.ELQ: 23,
+    RuleFamily.EX: 50,
 }
 
 
@@ -303,3 +305,26 @@ def test_loader_accepts_tagged_exclusion_library_rule(tmp_path: Path) -> None:
     rule = load_rule_catalogue(path).get("EX-03")
 
     assert rule.library_tag == LibraryTag.CLASS
+
+
+def test_exclusion_library_tags_and_class_conditions() -> None:
+    library = [
+        rule
+        for rule in load_rule_catalogue().rules
+        if rule.family == RuleFamily.EX
+    ]
+    tag_counts = {
+        tag: sum(1 for rule in library if rule.library_tag == tag)
+        for tag in LibraryTag
+    }
+
+    assert tag_counts == {
+        LibraryTag.CORE: 27,
+        LibraryTag.CLASS: 17,
+        LibraryTag.BREADTH: 6,
+    }
+    for rule in library:
+        if rule.library_tag == LibraryTag.CLASS:
+            assert set(rule.applies_when) - {
+                ApplicabilityCondition.DIABETES_TYPE_T2D
+            }, rule.id

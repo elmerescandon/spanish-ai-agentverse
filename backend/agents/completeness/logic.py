@@ -17,10 +17,12 @@ from pydantic import BaseModel, ConfigDict, Field
 from backend.agents.completeness.prompts import (
     INSTRUCTIONS_SEPARATOR,
     JUDGEMENT_BATCH_INSTRUCTIONS,
+    LIBRARY_MATCH_INSTRUCTIONS,
     SECOND_OPINION_INSTRUCTIONS,
 )
 from backend.agents.completeness.rules import (
     ApplicabilityCondition,
+    LibraryTag,
     RequiredInput,
     RuleCatalogue,
     RuleDefinition,
@@ -36,6 +38,7 @@ from backend.shared.messages import (
     ControlType,
     DiabetesType,
     DrugClass,
+    EligibilityCriterion,
     FindingLocation,
     GateResult,
     GateStatus,
@@ -143,6 +146,7 @@ SECOND_OPINION_FAILURE_NOTE = (
 )
 MAX_RULES_PER_BATCH = 8
 MAX_JUDGEMENT_BATCHES = 8
+LIBRARY_ITEMS_PER_CALL = 10  # exclusion-library items matched per call
 SECOND_OPINION_BATCH_SIZE = 10  # flags per call, so one failure stays local
 # Where trial-level facts (intervention, population, control) are stated.
 PROFILE_HEADINGS = frozenset(
@@ -205,6 +209,27 @@ class SecondOpinionVerdicts(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     verdicts: list[SecondOpinionVerdict] = Field(default_factory=list)
+
+
+class LibraryItemMatch(BaseModel):
+    """Whether one exclusion-library item appears among the criteria."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rule_id: str
+    is_present: bool
+    criterion_ids: list[str] = Field(default_factory=list)
+    is_operable: bool | None = None
+    has_rationale: bool | None = None
+    confidence: float = Field(default=0.8, ge=0.0, le=1.0)
+
+
+class LibraryMatches(BaseModel):
+    """Response schema for one exclusion-library matching call."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    matches: list[LibraryItemMatch] = Field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -808,7 +833,15 @@ def failed_judgement_batch(
     batch: JudgementBatch, error_message: str
 ) -> list[EvaluatedRule]:
     """Turn a failed batch LLM call into cannot_assess rule findings."""
-    reason = f"Judgement batch call failed: {error_message}"
+    return unassessable_batch(
+        batch, f"Judgement batch call failed: {error_message}"
+    )
+
+
+def unassessable_batch(
+    batch: JudgementBatch, reason: str
+) -> list[EvaluatedRule]:
+    """Report every rule in a batch as cannot_assess for one reason."""
     return [
         EvaluatedRule(
             finding=finding_from_outcome(
@@ -824,6 +857,184 @@ def failed_judgement_batch(
         )
         for rule in batch.rules
     ]
+
+
+def criteria_location(
+    criteria: Sequence[EligibilityCriterion],
+) -> FindingLocation:
+    """Point a finding at criterion IDs, e.g. section="EX-03, IN-02"."""
+    first_page = next(
+        (c.citation.page_number for c in criteria if c.citation is not None),
+        None,
+    )
+    return FindingLocation(
+        section=", ".join(c.criterion_id for c in criteria) or None,
+        heading=M11Heading.TRIAL_POPULATION,
+        page=first_page,
+    )
+
+
+def verified_criterion_citations(
+    criteria: Sequence[EligibilityCriterion],
+) -> list[Citation]:
+    """The verified source quotes of the given criteria."""
+    return [
+        c.citation
+        for c in criteria
+        if c.citation is not None and c.citation.is_verified
+    ]
+
+
+def format_library_prompt(
+    batch: JudgementBatch, document: ProtocolDocument
+) -> str:
+    """Build the Gemini prompt matching library items to the criteria."""
+    pages = select_batch_pages(document, batch.headings)
+    criteria_payload = [
+        criterion.model_dump(mode="json", exclude={"citation"})
+        for criterion in document.eligibility_criteria or []
+    ]
+    items_payload = [
+        {
+            "rule_id": rule.id,
+            "tag": rule.library_tag,
+            "item": rule.title,
+            "flag_if": rule.flag_if,
+        }
+        for rule in batch.rules
+    ]
+    return (
+        format_pages_for_prompt(pages)
+        + INSTRUCTIONS_SEPARATOR
+        + "Eligibility criteria:\n"
+        + json.dumps(criteria_payload, indent=2)
+        + INSTRUCTIONS_SEPARATOR
+        + "Library items:\n"
+        + json.dumps(items_payload, indent=2)
+        + INSTRUCTIONS_SEPARATOR
+        + LIBRARY_MATCH_INSTRUCTIONS
+    )
+
+
+def _yes_no(value: bool | None) -> str:
+    if value is None:
+        return "unknown"
+    return "yes" if value else "no"
+
+
+def _library_outcome(
+    rule: RuleDefinition,
+    match: LibraryItemMatch,
+    criteria_by_id: Mapping[str, EligibilityCriterion],
+    profile: TrialProfile,
+    design: TrialDesignFacts | None,
+) -> CheckOutcome:
+    """Apply the guidelines' Part G firing logic to one item match."""
+    if not match.is_present:
+        if rule.library_tag == LibraryTag.BREADTH:
+            return CheckOutcome(
+                status=RuleStatus.PASSED,
+                finding="Not excluded, so the population stays broad.",
+                confidence=match.confidence,
+            )
+        is_class_confirmed = all(
+            condition_holds(condition, profile, design).holds is True
+            for condition in rule.applies_when
+        )
+        if rule.library_tag == LibraryTag.CLASS and not is_class_confirmed:
+            reason = "the drug class this item depends on is not confirmed"
+            return CheckOutcome(
+                status=RuleStatus.CANNOT_ASSESS,
+                finding=f"Cannot assess: {reason}.",
+                status_reason=reason,
+            )
+        return CheckOutcome(
+            status=RuleStatus.FIRED,
+            finding="No eligibility criterion covers this item.",
+            confidence=match.confidence,
+            needs_second_opinion=True,
+        )
+
+    matched = [
+        criteria_by_id[criterion_id]
+        for criterion_id in match.criterion_ids
+        if criterion_id in criteria_by_id
+    ]
+    if not matched:
+        reason = (
+            "the matched criterion IDs are not among the extracted "
+            f"criteria: {match.criterion_ids}"
+        )
+        return CheckOutcome(
+            status=RuleStatus.CANNOT_ASSESS,
+            finding=f"Cannot assess: {reason}.",
+            status_reason=reason,
+        )
+    ids = ", ".join(c.criterion_id for c in matched)
+    quality = (
+        f"operable: {_yes_no(match.is_operable)}, "
+        f"justified: {_yes_no(match.has_rationale)}"
+    )
+    evidence = tuple(verified_criterion_citations(matched))
+    location = criteria_location(matched)
+    if rule.library_tag == LibraryTag.BREADTH and not match.has_rationale:
+        return CheckOutcome(
+            status=RuleStatus.FIRED,
+            finding=(
+                f"Excluded in {ids} without a stated reason (see ELQ-11); "
+                f"{quality}."
+            ),
+            evidence=evidence,
+            location=location,
+            confidence=match.confidence,
+            needs_second_opinion=True,
+        )
+    return CheckOutcome(
+        status=RuleStatus.PASSED,
+        finding=f"Covered by {ids}; {quality}.",
+        evidence=evidence,
+        location=location,
+        confidence=match.confidence,
+    )
+
+
+def resolve_library_batch(
+    batch: JudgementBatch,
+    response: LibraryMatches,
+    document: ProtocolDocument,
+    profile: TrialProfile,
+) -> list[EvaluatedRule]:
+    """Turn library matches into findings; evidence comes from criteria."""
+    criteria_by_id = {
+        c.criterion_id: c for c in document.eligibility_criteria or []
+    }
+    by_id = {match.rule_id: match for match in response.matches}
+    results: list[EvaluatedRule] = []
+    for rule in batch.rules:
+        match = by_id.get(rule.id)
+        if match is None:
+            outcome = CheckOutcome(
+                status=RuleStatus.CANNOT_ASSESS,
+                finding=f"Cannot assess: item {rule.id} omitted by model.",
+                status_reason=MISSING_VERDICT_REASON,
+            )
+        else:
+            outcome = _with_default_searched_locations(
+                rule,
+                document,
+                _library_outcome(
+                    rule, match, criteria_by_id, profile, document.design
+                ),
+            )
+        results.append(
+            EvaluatedRule(
+                finding=finding_from_outcome(
+                    rule, outcome, CheckMethod.JUDGEMENT
+                ),
+                needs_second_opinion=outcome.needs_second_opinion,
+            )
+        )
+    return results
 
 
 def needs_second_opinion_review(item: EvaluatedRule) -> bool:

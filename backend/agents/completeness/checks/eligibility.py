@@ -5,7 +5,7 @@ criteria by ID in the finding location.
 """
 
 import re
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping
 
 from backend.agents.completeness.checks.common import (
     cannot_assess_outcome,
@@ -14,12 +14,15 @@ from backend.agents.completeness.checks.common import (
     format_offenders,
     passed_outcome,
 )
-from backend.agents.completeness.logic import CheckOutcome, DeterministicCheck
+from backend.agents.completeness.logic import (
+    CheckOutcome,
+    DeterministicCheck,
+    criteria_location,
+    verified_criterion_citations,
+)
 from backend.shared.messages import (
-    Citation,
     CriterionKind,
     EligibilityCriterion,
-    FindingLocation,
     M11Heading,
     ProtocolDocument,
     TrialProfile,
@@ -64,31 +67,6 @@ TRANSLATION_PLAN_PATTERN = re.compile(
 MAX_EXCLUSION_CRITERIA = 25  # above this, screen failure and amendments rise
 
 
-def criteria_location(
-    criteria: Sequence[EligibilityCriterion],
-) -> FindingLocation:
-    """Point a finding at criterion IDs, e.g. section="EX-03, IN-02"."""
-    first_page = next(
-        (c.citation.page_number for c in criteria if c.citation is not None),
-        None,
-    )
-    return FindingLocation(
-        section=", ".join(c.criterion_id for c in criteria) or None,
-        heading=M11Heading.TRIAL_POPULATION,
-        page=first_page,
-    )
-
-
-def _verified_citations(
-    criteria: Sequence[EligibilityCriterion],
-) -> list[Citation]:
-    return [
-        c.citation
-        for c in criteria
-        if c.citation is not None and c.citation.is_verified
-    ]
-
-
 def _flag_criteria(
     document: ProtocolDocument,
     is_offender: Callable[[EligibilityCriterion], bool],
@@ -106,7 +84,7 @@ def _flag_criteria(
     )
     return fired_outcome(
         f"{fired_text}: {described}.",
-        evidence=_verified_citations(offenders),
+        evidence=verified_criterion_citations(offenders),
         location=criteria_location(offenders),
     )
 
@@ -207,13 +185,13 @@ def check_elq_17(
     if plan is not None:
         return passed_outcome(
             "A language requirement is paired with a translation plan.",
-            evidence=[plan, *_verified_citations(language_criteria)],
+            evidence=[plan, *verified_criterion_citations(language_criteria)],
             location=criteria_location(language_criteria),
         )
     return fired_outcome(
         "A language requirement excludes non-fluent participants and no "
         "translated materials or interpreters are mentioned.",
-        evidence=_verified_citations(language_criteria),
+        evidence=verified_criterion_citations(language_criteria),
         location=criteria_location(language_criteria),
         needs_second_opinion=True,
     )
@@ -236,7 +214,7 @@ def check_elq_21(
         return fired_outcome(
             f"The protocol lists {exclusion_count} exclusion criteria, more "
             f"than {MAX_EXCLUSION_CRITERIA}.",
-            evidence=_verified_citations(last),
+            evidence=verified_criterion_citations(last),
             location=criteria_location(last),
         )
     return passed_outcome(

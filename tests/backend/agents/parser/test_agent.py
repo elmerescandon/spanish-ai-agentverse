@@ -1,5 +1,6 @@
 """Unit tests for the generic facet extraction engine (LLM mocked)."""
 
+import asyncio
 import sys
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from pydantic import BaseModel
 from backend.agents.parser.__main__ import main as parser_cli_main
 from backend.agents.parser.agent import (
     AllFacetsFailedError,
+    CachedProtocolParser,
     extract_eligibility_criteria,
     extract_facet,
     parse_protocol,
@@ -564,3 +566,90 @@ def test_cli_missing_api_key_prints_one_line_error(
     assert stderr_lines[0].startswith("error:")
     assert "GEMINI_API_KEY" in stderr_lines[0]
     assert "Traceback" not in stderr_lines[0]
+
+
+def _demo_pdf(tmp_path: Path, name: str = "protocol.pdf") -> Path:
+    pdf_path = make_pdf(tmp_path, [PDF_PAGE_ONE, PDF_PAGE_TWO])
+    return pdf_path.rename(tmp_path / name)
+
+
+async def test_same_pdf_parsed_twice_calls_gemini_once(tmp_path: Path) -> None:
+    pdf_path = _demo_pdf(tmp_path)
+    llm = FakeJsonGenerator(_scripted_facet_responses())
+    parser = CachedProtocolParser(llm)
+
+    first = await parser.parse(pdf_path)
+    second = await parser.parse(pdf_path)
+
+    assert first == second
+    assert len(llm.prompts) == len(FACETS)
+
+
+async def test_identical_content_under_another_name_is_a_cache_hit(
+    tmp_path: Path,
+) -> None:
+    pdf_path = _demo_pdf(tmp_path)
+    renamed_copy = tmp_path / "renamed_upload.pdf"
+    renamed_copy.write_bytes(pdf_path.read_bytes())
+    llm = FakeJsonGenerator(_scripted_facet_responses())
+    parser = CachedProtocolParser(llm)
+
+    await parser.parse(pdf_path)
+    await parser.parse(renamed_copy)
+
+    assert len(llm.prompts) == len(FACETS)
+
+
+async def test_concurrent_requests_for_same_pdf_share_one_parse(
+    tmp_path: Path,
+) -> None:
+    pdf_path = _demo_pdf(tmp_path)
+    llm = FakeJsonGenerator(_scripted_facet_responses())
+    parser = CachedProtocolParser(llm)
+
+    first, second = await asyncio.gather(
+        parser.parse(pdf_path), parser.parse(pdf_path)
+    )
+
+    assert first == second
+    assert len(llm.prompts) == len(FACETS)
+
+
+async def test_failed_parse_is_not_cached(tmp_path: Path) -> None:
+    pdf_path = _demo_pdf(tmp_path)
+    gemini_down = [LlmCallFailedError("LLM down") for _ in FACETS]
+    llm = FakeJsonGenerator(gemini_down + _scripted_facet_responses())
+    parser = CachedProtocolParser(llm)
+
+    with pytest.raises(AllFacetsFailedError):
+        await parser.parse(pdf_path)
+    document = await parser.parse(pdf_path)
+
+    assert document.design is not None
+    assert len(llm.prompts) == 2 * len(FACETS)
+
+
+async def test_each_caller_gets_an_independent_copy(tmp_path: Path) -> None:
+    pdf_path = _demo_pdf(tmp_path)
+    parser = CachedProtocolParser(
+        FakeJsonGenerator(_scripted_facet_responses())
+    )
+
+    first = await parser.parse(pdf_path)
+    original_title = first.title
+    first.title = "edited by one review"
+    second = await parser.parse(pdf_path)
+
+    assert second.title == original_title
+
+
+async def test_missing_pdf_raises_without_calling_gemini(
+    tmp_path: Path,
+) -> None:
+    llm = FakeJsonGenerator([])
+    parser = CachedProtocolParser(llm)
+
+    with pytest.raises(OSError):
+        await parser.parse(tmp_path / "does_not_exist.pdf")
+
+    assert llm.prompts == []

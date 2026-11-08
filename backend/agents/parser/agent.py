@@ -4,6 +4,7 @@ Other parts of the backend call parse_protocol() directly.
 """
 
 import asyncio
+import hashlib
 import logging
 from collections.abc import Sequence
 from pathlib import Path
@@ -44,6 +45,7 @@ logger = logging.getLogger(__name__)
 
 AGENT_NAME = "parser"
 MAX_CITATION_REPAIR_ROUNDS = 1  # one re-ask; a third call rarely helps
+HASH_CHUNK_BYTES = 1024 * 1024  # stream large PDFs while hashing
 
 
 class AllFacetsFailedError(RuntimeError):
@@ -188,3 +190,75 @@ async def extract_eligibility_criteria(
         criterion.model_copy(update={"citation": None})
         for criterion in outcome.result.criteria
     ]
+
+
+def _hash_file_contents(pdf_path: Path) -> str:
+    """Return the SHA-256 hex digest of a file's bytes."""
+    digest = hashlib.sha256()
+    with pdf_path.open("rb") as pdf_file:
+        while chunk := pdf_file.read(HASH_CHUNK_BYTES):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+class CachedProtocolParser:
+    """Parses each distinct PDF once and shares the result.
+
+    PDFs are keyed by a hash of their bytes, so a renamed copy of the same
+    file is still a cache hit (its ID and title come from the first parse).
+    Requests for a PDF that is already being parsed wait for that parse
+    instead of starting another. Failed parses are forgotten so a retry
+    really re-parses. The cache lives in memory for this process only.
+    """
+
+    def __init__(
+        self, llm: JsonGenerator, facets: Sequence[AnyFacet] = FACETS
+    ) -> None:
+        self._llm = llm
+        self._facets = facets
+        # A running task is an in-flight parse; a finished one is the cache.
+        self._parses: dict[str, asyncio.Task[ProtocolDocument]] = {}
+
+    async def parse(self, pdf_path: Path) -> ProtocolDocument:
+        """Return the parsed document, parsing only on the first request.
+
+        Each caller gets its own deep copy, so one review editing its
+        document can't change another's.
+
+        Raises:
+            The same errors as parse_protocol (UnreadablePdfError,
+            ValueError, OSError, AllFacetsFailedError).
+        """
+        content_hash = await asyncio.to_thread(_hash_file_contents, pdf_path)
+        task = self._parses.get(content_hash)
+        if task is None:
+            logger.info(
+                "parse cache miss: agent=%s content_hash=%s pdf_path=%s",
+                AGENT_NAME,
+                content_hash[:12],
+                pdf_path,
+            )
+            task = asyncio.create_task(
+                parse_protocol(pdf_path, self._llm, self._facets)
+            )
+            self._parses[content_hash] = task
+            task.add_done_callback(
+                lambda finished: self._forget_if_failed(content_hash, finished)
+            )
+        else:
+            logger.info(
+                "parse cache hit: agent=%s content_hash=%s done=%s",
+                AGENT_NAME,
+                content_hash[:12],
+                task.done(),
+            )
+        # shield: one caller giving up must not cancel the shared parse.
+        document = await asyncio.shield(task)
+        return document.model_copy(deep=True)
+
+    def _forget_if_failed(
+        self, content_hash: str, finished: asyncio.Task[ProtocolDocument]
+    ) -> None:
+        has_failed = finished.cancelled() or finished.exception() is not None
+        if has_failed and self._parses.get(content_hash) is finished:
+            del self._parses[content_hash]

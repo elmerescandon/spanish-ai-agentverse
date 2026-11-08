@@ -21,6 +21,9 @@ DEFAULT_ALLOWED_ORIGINS: tuple[str, ...] = (
     "http://127.0.0.1:3000",
 )
 DEFAULT_GEMINI_MODEL = "gemini-4-argon"
+# The completeness check runs ~25 calls at once and must finish in about a
+# minute; this Flash model answers ~2.7x faster than gemini-4-argon.
+DEFAULT_CHECK_MODEL = "gemini-3.8-flash"
 DEFAULT_RESULT_CACHE_DIR = "data/cache"
 DEFAULT_PROTOCOL_DB_PATH = "data/protocols.db"
 ENV_FILE_PATH = ".env"
@@ -78,6 +81,9 @@ class Settings(BaseSettings):
     # LLM Provider (Google Gemini)
     gemini_api_key: SecretStr | None = None
     gemini_model: str = DEFAULT_GEMINI_MODEL
+    # Model for the completeness check only; everything else uses
+    # gemini_model
+    check_model: str = DEFAULT_CHECK_MODEL
 
     # On-disk cache directory for finished protocol parses and checks
     result_cache_dir: Path = Path(DEFAULT_RESULT_CACHE_DIR)

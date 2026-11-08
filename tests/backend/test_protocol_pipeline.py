@@ -16,7 +16,7 @@ from backend.api.protocol_pipeline import (
     get_protocol_pipeline,
     set_protocol_pipeline,
 )
-from backend.clients.gemini import LlmCallFailedError
+from backend.clients.gemini import JsonGenerator, LlmCallFailedError
 from backend.shared.messages import PageText, ProtocolDocument
 from tests.backend.agents.parser.scripted_responses import (
     demo_pdf,
@@ -269,6 +269,7 @@ async def test_app_pipeline_uses_the_configured_cache_directory(
 ) -> None:
     class _FakeSettings:
         gemini_model = "gemini-4-argon"
+        check_model = "gemini-3.8-flash"
         result_cache_dir = tmp_path
 
         def require_gemini_api_key(self) -> str:
@@ -392,3 +393,25 @@ async def test_stored_results_are_served_without_an_api_key(
 
     assert document == parsed
     assert len(run.report.findings) == len(load_rule_catalogue().rules)
+
+
+async def test_check_uses_its_own_model_and_parse_the_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    requested_models: list[str | None] = []
+
+    def fake_client(model: str | None = None) -> JsonGenerator:
+        requested_models.append(model)
+        if model is None:
+            return FakeJsonGenerator(scripted_facet_responses())
+        return EmptyAnswersLlm()
+
+    monkeypatch.setattr(
+        protocol_pipeline, "_create_gemini_client", fake_client
+    )
+    pipeline = ProtocolPipeline(check_model_name="fast-check-model")
+
+    document = await pipeline.parse(demo_pdf(tmp_path))
+    await pipeline.check(document)
+
+    assert requested_models == [None, "fast-check-model"]

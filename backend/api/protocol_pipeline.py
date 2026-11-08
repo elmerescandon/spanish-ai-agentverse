@@ -32,7 +32,11 @@ from backend.clients.gemini import (
     LlmCallFailedError,
     ThinkingLevel,
 )
-from backend.shared.config import DEFAULT_GEMINI_MODEL, load_settings
+from backend.shared.config import (
+    DEFAULT_CHECK_MODEL,
+    DEFAULT_GEMINI_MODEL,
+    load_settings,
+)
 from backend.shared.messages import ComplianceReport, ProtocolDocument
 from backend.shared.result_store import ResultStore
 from backend.shared.task_cache import JobFactory, SharedTaskCache
@@ -161,8 +165,8 @@ async def _run_check(
     )
 
 
-def _create_gemini_client() -> GeminiClient:
-    """Build the Gemini client from settings.
+def _create_gemini_client(model: str | None = None) -> GeminiClient:
+    """Build a Gemini client from settings, for model or the default one.
 
     Raises:
         AnalysisFailedError: GEMINI_API_KEY is not set.
@@ -174,7 +178,7 @@ def _create_gemini_client() -> GeminiClient:
         raise AnalysisFailedError(
             f"Gemini is not configured: {error}"
         ) from error
-    return GeminiClient(api_key=api_key, model=settings.gemini_model)
+    return GeminiClient(api_key=api_key, model=model or settings.gemini_model)
 
 
 def _document_content_key(document: ProtocolDocument) -> str:
@@ -224,8 +228,13 @@ class ProtocolPipeline:
         llm: JsonGenerator | None = None,
         store_directory: Path | None = None,
         model_name: str = DEFAULT_GEMINI_MODEL,
+        check_model_name: str = DEFAULT_CHECK_MODEL,
     ) -> None:
+        # A given llm (tests) serves every job; otherwise the check gets
+        # its own client on the faster check model.
         self._llm = llm
+        self._check_llm = llm
+        self._check_model_name = check_model_name
         self._parses = SharedTaskCache[ProtocolDocument](
             "parse", is_reusable=is_fully_parsed
         )
@@ -244,13 +253,18 @@ class ProtocolPipeline:
             "check",
             CheckRun,
             COMPLETENESS_PACKAGE_DIRECTORY,
-            model_name,
+            check_model_name,
         )
 
     def _client(self) -> JsonGenerator:
         if self._llm is None:
             self._llm = _create_gemini_client()
         return self._llm
+
+    def _check_client(self) -> JsonGenerator:
+        if self._check_llm is None:
+            self._check_llm = _create_gemini_client(self._check_model_name)
+        return self._check_llm
 
     def llm(self) -> JsonGenerator:
         """The Gemini client the pipeline's jobs share.
@@ -324,7 +338,7 @@ class ProtocolPipeline:
         return key, lambda: _load_or_run(
             self._check_store,
             key,
-            lambda: _run_check(document, self._client()),
+            lambda: _run_check(document, self._check_client()),
             _is_complete_check,
         )
 
@@ -340,6 +354,7 @@ def get_protocol_pipeline() -> ProtocolPipeline:
         _pipeline = ProtocolPipeline(
             store_directory=settings.result_cache_dir,
             model_name=settings.gemini_model,
+            check_model_name=settings.check_model,
         )
     return _pipeline
 

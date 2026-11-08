@@ -49,10 +49,9 @@ LLM_TIMEOUT_SECONDS = 300  # upper bound for 100k+ token protocol calls
 MILLISECONDS_PER_SECOND = 1000
 SDK_SINGLE_ATTEMPT = 1  # disables the SDK's built-in retry loop
 # Enough for every completeness batch and second-opinion group to run at
-# once (about 70 small calls), so the check takes one round instead of
-# several; beyond that calls queue. A rate-limit reply (HTTP 429) is
-# retried with backoff.
-MAX_CONCURRENT_CALLS = 64
+# once (about 30), so the check takes one round instead of several; beyond
+# that calls queue. A rate-limit reply (HTTP 429) is retried with backoff.
+MAX_CONCURRENT_CALLS = 32
 HTTP_RATE_LIMIT_STATUS = 429
 HTTP_SERVER_ERROR_MIN_STATUS = 500
 

@@ -40,6 +40,7 @@ from backend.shared.messages import (
     ProtocolDocument,
     TrialDesignFacts,
 )
+from backend.shared.task_cache import SharedTaskCache
 
 logger = logging.getLogger(__name__)
 
@@ -216,8 +217,7 @@ class CachedProtocolParser:
     ) -> None:
         self._llm = llm
         self._facets = facets
-        # A running task is an in-flight parse; a finished one is the cache.
-        self._parses: dict[str, asyncio.Task[ProtocolDocument]] = {}
+        self._parses = SharedTaskCache[ProtocolDocument]("parse")
 
     async def parse(self, pdf_path: Path) -> ProtocolDocument:
         """Return the parsed document, parsing only on the first request.
@@ -230,35 +230,8 @@ class CachedProtocolParser:
             ValueError, OSError, AllFacetsFailedError).
         """
         content_hash = await asyncio.to_thread(_hash_file_contents, pdf_path)
-        task = self._parses.get(content_hash)
-        if task is None:
-            logger.info(
-                "parse cache miss: agent=%s content_hash=%s pdf_path=%s",
-                AGENT_NAME,
-                content_hash[:12],
-                pdf_path,
-            )
-            task = asyncio.create_task(
-                parse_protocol(pdf_path, self._llm, self._facets)
-            )
-            self._parses[content_hash] = task
-            task.add_done_callback(
-                lambda finished: self._forget_if_failed(content_hash, finished)
-            )
-        else:
-            logger.info(
-                "parse cache hit: agent=%s content_hash=%s done=%s",
-                AGENT_NAME,
-                content_hash[:12],
-                task.done(),
-            )
-        # shield: one caller giving up must not cancel the shared parse.
-        document = await asyncio.shield(task)
+        document = await self._parses.get_or_run(
+            content_hash,
+            lambda: parse_protocol(pdf_path, self._llm, self._facets),
+        )
         return document.model_copy(deep=True)
-
-    def _forget_if_failed(
-        self, content_hash: str, finished: asyncio.Task[ProtocolDocument]
-    ) -> None:
-        has_failed = finished.cancelled() or finished.exception() is not None
-        if has_failed and self._parses.get(content_hash) is finished:
-            del self._parses[content_hash]

@@ -1,8 +1,12 @@
 """Tests for the values suggested to bring a flagged draft back in line."""
 
+from backend.agents.protocol_comparison.comparison import (
+    Category,
+    DimensionComparison,
+    FlagRule,
+)
 from backend.agents.protocol_comparison.suggestions import (
     Suggestion,
-    SuggestionBasis,
     suggest_values,
 )
 from tests.backend.agents.protocol_comparison.profiles import (
@@ -10,11 +14,20 @@ from tests.backend.agents.protocol_comparison.profiles import (
     compare,
     draft,
     recent_peers,
-    same_class_peers,
     spread_peers,
 )
 
 ALL_SPREAD_IDS = tuple(f"NCT-SPREAD-{index}" for index in range(11))
+
+
+def suggestion_for(
+    result: DimensionComparison, category: Category
+) -> Suggestion:
+    return next(
+        suggestion
+        for suggestion in suggest_values(result)
+        if suggestion.category == category
+    )
 
 
 def test_unflagged_dimension_gets_no_suggestion() -> None:
@@ -23,12 +36,19 @@ def test_unflagged_dimension_gets_no_suggestion() -> None:
     assert suggest_values(result) == ()
 
 
-def test_value_above_range_is_brought_down_to_the_range_edge() -> None:
+def test_each_flagging_category_gets_its_own_suggestion() -> None:
     result = compare(draft(95), spread_peers())
 
     assert suggest_values(result) == (
         Suggestion(
-            basis=SuggestionBasis.PEER_RANGE,
+            category=Category.WEIGHTED,
+            rule=FlagRule.PERCENTILE_RANGE,
+            suggested_value=90.0,
+            peer_ids=ALL_SPREAD_IDS,
+        ),
+        Suggestion(
+            category=Category.ALL,
+            rule=FlagRule.PERCENTILE_RANGE,
             suggested_value=90.0,
             peer_ids=ALL_SPREAD_IDS,
         ),
@@ -38,9 +58,7 @@ def test_value_above_range_is_brought_down_to_the_range_edge() -> None:
 def test_looser_value_below_range_is_brought_up_to_the_range_edge() -> None:
     result = compare(draft(5), spread_peers())
 
-    [suggestion] = suggest_values(result)
-
-    assert suggestion.suggested_value == 10.0
+    assert suggestion_for(result, Category.WEIGHTED).suggested_value == 10.0
 
 
 def test_lower_is_stricter_dimension_below_range_goes_to_low_edge() -> None:
@@ -48,51 +66,34 @@ def test_lower_is_stricter_dimension_below_range_goes_to_low_edge() -> None:
         draft(5, MAXIMUM_AGE), spread_peers(MAXIMUM_AGE), MAXIMUM_AGE
     )
 
-    [suggestion] = suggest_values(result)
-
-    assert suggestion.suggested_value == 10.0
+    assert suggestion_for(result, Category.WEIGHTED).suggested_value == 10.0
 
 
-def test_stricter_than_recent_peers_matches_strictest_recent_peer() -> None:
-    result = compare(draft(70), spread_peers() + recent_peers(20, 40, 30))
+def test_beyond_every_peer_is_brought_to_the_nearest_peer_value() -> None:
+    result = compare(draft(61), spread_peers()[:7])  # peers 0..60
 
-    assert suggest_values(result) == (
-        Suggestion(
-            basis=SuggestionBasis.RECENT_PEERS,
-            suggested_value=40.0,
-            peer_ids=("NCT-RECENT-0", "NCT-RECENT-1", "NCT-RECENT-2"),
-        ),
+    suggestion = suggestion_for(result, Category.WEIGHTED)
+
+    assert suggestion.rule == FlagRule.BEYOND_EVERY_PEER
+    assert suggestion.suggested_value == 60.0
+
+
+def test_recent_flag_suggests_the_nearest_recent_value() -> None:
+    result = compare(
+        draft(70), spread_peers() + recent_peers(20, 60, 40, 30, 50)
     )
 
+    suggestion = suggestion_for(result, Category.RECENT)
 
-def test_strictest_peer_is_the_lowest_when_lower_is_stricter() -> None:
+    assert suggestion.suggested_value == 60.0
+    assert suggestion.peer_ids == tuple(f"NCT-RECENT-{i}" for i in range(5))
+
+
+def test_nearest_peer_is_the_lowest_when_draft_is_below_every_peer() -> None:
     peers = spread_peers(MAXIMUM_AGE) + recent_peers(
-        80, 60, 70, dimension=MAXIMUM_AGE
+        80, 60, 70, 90, 100, dimension=MAXIMUM_AGE
     )
 
     result = compare(draft(50, MAXIMUM_AGE), peers, MAXIMUM_AGE)
 
-    [suggestion] = suggest_values(result)
-    assert suggestion.suggested_value == 60.0
-
-
-def test_same_class_flag_suggests_strictest_same_class_peer() -> None:
-    result = compare(draft(70), spread_peers() + same_class_peers(25, 35, 45))
-
-    [suggestion] = suggest_values(result)
-
-    assert suggestion.basis == SuggestionBasis.SAME_CLASS_PEERS
-    assert suggestion.suggested_value == 45.0
-
-
-def test_range_and_recent_flags_give_one_suggestion_each() -> None:
-    # 14 values now: the 90th percentile is 80 + 0.7 * (90 - 80) = 87.
-    result = compare(draft(95), spread_peers() + recent_peers(20, 30, 40))
-
-    assert [
-        (suggestion.basis, suggestion.suggested_value)
-        for suggestion in suggest_values(result)
-    ] == [
-        (SuggestionBasis.PEER_RANGE, 87.0),
-        (SuggestionBasis.RECENT_PEERS, 40.0),
-    ]
+    assert suggestion_for(result, Category.RECENT).suggested_value == 60.0

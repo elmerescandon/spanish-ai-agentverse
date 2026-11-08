@@ -1,0 +1,49 @@
+{
+  "trial_id": "NCT02131272",
+  "cache_key": "baedc227d1827f91",
+  "read_at": "2026-11-08T03:47:50.939761Z",
+  "reply": {
+    "predicates": [
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 7.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c (glycosylated haemoglobin) above or equal to 7.0% and below or equal to 10.5%"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 10.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c (glycosylated haemoglobin) above or equal to 7.0% and below or equal to 10.5%"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 53.0,
+        "unit": "mmol/mol",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c (glycosylated haemoglobin) above or equal to 7.0% and below or equal to 10.5% (above or equal to 53 mmol/mol and below or equal to 91 mmol/mol)"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 91.0,
+        "unit": "mmol/mol",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c (glycosylated haemoglobin) above or equal to 7.0% and below or equal to 10.5% (above or equal to 53 mmol/mol and below or equal to 91 mmol/mol)"
+      },
+      {
+        "variable": "ALT",
+        "operator": ">=",
+        "value": 2.5,
+        "unit": "times upper normal limit",
+        "scope": "EXCLUSION",
+        "source_text": "alanine aminotransferase (ALT) above or equal to 2.5 times upper normal limit"
+      }
+    ]
+  }
+}

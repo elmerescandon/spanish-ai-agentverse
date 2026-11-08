@@ -1,0 +1,73 @@
+{
+  "trial_id": "NCT02856113",
+  "cache_key": "d0778f5222d29815",
+  "read_at": "2026-11-08T03:48:27.390380Z",
+  "reply": {
+    "predicates": [
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 6.5,
+        "unit": "percent (%)",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c >=6.5 percent (%)"
+      },
+      {
+        "variable": "EGFR",
+        "operator": "<",
+        "value": 60.0,
+        "unit": "milliliter per minute (mL/min)",
+        "scope": "EXCLUSION",
+        "source_text": "creatinine clearance <60 milliliter per minute (mL/min) based on calculation by central lab using the Schwartz formula for estimated glomerular filtration rate (eGFR)"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 6.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "Must have an HbA1c level of >=6.5% to <11.0% if the participant is treatment naïve or on metformin alone"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<",
+        "value": 11.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "Must have an HbA1c level of >=6.5% to <11.0% if the participant is treatment naïve or on metformin alone"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 7.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": ">=7.0% to <11.0% if the participant is on insulin alone or in combination with metformin"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<",
+        "value": 11.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": ">=7.0% to <11.0% if the participant is on insulin alone or in combination with metformin"
+      },
+      {
+        "variable": "ALT",
+        "operator": "<",
+        "value": 3.0,
+        "unit": "*upper limit of normal (ULN)",
+        "scope": "INCLUSION",
+        "source_text": "Has an alanine aminotransferase (ALT) level <3*upper limit of normal (ULN)"
+      },
+      {
+        "variable": "ALT",
+        "operator": "<",
+        "value": 5.0,
+        "unit": "*ULN",
+        "scope": "INCLUSION",
+        "source_text": "an ALT level <5 *ULN with a confirmed diagnosis of nonalcoholic fatty liver disease (NAFLD)"
+      }
+    ]
+  }
+}

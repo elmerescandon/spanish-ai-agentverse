@@ -1,0 +1,41 @@
+{
+  "trial_id": "NCT01760447",
+  "cache_key": "36bd79513766f68b",
+  "read_at": "2026-11-08T03:48:08.488547Z",
+  "reply": {
+    "predicates": [
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 6.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "glycated hemoglobin (A1C) ≥6.5% and ≤10.0%"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 10.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "glycated hemoglobin (A1C) ≥6.5% and ≤10.0%"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 7.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "A1C ≥7.0% and ≤10%"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 10.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "A1C ≥7.0% and ≤10%"
+      }
+    ]
+  }
+}

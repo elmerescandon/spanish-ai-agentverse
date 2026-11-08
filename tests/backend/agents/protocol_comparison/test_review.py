@@ -1,6 +1,7 @@
 """Tests for turning flagged dimensions into reviewed suggestion cards."""
 
 from backend.agents.protocol_comparison.agent import review_flags
+from backend.agents.protocol_comparison.comparison import Category
 from backend.agents.protocol_comparison.review import (
     FlagReasoning,
     Leaning,
@@ -12,12 +13,21 @@ from backend.clients.gemini import LlmCallFailedError
 from tests.backend.agents.protocol_comparison.profiles import (
     compare,
     draft,
+    recent_peers,
+    same_drug_peers,
     spread_peers,
 )
 from tests.conftest import FakeJsonGenerator
 
 FLAGGED = compare(draft(95), spread_peers())
 IN_LINE = compare(draft(50), spread_peers())
+# Inside the overall range but beyond every recent peer: a category flag
+# without an official one.
+RECENT_ONLY = compare(
+    draft(70), spread_peers() + recent_peers(20, 30, 40, 50, 60)
+)
+# No flag anywhere, but stricter than both same-drug peers.
+NOTE_ONLY = compare(draft(50), spread_peers() + same_drug_peers(20, 30))
 
 
 def reasoning(*cited_trial_ids: str) -> FlagReasoning:
@@ -50,9 +60,10 @@ async def test_review_without_llm_keeps_suggestions_and_skips_reasoning() -> (
 
     assert card.reasoning is None
     assert card.reasoning_status == ReasoningStatus.SKIPPED
-    assert [suggestion.suggested_value for suggestion in card.suggestions] == [
-        90.0
-    ]
+    assert [
+        (suggestion.category, suggestion.suggested_value)
+        for suggestion in card.suggestions
+    ] == [(Category.WEIGHTED, 90.0), (Category.ALL, 90.0)]
 
 
 async def test_review_marks_reasoning_failed_when_llm_call_fails() -> None:
@@ -62,7 +73,26 @@ async def test_review_marks_reasoning_failed_when_llm_call_fails() -> None:
 
     assert card.reasoning is None
     assert card.reasoning_status == ReasoningStatus.FAILED
-    assert len(card.suggestions) == 1
+    assert len(card.suggestions) == 2
+
+
+async def test_category_flag_alone_gets_a_card_marked_unofficial() -> None:
+    [official] = await review_flags([FLAGGED], llm=None)
+    [unofficial] = await review_flags([RECENT_ONLY], llm=None)
+
+    assert official.is_official_flag
+    assert not unofficial.is_official_flag
+    assert [suggestion.category for suggestion in unofficial.suggestions] == [
+        Category.RECENT
+    ]
+
+
+async def test_same_drug_note_alone_gets_a_card_without_suggestions() -> None:
+    [card] = await review_flags([NOTE_ONLY], llm=None)
+
+    assert card.comparison.same_drug_note is not None
+    assert card.suggestions == ()
+    assert not card.is_official_flag
 
 
 async def test_review_reports_cited_trials_missing_from_evidence() -> None:
@@ -99,3 +129,12 @@ def test_prompt_names_every_leaning_the_reply_may_use() -> None:
 
     for leaning in Leaning:
         assert f'"{leaning.value}"' in prompt
+
+
+def test_prompt_includes_tiers_weights_and_the_same_drug_note() -> None:
+    prompt = build_reasoning_prompt(NOTE_ONLY, suggest_values(NOTE_ONLY))
+
+    assert '"SAME_DRUG"' in prompt
+    assert '"weight"' in prompt
+    assert "NCT-DRUG-0" in prompt
+    assert "same_drug_note" in prompt

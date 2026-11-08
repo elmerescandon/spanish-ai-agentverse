@@ -1,0 +1,57 @@
+{
+  "trial_id": "NCT01204775",
+  "cache_key": "97597d116e8b6ff9",
+  "read_at": "2026-11-08T03:48:09.846326Z",
+  "reply": {
+    "predicates": [
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 7.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c ≥7.0% and ≤10.5%"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 10.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c ≥7.0% and ≤10.5%"
+      },
+      {
+        "variable": "EGFR",
+        "operator": "<",
+        "value": 80.0,
+        "unit": "mL/min/1.73m2",
+        "scope": "EXCLUSION",
+        "source_text": "calculated glomerular filtration rate < 80 mL/min/1.73m2 (1.33 mL/s)"
+      },
+      {
+        "variable": "EGFR",
+        "operator": "<",
+        "value": 1.33,
+        "unit": "mL/s",
+        "scope": "EXCLUSION",
+        "source_text": "calculated glomerular filtration rate < 80 mL/min/1.73m2 (1.33 mL/s)"
+      },
+      {
+        "variable": "AST",
+        "operator": ">",
+        "value": 2.0,
+        "unit": "times upper limits of normal",
+        "scope": "EXCLUSION",
+        "source_text": "Aspartate aminotransferase (AST) and/or alanine aminotransferase (ALT) > 2 times upper limits of normal"
+      },
+      {
+        "variable": "ALT",
+        "operator": ">",
+        "value": 2.0,
+        "unit": "times upper limits of normal",
+        "scope": "EXCLUSION",
+        "source_text": "Aspartate aminotransferase (AST) and/or alanine aminotransferase (ALT) > 2 times upper limits of normal"
+      }
+    ]
+  }
+}

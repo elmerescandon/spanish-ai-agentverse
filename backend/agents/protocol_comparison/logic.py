@@ -5,6 +5,7 @@ from enum import StrEnum
 
 from backend.agents.protocol_comparison.rules import (
     DRUG_CLASS_KEYWORDS,
+    DRUG_CODE_ALIASES,
     DrugClass,
     PeerCriteria,
 )
@@ -98,12 +99,8 @@ def screen_peers(
     return PeerScreening(peers=tuple(peers), excluded=tuple(excluded))
 
 
-def classify_drug_classes(study: StudyRecord) -> frozenset[DrugClass]:
-    """Return the drug classes of a study's non-placebo interventions.
-
-    Matches generic names (and known development codes) in intervention
-    names and intervention MeSH terms. An unknown drug gives no class.
-    """
+def _intervention_names(study: StudyRecord) -> list[str]:
+    """Lower-case non-placebo intervention names and intervention MeSH."""
     names: list[str] = []
     arms = study.protocol_section.arms_interventions_module
     if arms is not None:
@@ -118,8 +115,33 @@ def classify_drug_classes(study: StudyRecord) -> frozenset[DrugClass]:
             mesh.term.lower()
             for mesh in derived.intervention_browse_module.meshes
         )
+    return names
+
+
+def classify_drug_classes(study: StudyRecord) -> frozenset[DrugClass]:
+    """Return the drug classes of a study's non-placebo interventions.
+
+    Matches generic names (and known development codes) in intervention
+    names and intervention MeSH terms. An unknown drug gives no class.
+    """
+    names = _intervention_names(study)
     return frozenset(
         drug_class
         for drug_class, keywords in DRUG_CLASS_KEYWORDS.items()
         if any(keyword in name for name in names for keyword in keywords)
+    )
+
+
+def identify_drugs(study: StudyRecord) -> frozenset[str]:
+    """Return the generic names of a study's known non-placebo drugs.
+
+    Development codes are reported under their generic name, so two
+    trials of the same drug match however they name it.
+    """
+    names = _intervention_names(study)
+    return frozenset(
+        DRUG_CODE_ALIASES.get(keyword, keyword)
+        for keywords in DRUG_CLASS_KEYWORDS.values()
+        for keyword in keywords
+        if any(keyword in name for name in names)
     )

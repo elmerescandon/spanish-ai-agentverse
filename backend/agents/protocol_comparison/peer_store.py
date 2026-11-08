@@ -3,6 +3,7 @@
 Layout under the store root:
     studies/<NCT ID>.json   one validated registry record per study
     queries/<query id>.json the query, when it ran, and the NCT IDs found
+    lab_limits/<NCT ID>.json the LLM's reading of the study's lab limits
 
 Records are stored as our validated subset of the registry JSON (same
 keys and structure, unmodelled fields dropped). Caching keeps the demo
@@ -19,6 +20,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, ValidationError
 
+from backend.agents.protocol_comparison.eligibility import StoredLabReading
 from backend.clients.clinicaltrials_gov import (
     PeerSearchQuery,
     Phase,
@@ -33,6 +35,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_PEER_STORE_DIR = Path("data/peers")
 STUDIES_DIRNAME = "studies"
 QUERIES_DIRNAME = "queries"
+LAB_LIMITS_DIRNAME = "lab_limits"
 QUERY_ID_LENGTH = 16  # hex characters of a SHA-256; collisions negligible
 JSON_INDENT = 2
 
@@ -105,6 +108,29 @@ class PeerStore:
 
     def _query_path(self, query_id: str) -> Path:
         return self._root / QUERIES_DIRNAME / f"{query_id}.json"
+
+    def _lab_limits_path(self, trial_id: str) -> Path:
+        return self._root / LAB_LIMITS_DIRNAME / f"{trial_id}.json"
+
+    def load_lab_reading(self, trial_id: str) -> StoredLabReading | None:
+        """Return the cached LLM reading for a trial, or None."""
+        path = self._lab_limits_path(trial_id)
+        if not path.exists():
+            return None
+        try:
+            return StoredLabReading.model_validate_json(path.read_bytes())
+        except ValidationError as error:
+            raise PeerStoreError(
+                f"expected a valid cached lab reading at {path}, got "
+                f"{error.error_count()} validation error(s)"
+            ) from error
+
+    def save_lab_reading(self, stored: StoredLabReading) -> None:
+        """Cache an LLM reading, replacing any older one for the trial."""
+        _write_atomically(
+            self._lab_limits_path(stored.trial_id),
+            stored.model_dump_json(indent=JSON_INDENT),
+        )
 
     def load_study(self, nct_id: str) -> StudyRecord:
         """Load one cached study; raises PeerStoreError if missing."""

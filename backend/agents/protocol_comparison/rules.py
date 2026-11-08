@@ -62,6 +62,11 @@ DRUG_CLASS_KEYWORDS: dict[DrugClass, tuple[str, ...]] = {
 }
 
 
+# Development codes mapped to the generic name, so a trial naming the
+# drug only by code still counts as the same drug.
+DRUG_CODE_ALIASES: dict[str, str] = {"ly2189265": "dulaglutide"}
+
+
 @dataclass(frozen=True)
 class PeerCriteria:
     """What a registry search result must satisfy to count as a peer.
@@ -92,25 +97,36 @@ TYPE_2_DIABETES_PEER_CRITERIA = PeerCriteria(
 class FlagRules:
     """When a draft's value counts as unusual against its peers.
 
-    Proposed thresholds, pending clinical sign-off; see section 3 of
+    Stefan's comparison thresholds (Comparison Thresholds, sections 1.1,
+    1.2, 1.4 and 3.1); see sections 3 and 4 of
     docs/protocol_comparison_rules.md.
     """
 
-    # Below this many peers stating a value, no flag is raised at all.
-    min_peers: int = 10
-    # A recent or same-class group needs this many peers stating a value
-    # before "stricter than every peer in it" means anything.
-    min_group_peers: int = 3
-    # Peers that started this many years before the protocol are recent.
-    recent_window_years: int = 3
+    # Effective number of peers (Kish n_eff) needed before any flag;
+    # below it the result is "insufficient comparators".
+    min_n_eff: float = 5.0
+    # From this n_eff the percentile rule applies (S2); between the two,
+    # only a value beyond every peer flags, as an advisory S3.
+    full_n_eff: float = 10.0
     low_percentile: int = 10
     high_percentile: int = 90
+    # Tier base weights: same drug, same class, same disease.
+    same_drug_weight: float = 1.0
+    same_class_weight: float = 0.6
+    same_disease_weight: float = 0.3
+    # A peer's weight halves for every this many years before the
+    # protocol date that it started.
+    recency_half_life_years: float = 5.0
+    # Multiplier for trials still running (results not final).
+    ongoing_weight: float = 0.8
+    # Peers that started this many years before the protocol are recent.
+    recent_window_years: int = 3
 
     def __post_init__(self) -> None:
-        # A percentile range needs at least two values to interpolate.
-        if self.min_peers < 2:
+        if not 0 < self.min_n_eff <= self.full_n_eff:
             raise ValueError(
-                f"min_peers must be at least 2, got {self.min_peers}"
+                "n_eff thresholds must satisfy 0 < min <= full, got "
+                f"min={self.min_n_eff} full={self.full_n_eff}"
             )
         if not 0 < self.low_percentile < self.high_percentile < 100:
             raise ValueError(

@@ -13,6 +13,8 @@ def make_study(
     maximum_age: str | None = None,
     enrollment: tuple[int, str] | None = None,
     start_date: str | None = None,
+    overall_status: str = "COMPLETED",
+    eligibility_criteria: str | None = None,
 ) -> StudyRecord:
     """Build a minimal registry record; defaults describe a valid peer.
 
@@ -24,7 +26,7 @@ def make_study(
     if enrollment is not None:
         count, enrollment_type = enrollment
         design["enrollmentInfo"] = {"count": count, "type": enrollment_type}
-    status: dict[str, object] = {"overallStatus": "COMPLETED"}
+    status: dict[str, object] = {"overallStatus": overall_status}
     if start_date is not None:
         status["startDateStruct"] = {"date": start_date}
     eligibility: dict[str, object] = {}
@@ -32,6 +34,8 @@ def make_study(
         eligibility["minimumAge"] = minimum_age
     if maximum_age is not None:
         eligibility["maximumAge"] = maximum_age
+    if eligibility_criteria is not None:
+        eligibility["eligibilityCriteria"] = eligibility_criteria
     return StudyRecord.model_validate(
         {
             "protocolSection": {

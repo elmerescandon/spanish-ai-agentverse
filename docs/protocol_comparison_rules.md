@@ -47,31 +47,58 @@ development codes:
 
 A drug not in the table gets no class, so it never counts as same-class.
 
-## 3. Peer groups and when to flag (proposed, needs sign-off)
+## 3. Tiers, weights and when to flag
 
-Each dimension is compared against three peer groups:
+These follow Stefan's *Comparison Thresholds* (sections 1.1, 1.2, 1.4
+and 3.1). Where we simplify or add to them, it says so.
 
-| Group | Members |
+**Tiers and weights.** Every peer gets one tier and a weight:
+
+| Tier | Match | Base weight |
+| --- | --- | --- |
+| Same drug (T1) | Shares a drug with the draft | 1.0 |
+| Same class (T2) | Shares a drug class, not a drug | 0.6 |
+| Same disease (T3) | Neither | 0.3 |
+
+The weight halves for every 5 years between the peer's start and the
+protocol date (continuously, so 2.5 years is ×0.71), and is ×0.8 for a
+trial still running. A peer with no start date is not discounted.
+Simplified for now: all peers are phase 3 (the search asks for it), so
+the phase modifier is always ×1.0; start date stands in for
+registration date; the era, region and sponsor-programme rules are not
+applied yet.
+
+**Effective number of peers.** n_eff = (Σw)² / Σw², over the peers
+stating a value. It decides which rule applies:
+
+| n_eff | Rule | Severity |
+| --- | --- | --- |
+| below 5 | No flag: "insufficient comparators" | — |
+| 5 to 9 | Flag only a value beyond **every** peer | S3 (advisory) |
+| 10 or more | Flag a value outside the 10th–90th percentile | S2 |
+
+Both directions flag: stricter and looser. A value exactly on the 10th
+or 90th percentile, or equal to the most extreme peer, is not flagged.
+Percentiles are weighted with linear interpolation; with equal weights
+they equal numpy's default. Looser values tied to a known safety signal
+(Stefan's S1 case) are not detected yet and get S2.
+
+**Official verdict and category breakdown.** The official verdict uses
+all peers, weighted. As a breakdown, the same rule also runs unweighted
+on three categories, each with its own verdict:
+
+| Category | Members |
 | --- | --- |
-| All peers | Every screened peer that states a value |
-| Recent peers | Peers that started in the 3 years before the draft |
-| Same-class peers | Peers sharing a drug class with the draft |
+| All peers | Every screened peer |
+| Recent peers | Started in the 3 years before the protocol date |
+| Same drug | Tier T1 |
 
-Flag when either:
+A category flag is shown but is not an official flag.
 
-- the draft's value is outside the 10th–90th percentile of all peers, or
-- the draft is stricter than **every** recent peer, or than every
-  same-class peer, and that group has at least 3 peers.
-
-No flag is raised from fewer than 10 peers overall ("insufficient peers").
-Every card shows how many peers each group contains and how many state a
-value (coverage).
-
-Percentiles use linear interpolation (numpy's default). A draft value
-exactly on the 10th or 90th percentile counts as inside the range. A
-value outside the range is flagged in either direction: looser than most
-peers is as worth a look as stricter. "Stricter than every peer" means
-strictly stricter: matching the strictest peer is not flagged.
+**Same-drug note (our addition).** When the draft is stricter or looser
+than every same-drug peer, the card shows a note, even with no flag.
+Stefan ranks earlier trials of the same drug above general comparator
+norms, and the weighting can hide them because there are usually few.
 
 ## 4. Dimensions
 
@@ -84,6 +111,28 @@ registry shows the protocol after its amendments.
 | Minimum age | years | higher | registry `minimumAge` |
 | Maximum age | years | lower | registry `maximumAge` |
 | Enrollment | participants | higher (more to recruit) | registry `enrollmentInfo` |
+| HbA1c lower bound | % | higher | eligibility text, read by the LLM |
+| HbA1c upper bound | % | lower | eligibility text, read by the LLM |
+| ALT/AST exclusion limit | × ULN | lower | eligibility text, read by the LLM |
+| eGFR exclusion cut-off | mL/min/1.73 m² | higher | eligibility text, read by the LLM |
+
+**Lab limits from eligibility text.** The LLM lists every numeric HbA1c,
+ALT, AST and eGFR limit as a predicate (test, operator, value, unit,
+inclusion or exclusion, exact quote). Code then:
+
+- rejects any predicate whose quote is not in the text;
+- treats an inclusion bound and its mirror-image exclusion as the same
+  limit ("include HbA1c ≤ 10.5%" = "exclude HbA1c > 10.5%");
+- converts HbA1c in mmol/mol to % with Stefan's formula, and rejects
+  ALT/AST limits in absolute U/L (only multiples of ULN compare);
+- when a trial states several limits for one dimension (usually for
+  different subgroups), uses the loosest, since together they bound the
+  eligible population.
+
+eGFR cut-offs are compared whatever equation they use; Stefan's rule
+against comparing different equations is not applied yet. The LLM's
+replies are cached in `data/peers/lab_limits/` and reused while the text
+is unchanged.
 
 Registry ages in months, weeks or days are converted to years. A peer
 with no value, or one that cannot be read, is left out of that
@@ -96,13 +145,16 @@ draft states a target; the evidence shows which each value is.
 
 ## 5. Suggestions and reasoning
 
-Each flagged dimension gets one suggested value per reason it was
-flagged, always taken from the peers' own values:
+A dimension gets a card when the official verdict or any category
+flags it, or when the same-drug note applies. Each flagging category
+gets one suggested value, always taken from the peers' own values:
 
-| Flagged because | Suggested value |
+| Rule that flagged | Suggested value |
 | --- | --- |
-| Outside the 10th–90th percentile of all peers | The nearest edge of that range |
-| Stricter than every recent or same-class peer | That group's strictest value |
+| Outside the 10th–90th percentile | The nearest edge of that range |
+| Beyond every peer | The nearest peer value |
+
+The card says whether the flag is official, with its severity.
 
 An LLM then writes the reasoning for the doctor from the same facts:
 what is out of line, why it matters, what changing it could cost, and a

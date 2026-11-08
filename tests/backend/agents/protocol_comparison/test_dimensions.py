@@ -85,3 +85,34 @@ def test_profile_carries_drug_classes() -> None:
 
     assert profile.drug_classes == frozenset({DrugClass.SGLT2_INHIBITOR})
     assert profile.trial_id == "NCT00000001"
+
+
+def test_profile_names_drugs_including_development_codes() -> None:
+    study = make_study(
+        interventions=(
+            ("DRUG", "LY2189265"),
+            ("DRUG", "Metformin"),
+            ("DRUG", "Placebo for metformin"),
+        )
+    )
+
+    profile = profile_registry_study(study)
+
+    assert profile.drugs == frozenset({"dulaglutide", "metformin"})
+
+
+@pytest.mark.parametrize(
+    ("overall_status", "is_ongoing"),
+    [
+        ("COMPLETED", False),
+        ("TERMINATED", False),
+        ("RECRUITING", True),
+        ("ACTIVE_NOT_RECRUITING", True),
+    ],
+)
+def test_profile_marks_trials_still_running_as_ongoing(
+    overall_status: str, is_ongoing: bool
+) -> None:
+    study = make_study(overall_status=overall_status)
+
+    assert profile_registry_study(study).is_ongoing is is_ongoing

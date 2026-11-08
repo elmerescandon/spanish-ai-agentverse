@@ -1,0 +1,25 @@
+{
+  "trial_id": "NCT01434186",
+  "cache_key": "4b0fd4190866eb04",
+  "read_at": "2026-11-08T03:48:01.946619Z",
+  "reply": {
+    "predicates": [
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 7.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c ≥7.0% and ≤10.5%"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 10.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c ≥7.0% and ≤10.5%"
+      }
+    ]
+  }
+}

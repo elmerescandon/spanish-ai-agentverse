@@ -11,7 +11,10 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from backend.agents.protocol_comparison.comparison import DimensionComparison
+from backend.agents.protocol_comparison.comparison import (
+    DimensionComparison,
+    Verdict,
+)
 from backend.agents.protocol_comparison.prompts import REASONING_INSTRUCTIONS
 from backend.agents.protocol_comparison.suggestions import Suggestion
 
@@ -47,7 +50,10 @@ class FlagReasoning(BaseModel):
 
 @dataclass(frozen=True)
 class SuggestionCard:
-    """One flagged dimension, ready for a doctor's decision."""
+    """One dimension worth a doctor's look, ready for their decision.
+
+    Made for any flag (official or category) or a same-drug note.
+    """
 
     comparison: DimensionComparison
     suggestions: tuple[Suggestion, ...]
@@ -57,13 +63,25 @@ class SuggestionCard:
     # warning on the card, since they may be invented.
     unknown_cited_trial_ids: tuple[str, ...] = ()
 
+    @property
+    def is_official_flag(self) -> bool:
+        """True when Stefan's weighted rule flags it, not just a view."""
+        return self.comparison.verdict == Verdict.FLAG
+
+
+def needs_review(result: DimensionComparison) -> bool:
+    """A dimension gets a card if anything flags or a note applies."""
+    return bool(result.flagged_categories) or (
+        result.same_drug_note is not None
+    )
+
 
 def _comparison_facts(
     result: DimensionComparison, suggestions: Sequence[Suggestion]
 ) -> dict[str, object]:
     dimension = result.dimension
     draft_value = result.draft_value
-    peer_range = result.percentile_range
+    note = result.same_drug_note
     return {
         "dimension": dimension.label,
         "unit": dimension.unit,
@@ -73,38 +91,54 @@ def _comparison_facts(
             if draft_value is None
             else {"value": draft_value.value, "source": draft_value.source}
         ),
-        "usual_range_of_all_peers": (
-            None
-            if peer_range is None
-            else {
-                "description": "10th to 90th percentile of all peers",
-                "low": peer_range.low,
-                "high": peer_range.high,
-            }
-        ),
-        "draft_position_against_usual_range": (
-            None
-            if result.range_position is None
-            else result.range_position.value
-        ),
-        "groups_where_draft_is_stricter_than_every_peer": sorted(
-            result.flagging_groups
-        ),
-        "peer_groups": [
+        "official_verdict": {
+            "verdict": result.verdict.value,
+            "severity": None if result.severity is None else result.severity,
+            "explanation": (
+                "From all peers weighted by tier (same drug 1.0, same "
+                "class 0.6, same disease 0.3), recency and status. Below "
+                "5 effective peers nothing flags; with 5 to 9 only a "
+                "value beyond every peer flags (S3, advisory); from 10, "
+                "a value outside the 10th-90th percentile flags (S2)."
+            ),
+        },
+        "categories": [
             {
-                "group": summary.group.value,
+                "category": summary.category.value,
+                "is_official": summary is result.categories[0],
                 "peers": summary.peer_count,
                 "peers_stating_a_value": summary.stating_count,
-                "large_enough_to_flag": summary.is_large_enough,
-                "draft_stricter_than_every_peer": (
-                    summary.is_draft_stricter_than_every_peer
+                "effective_peers": round(summary.n_eff, 2),
+                "verdict": summary.verdict.value,
+                "severity": summary.severity,
+                "rule": summary.rule,
+                "percentile_range_10_to_90": (
+                    None
+                    if summary.percentile_range is None
+                    else [
+                        summary.percentile_range.low,
+                        summary.percentile_range.high,
+                    ]
                 ),
+                "draft_position": summary.range_position,
             }
-            for summary in result.groups
+            for summary in result.categories
         ],
+        "same_drug_note": (
+            None
+            if note is None
+            else {
+                "meaning": (
+                    "The draft is beyond every earlier trial of the same "
+                    "drug. An extra note, not an official flag."
+                ),
+                "draft_position": note.position.value,
+                "same_drug_trials": list(note.peer_ids),
+            }
+        ),
         "suggested_values": [
             {
-                "brings_in_line_with": suggestion.basis.value,
+                "brings_in_line_with": suggestion.category.value,
                 "suggested_value": suggestion.suggested_value,
                 "based_on_trials": list(suggestion.peer_ids),
             }
@@ -115,7 +149,9 @@ def _comparison_facts(
                 "trial_id": peer.trial_id,
                 "value": None if peer.value is None else peer.value.value,
                 "source": None if peer.value is None else peer.value.source,
-                "groups": sorted(peer.groups),
+                "tier": peer.tier.value,
+                "weight": round(peer.weight, 3),
+                "categories": sorted(peer.categories),
             }
             for peer in result.evidence
         ],

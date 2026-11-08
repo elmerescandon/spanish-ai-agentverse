@@ -6,6 +6,7 @@ drug classes. The comparison only sees profiles, so the draft's values
 can later come from the parsed protocol instead of the registry.
 """
 
+import dataclasses
 import logging
 import re
 from collections.abc import Callable, Mapping
@@ -13,9 +14,12 @@ from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
 
-from backend.agents.protocol_comparison.logic import classify_drug_classes
+from backend.agents.protocol_comparison.logic import (
+    classify_drug_classes,
+    identify_drugs,
+)
 from backend.agents.protocol_comparison.rules import DrugClass
-from backend.clients.clinicaltrials_gov import StudyRecord
+from backend.clients.clinicaltrials_gov import OverallStatus, StudyRecord
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +30,15 @@ REGISTRY_AGE_PATTERN = re.compile(
 UNITS_PER_YEAR = {"year": 1.0, "month": 12.0, "week": 52.18, "day": 365.25}
 # Registry start dates are "YYYY-MM-DD" or, less precisely, "YYYY-MM".
 MONTH_PRECISION_DATE_LENGTH = len("YYYY-MM")
+# Statuses of trials still running, whose results are not final.
+ONGOING_STATUSES = frozenset(
+    {
+        OverallStatus.NOT_YET_RECRUITING,
+        OverallStatus.RECRUITING,
+        OverallStatus.ENROLLING_BY_INVITATION,
+        OverallStatus.ACTIVE_NOT_RECRUITING,
+    }
+)
 
 
 class DimensionId(StrEnum):
@@ -34,6 +47,10 @@ class DimensionId(StrEnum):
     MINIMUM_AGE = "MINIMUM_AGE"
     MAXIMUM_AGE = "MAXIMUM_AGE"
     ENROLLMENT = "ENROLLMENT"
+    HBA1C_LOWER_BOUND = "HBA1C_LOWER_BOUND"
+    HBA1C_UPPER_BOUND = "HBA1C_UPPER_BOUND"
+    ALT_AST_LIMIT = "ALT_AST_LIMIT"
+    EGFR_CUTOFF = "EGFR_CUTOFF"
 
 
 class StricterWhen(StrEnum):
@@ -53,13 +70,19 @@ class DimensionValue:
 
 @dataclass(frozen=True)
 class Dimension:
-    """What a dimension measures and how to read it from the registry."""
+    """What a dimension measures and how to read it.
+
+    read_from_registry reads a registry field; None means the value is
+    read from eligibility text by the LLM instead (see eligibility.py).
+    """
 
     dimension_id: DimensionId
     label: str
     unit: str
     stricter_when: StricterWhen
-    read_from_registry: Callable[[StudyRecord], DimensionValue | None]
+    read_from_registry: (
+        Callable[[StudyRecord], DimensionValue | None] | None
+    ) = None
 
 
 @dataclass(frozen=True)
@@ -68,7 +91,9 @@ class TrialProfile:
 
     trial_id: str
     start_date: date | None
+    drugs: frozenset[str]
     drug_classes: frozenset[DrugClass]
+    is_ongoing: bool
     values: Mapping[DimensionId, DimensionValue]
 
 
@@ -163,17 +188,65 @@ REGISTRY_DIMENSIONS: tuple[Dimension, ...] = (
 )
 
 
+# Read from eligibility text by the LLM; Stefan's watchlist rows
+# "HbA1c inclusion lower/upper bound", "ALT / AST" and "eGFR exclusion
+# cut-off", each with the direction that excludes more people.
+LAB_DIMENSIONS: tuple[Dimension, ...] = (
+    Dimension(
+        dimension_id=DimensionId.HBA1C_LOWER_BOUND,
+        label="HbA1c lower bound",
+        unit="%",
+        stricter_when=StricterWhen.HIGHER,
+    ),
+    Dimension(
+        dimension_id=DimensionId.HBA1C_UPPER_BOUND,
+        label="HbA1c upper bound",
+        unit="%",
+        stricter_when=StricterWhen.LOWER,
+    ),
+    Dimension(
+        dimension_id=DimensionId.ALT_AST_LIMIT,
+        label="ALT/AST exclusion limit",
+        unit="x ULN",
+        stricter_when=StricterWhen.LOWER,
+    ),
+    Dimension(
+        dimension_id=DimensionId.EGFR_CUTOFF,
+        label="eGFR exclusion cut-off",
+        unit="mL/min/1.73 m2",
+        stricter_when=StricterWhen.HIGHER,
+    ),
+)
+ALL_DIMENSIONS = REGISTRY_DIMENSIONS + LAB_DIMENSIONS
+DIMENSIONS_BY_ID = {
+    dimension.dimension_id: dimension for dimension in ALL_DIMENSIONS
+}
+
+
+def with_values(
+    profile: TrialProfile, extra_values: Mapping[DimensionId, DimensionValue]
+) -> TrialProfile:
+    """Return the profile with extra values added (they win on clashes)."""
+    return dataclasses.replace(
+        profile, values={**profile.values, **extra_values}
+    )
+
+
 def profile_registry_study(study: StudyRecord) -> TrialProfile:
     """Reduce a registry record to the values the comparison uses."""
     values: dict[DimensionId, DimensionValue] = {}
     for dimension in REGISTRY_DIMENSIONS:
+        assert dimension.read_from_registry is not None
         dimension_value = dimension.read_from_registry(study)
         if dimension_value is not None:
             values[dimension.dimension_id] = dimension_value
-    start = study.protocol_section.status_module.start_date_struct
+    status = study.protocol_section.status_module
+    start = status.start_date_struct
     return TrialProfile(
         trial_id=study.nct_id,
         start_date=parse_registry_date(start.date) if start else None,
+        drugs=identify_drugs(study),
         drug_classes=classify_drug_classes(study),
+        is_ongoing=status.overall_status in ONGOING_STATUSES,
         values=values,
     )

@@ -11,25 +11,26 @@ import {
   uploadProtocolFile,
   type RecommendationFetcher,
 } from "@/lib/api";
-import { MOCK_STEPS } from "@/lib/demo/mock";
+import {
+  MOCK_RECOMMENDATION_FETCHERS,
+  MOCK_STEPS,
+  MOCK_UPLOAD_RESPONSE,
+} from "@/lib/demo/mock";
 import type {
   Decision,
+  RecommendationStepId,
   StepData,
   StepId,
   UploadFileResponse,
 } from "@/lib/demo/types";
 
-// Fake agent latency so the running state is visible in the mock.
-const RUN_DELAY_MS = 700;
-
-type RecommendationStepId = Exclude<StepId, "ingest">;
-
 export interface DemoPipelineProps {
-  // Mock steps played back after the sample protocol is chosen.
-  steps?: StepData[];
   // Injectable so tests can pass fakes; default to the real API calls.
   uploadFile?: (file: File) => Promise<UploadFileResponse>;
   recommendationFetchers?: Record<RecommendationStepId, RecommendationFetcher>;
+  // What the sample protocol button plays back: endpoint-shaped mocks.
+  sampleUpload?: UploadFileResponse;
+  sampleFetchers?: Record<RecommendationStepId, RecommendationFetcher>;
 }
 
 // Results of a real upload; each step fills in as its own call settles.
@@ -62,13 +63,15 @@ function isTextEntry(target: EventTarget | null): boolean {
 }
 
 /**
- * Upload (or preset) first, then a step bar over a sequential flow that
- * runs by itself. Steps are presentational and take their data as props.
+ * Upload (or the sample) first, then a step bar whose steps fill in as
+ * each agent's response arrives. The sample runs the same flow with
+ * mock responses, so it behaves like the real endpoints.
  */
 export default function DemoPipeline({
-  steps: presetSteps = MOCK_STEPS,
   uploadFile = uploadProtocolFile,
   recommendationFetchers = RECOMMENDATION_ENDPOINTS,
+  sampleUpload = MOCK_UPLOAD_RESPONSE,
+  sampleFetchers = MOCK_RECOMMENDATION_FETCHERS,
 }: DemoPipelineProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [liveRun, setLiveRun] = useState<LiveRun | null>(null);
@@ -78,61 +81,36 @@ export default function DemoPipeline({
   // Until a step's data arrives, the bar still needs its title.
   const steps = useMemo<StepData[]>(
     () =>
-      liveRun
-        ? presetSteps.map(
-            (step) =>
-              liveRun.results[step.id] ?? {
-                ...step,
-                summary: "",
-                metrics: [],
-                decisions: [],
-              }
-          )
-        : presetSteps,
-    [liveRun, presetSteps]
+      MOCK_STEPS.map(
+        (step) =>
+          liveRun?.results[step.id] ?? {
+            ...step,
+            summary: "",
+            metrics: [],
+            decisions: [],
+          }
+      ),
+    [liveRun]
   );
-  const [completedCount, setCompletedCount] = useState(0);
   const [view, setView] = useState<View>({
     stepId: steps[0].id,
     decisionId: null,
   });
   const [stepChangeCount, setStepChangeCount] = useState(0);
 
-  // The rest of the steps follow the upload one by one.
-  useEffect(() => {
-    if (!isLoaded || liveRun) return;
-    if (completedCount >= steps.length) return;
-    const timer = setTimeout(
-      () => setCompletedCount((count) => count + 1),
-      RUN_DELAY_MS
-    );
-    return () => clearTimeout(timer);
-  }, [isLoaded, liveRun, completedCount, steps.length]);
-
-  // Ingest is the upload itself, so it is done as soon as it loads.
-  const loadProtocol = () => {
-    setIsLoaded(true);
-    setCompletedCount(1);
-  };
-
-  // A real PDF: ingest comes with the upload, the other agents run in
-  // parallel and each settles on its own.
-  const startLiveRun = async (file: File) => {
-    setUploadState({ status: "uploading" });
-    let upload: UploadFileResponse;
-    try {
-      upload = await uploadFile(file);
-    } catch (error) {
-      setUploadState({ status: "error", message: toErrorMessage(error) });
-      return;
-    }
-    setUploadState({ status: "idle" });
+  // Ingest comes with the upload; the other agents run in parallel and
+  // each settles on its own.
+  const runPipeline = (
+    upload: UploadFileResponse,
+    fetchers: Record<RecommendationStepId, RecommendationFetcher>
+  ) => {
     setLiveRun({ results: { ingest: upload.step }, errors: {} });
     setIsLoaded(true);
 
-    for (const [stepId, fetchStep] of Object.entries(
-      recommendationFetchers
-    ) as [RecommendationStepId, RecommendationFetcher][]) {
+    for (const [stepId, fetchStep] of Object.entries(fetchers) as [
+      RecommendationStepId,
+      RecommendationFetcher,
+    ][]) {
       fetchStep(upload.protocol_id).then(
         (data) =>
           setLiveRun((run) =>
@@ -149,6 +127,21 @@ export default function DemoPipeline({
     }
   };
 
+  const loadSample = () => runPipeline(sampleUpload, sampleFetchers);
+
+  const startLiveRun = async (file: File) => {
+    setUploadState({ status: "uploading" });
+    let upload: UploadFileResponse;
+    try {
+      upload = await uploadFile(file);
+    } catch (error) {
+      setUploadState({ status: "error", message: toErrorMessage(error) });
+      return;
+    }
+    setUploadState({ status: "idle" });
+    runPipeline(upload, recommendationFetchers);
+  };
+
   const decisionsById = useMemo(() => {
     const index = new Map<string, Decision>();
     for (const step of steps) {
@@ -159,18 +152,12 @@ export default function DemoPipeline({
     return index;
   }, [steps]);
 
-  const barItems = steps.map((step, index) => {
-    const state: StepBarState = liveRun
-      ? liveRun.results[step.id]
-        ? "done"
-        : liveRun.errors[step.id]
-          ? "error"
-          : "running"
-      : index < completedCount
-        ? "done"
-        : index === completedCount
-          ? "running"
-          : "pending";
+  const barItems = steps.map((step) => {
+    const state: StepBarState = liveRun?.results[step.id]
+      ? "done"
+      : liveRun?.errors[step.id]
+        ? "error"
+        : "running";
     return { id: step.id, title: step.title, state };
   });
 
@@ -220,7 +207,7 @@ export default function DemoPipeline({
           Analyze a draft protocol
         </h1>
         <ProtocolIngestion
-          onProtocolLoaded={loadProtocol}
+          onProtocolLoaded={loadSample}
           onPdfSelected={startLiveRun}
           isCompact
         />

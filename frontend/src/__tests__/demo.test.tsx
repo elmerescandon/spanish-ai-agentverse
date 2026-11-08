@@ -6,7 +6,12 @@ import StepBar from "@/components/demo/StepBar";
 import StepView from "@/components/demo/StepView";
 import * as api from "@/lib/api";
 import DemoPipeline from "@/components/demo/DemoPipeline";
-import { MOCK_PROTOCOL_PAGE_COUNT, MOCK_STEPS } from "@/lib/demo/mock";
+import {
+  MOCK_PROTOCOL_PAGE_COUNT,
+  MOCK_RECOMMENDATION_FETCHERS,
+  MOCK_STEPS,
+  MOCK_UPLOAD_RESPONSE,
+} from "@/lib/demo/mock";
 import {
   findTraceabilityErrors,
   MAX_STEP_METRICS,
@@ -473,5 +478,62 @@ describe("live upload fans out to the recommendation agents", () => {
       screen.queryByRole("navigation", { name: "Pipeline steps" })
     ).not.toBeInTheDocument();
     expect(fetchers.check).not.toHaveBeenCalled();
+  });
+});
+
+describe("sample protocol plays endpoint-shaped mocks", () => {
+  beforeEach(() => {
+    mock.restore();
+  });
+
+  it("runs the sample through the same fan-out as a real upload", async () => {
+    const step = makeStep("check", "Completeness & Consistency");
+    const sampleFetchers = {
+      check: mock(async () => step),
+      peers: mock(() => new Promise<StepData>(() => {})),
+      cohort: mock(() => new Promise<StepData>(() => {})),
+    };
+    const uploadFile = mock(async () => MOCK_UPLOAD_RESPONSE);
+    const user = userEvent.setup();
+    render(
+      <DemoPipeline uploadFile={uploadFile} sampleFetchers={sampleFetchers} />
+    );
+
+    await loadPreset(user);
+
+    for (const fetcher of Object.values(sampleFetchers)) {
+      expect(fetcher).toHaveBeenCalledWith(MOCK_UPLOAD_RESPONSE.protocol_id);
+    }
+    // The sample never touches the real upload endpoint.
+    expect(uploadFile).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Completeness & Consistency" })
+      ).toBeEnabled()
+    );
+    expect(
+      screen.getByRole("button", { name: "Protocol Comparison" })
+    ).toBeDisabled();
+  });
+
+  it("resolves each mock endpoint with its own step", async () => {
+    const protocolId = MOCK_UPLOAD_RESPONSE.protocol_id;
+    const [check, peers, cohort] = await Promise.all([
+      MOCK_RECOMMENDATION_FETCHERS.check(protocolId),
+      MOCK_RECOMMENDATION_FETCHERS.peers(protocolId),
+      MOCK_RECOMMENDATION_FETCHERS.cohort(protocolId),
+    ]);
+
+    expect([check.id, peers.id, cohort.id]).toEqual([
+      "check",
+      "peers",
+      "cohort",
+    ]);
+  });
+
+  it("rejects an unknown protocol id like the real endpoint's 404", async () => {
+    await expect(
+      MOCK_RECOMMENDATION_FETCHERS.check("proto-unknown")
+    ).rejects.toThrow("Uploaded protocol 'proto-unknown' not found");
   });
 });

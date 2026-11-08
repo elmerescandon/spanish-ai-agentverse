@@ -1,6 +1,7 @@
 """Typed application settings loaded from environment or .env file."""
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from pydantic import Field, SecretStr
@@ -20,6 +21,7 @@ DEFAULT_ALLOWED_ORIGINS: tuple[str, ...] = (
     "http://127.0.0.1:3000",
 )
 DEFAULT_GEMINI_MODEL = "gemini-4-argon"
+DEFAULT_RESULT_CACHE_DIR = "data/cache"
 ENV_FILE_PATH = ".env"
 ENV_FILE_ENCODING = "utf-8"
 
@@ -75,6 +77,9 @@ class Settings(BaseSettings):
     # LLM Provider (Google Gemini)
     gemini_api_key: SecretStr | None = None
     gemini_model: str = DEFAULT_GEMINI_MODEL
+
+    # On-disk cache directory for finished protocol parses and checks
+    result_cache_dir: Path = Path(DEFAULT_RESULT_CACHE_DIR)
 
     # Clinical Data Sources
     aact_db_url: SecretStr | None = None

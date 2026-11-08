@@ -48,9 +48,10 @@ RETRY_BASE_DELAY_SECONDS = (
 LLM_TIMEOUT_SECONDS = 300  # upper bound for 100k+ token protocol calls
 MILLISECONDS_PER_SECOND = 1000
 SDK_SINGLE_ATTEMPT = 1  # disables the SDK's built-in retry loop
-# One full protocol parse (six facets) runs in parallel; anything beyond
-# that queues instead of tripping Gemini's rate limit (HTTP 429).
-MAX_CONCURRENT_CALLS = 6
+# Enough for a full parse (six facets) alongside about a dozen completeness
+# batches; anything beyond that queues instead of tripping Gemini's rate
+# limit (HTTP 429, retried with backoff).
+MAX_CONCURRENT_CALLS = 12
 HTTP_RATE_LIMIT_STATUS = 429
 HTTP_SERVER_ERROR_MIN_STATUS = 500
 
@@ -174,18 +175,21 @@ class GeminiClient:
             try:
                 async with self._call_slots:
                     interactions = self._sdk_client.aio.interactions
-                    interaction = await interactions.create(
-                        model=self._model,
-                        input=full_prompt,
-                        generation_config={
-                            "thinking_level": thinking_level.value
-                        },
-                        timeout=float(LLM_TIMEOUT_SECONDS),
-                    )
+                    # The SDK timeout bounds each continuation hop, not the
+                    # call: this deadline bounds the whole call.
+                    async with asyncio.timeout(LLM_TIMEOUT_SECONDS):
+                        interaction = await interactions.create(
+                            model=self._model,
+                            input=full_prompt,
+                            generation_config={
+                                "thinking_level": thinking_level.value
+                            },
+                            timeout=float(LLM_TIMEOUT_SECONDS),
+                        )
                 raw_text: str = getattr(interaction, "output_text", None) or ""
                 cleaned_text = strip_markdown_code_fences(raw_text)
                 return response_model.model_validate_json(cleaned_text)
-            except ContinuationInterruptedError as error:
+            except (ContinuationInterruptedError, TimeoutError) as error:
                 raise LlmCallFailedError(
                     "LLM call time budget exhausted: "
                     f"model={self._model} "

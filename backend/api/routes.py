@@ -1,6 +1,5 @@
 """HTTP routes for clinical protocol gap analysis and recommendations."""
 
-import asyncio
 import logging
 import tempfile
 from collections.abc import Awaitable, Callable
@@ -17,6 +16,7 @@ from backend.api.agent_runners import (
     run_cohort_agent,
     run_protocol_comparison_agent,
 )
+from backend.api.protocol_pipeline import get_protocol_pipeline
 from backend.api.schemas import (
     HealthResponse,
     PipelineStep,
@@ -30,13 +30,14 @@ from backend.api.schemas import (
     StepRecommendationRequest,
     UploadFileResponse,
 )
-from backend.clients.pdf_reader import UnreadablePdfError, read_pdf_pages
+from backend.clients.pdf_reader import UnreadablePdfError
 from backend.shared.messages import ProtocolDocument
 
 logger = logging.getLogger(__name__)
 
 DEMO_PROTOCOL_ID = "proto-diabetes-001"
 DEMO_PROTOCOL_TITLE = "Type 2 Diabetes Glycemic Control Trial Protocol"
+MAX_UPLOAD_BYTES = 30 * 1024 * 1024  # protocol PDFs are ~1-5 MB
 
 PDF_MAGIC_BYTES = b"%PDF"
 PDF_CONTENT_TYPES = {"application/pdf", "application/x-pdf"}
@@ -260,15 +261,33 @@ def _validate_pdf_upload(file: UploadFile, content: bytes) -> None:
 
 @router.post("/upload-file", response_model=UploadFileResponse)
 async def upload_file(file: UploadFile) -> UploadFileResponse:
-    """Read an uploaded protocol PDF and return the INGEST step."""
-    content = await file.read()
+    """Parse an uploaded protocol PDF and return the INGEST step.
+
+    The first upload of a PDF takes minutes (one Gemini call per parser
+    facet); the same file uploaded again is served from the parse cache.
+    The completeness check then starts in the background, so the CHECK
+    step is ready sooner.
+
+    Raises:
+        HTTPException: 413 for a file over MAX_UPLOAD_BYTES, 415 for a
+            non-PDF, 422 for an empty or unreadable PDF.
+        AnalysisFailedError: Gemini is not configured or every parser
+            facet failed (answered with 503 by the app's error handler).
+    """
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"expected a PDF of at most {MAX_UPLOAD_BYTES} bytes",
+        )
     _validate_pdf_upload(file, content)
     filename = file.filename or "protocol.pdf"
+    pipeline = get_protocol_pipeline()
     with tempfile.TemporaryDirectory() as temp_directory:
         pdf_path = Path(temp_directory) / "upload.pdf"
         pdf_path.write_bytes(content)
         try:
-            pages = await asyncio.to_thread(read_pdf_pages, pdf_path)
+            parsed = await pipeline.parse(pdf_path)
         except UnreadablePdfError as error:
             logger.warning(
                 "upload unreadable: filename=%s error=%s", filename, error
@@ -277,13 +296,14 @@ async def upload_file(file: UploadFile) -> UploadFileResponse:
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=str(error),
             ) from error
-    document = ProtocolDocument(
-        protocol_id=f"proto-{uuid4().hex[:8]}",
-        title=Path(filename).stem,
-        page_count=len(pages),
-        pages=pages,
+    document = parsed.model_copy(
+        update={
+            "protocol_id": f"proto-{uuid4().hex[:8]}",
+            "title": Path(filename).stem,
+        }
     )
     _documents[document.protocol_id] = document
+    pipeline.start_check(document)
     logger.info(
         "upload stored: protocol_id=%s page_count=%d",
         document.protocol_id,

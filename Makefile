@@ -1,4 +1,4 @@
-.PHONY: install dev dev-frontend run parse format lint test test-extended test-live check demo demo-peers sample-protocol
+.PHONY: install dev dev-frontend run parse format lint test test-extended test-live check clear-cache demo demo-peers sample-protocol
 
 install:
 	uv sync
@@ -39,6 +39,10 @@ test-live:
 	uv run pytest -m live -o log_cli=true --log-cli-level=INFO
 
 check: format lint test
+
+# Forget saved analyses so the next upload calls Gemini again
+clear-cache:
+	rm -rf data/cache
 
 demo: test-live run
 

@@ -6,12 +6,23 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from backend.agents.completeness.rules import load_rule_catalogue
 from backend.agents.protocol_comparison.demo import DemoComparison
 from backend.agents.protocol_comparison.peer_store import PeerStoreError
-from backend.api import agent_runners
+from backend.api import agent_runners, routes
+from backend.api.protocol_pipeline import (
+    AnalysisFailedError,
+    CheckRun,
+    set_protocol_pipeline,
+)
 from backend.api.routes import reset_mock_state
 from backend.main import app
-from tests.conftest import make_pdf
+from backend.shared.messages import ProtocolDocument
+from tests.conftest import (
+    EmptyAnswersLlm,
+    OfflineProtocolPipeline,
+    make_pdf,
+)
 
 STEP_ROUTES = {
     "/api/checklist-recommendation": "check",
@@ -65,21 +76,111 @@ def test_upload_valid_pdf_returns_protocol_id_and_ingest_step(
     assert body["file_size_bytes"] > 0
 
 
-def test_step_optional_fields_default_to_empty_for_mock_runner(
+def test_check_step_reports_rules_with_evidence_and_review_fields(
     client: TestClient, tmp_path: Path
 ) -> None:
     protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
     step = client.post(
         "/api/checklist-recommendation", json={"protocol_id": protocol_id}
     ).json()
-    assert step["status"] == "completed"
-    assert step["warnings"] == []
-    assert step["tables"] == []
-    assert step["charts"] == []
-    assert step["details"] == {}
-    decision = step["decisions"][0]
-    assert decision["review_status"] == "pending"
-    assert decision["options"] == []
+    assert step["agent"] == "Completeness"
+    assert step["headline"]["unit"] == "/100"
+    labels = [metric["label"] for metric in step["metrics"]]
+    assert labels[:4] == ["Present", "Weak", "Missing", "Contradictions"]
+    [checklist] = step["tables"]
+    rule_count = len(load_rule_catalogue().rules)
+    assert len(checklist["rows"]) == rule_count
+    assert step["duration_ms"] is not None
+    for decision in step["decisions"]:
+        assert decision["review_status"] == "pending"
+        assert [
+            option["is_recommended"] for option in decision["options"]
+        ] == [
+            True,
+            False,
+        ]
+        evidence_ids = {item["evidence_id"] for item in decision["evidence"]}
+        for entry in decision["trace"]:
+            assert set(entry["evidence_ids"]) <= evidence_ids
+
+
+class _FailingPipeline(OfflineProtocolPipeline):
+    """Pipeline whose analysis fails, as when Gemini is not configured."""
+
+    async def parse(self, pdf_path: Path) -> ProtocolDocument:
+        raise AnalysisFailedError("GEMINI_API_KEY is not set")
+
+    async def check(self, document: ProtocolDocument) -> CheckRun:
+        raise AnalysisFailedError("GEMINI_API_KEY is not set")
+
+
+def test_check_failure_returns_503_with_the_reason(
+    client: TestClient, tmp_path: Path
+) -> None:
+    protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
+    set_protocol_pipeline(_FailingPipeline())
+
+    response = client.post(
+        "/api/checklist-recommendation", json={"protocol_id": protocol_id}
+    )
+
+    assert response.status_code == 503
+    assert "GEMINI_API_KEY" in response.json()["detail"]
+
+
+def test_upload_parse_failure_returns_503_with_the_reason(
+    client: TestClient, tmp_path: Path
+) -> None:
+    set_protocol_pipeline(_FailingPipeline())
+    pdf_path = make_pdf(tmp_path, [READABLE_PAGE])
+
+    response = client.post(
+        "/api/upload-file",
+        files={
+            "file": ("trial.pdf", pdf_path.read_bytes(), "application/pdf")
+        },
+    )
+
+    assert response.status_code == 503
+    assert "protocol analysis failed" in response.json()["detail"]
+
+
+class _RecordingPipeline(OfflineProtocolPipeline):
+    """Offline pipeline that records which documents a check started for."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.started_protocol_ids: list[str] = []
+
+    def start_check(self, document: ProtocolDocument) -> None:
+        self.started_protocol_ids.append(document.protocol_id)
+
+
+def test_upload_starts_the_check_for_the_stored_protocol(
+    client: TestClient, tmp_path: Path
+) -> None:
+    pipeline = _RecordingPipeline()
+    set_protocol_pipeline(pipeline)
+
+    protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
+
+    assert pipeline.started_protocol_ids == [protocol_id]
+
+
+def test_upload_over_the_size_limit_is_rejected(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(routes, "MAX_UPLOAD_BYTES", 10)
+    pdf_path = make_pdf(tmp_path, [READABLE_PAGE])
+
+    response = client.post(
+        "/api/upload-file",
+        files={
+            "file": ("trial.pdf", pdf_path.read_bytes(), "application/pdf")
+        },
+    )
+
+    assert response.status_code == 413
 
 
 def test_upload_non_pdf_is_rejected_with_expected_and_received(
@@ -158,10 +259,24 @@ def test_recommendation_route_empty_protocol_id_returns_422(
 def test_recommendation_route_called_twice_returns_same_result(
     client: TestClient, tmp_path: Path, route: str
 ) -> None:
+    # A complete check is reused; an incomplete one reruns by design.
+    set_protocol_pipeline(OfflineProtocolPipeline(llm=EmptyAnswersLlm()))
     protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
     first = client.post(route, json={"protocol_id": protocol_id})
     second = client.post(route, json={"protocol_id": protocol_id})
     assert first.json() == second.json()
+
+
+def test_check_with_failed_gemini_calls_warns_to_retry(
+    client: TestClient, tmp_path: Path
+) -> None:
+    protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
+
+    body = client.post(
+        "/api/checklist-recommendation", json={"protocol_id": protocol_id}
+    ).json()
+
+    assert "gemini_calls_failed" in {w["code"] for w in body["warnings"]}
 
 
 def test_protocol_recommendation_serves_the_comparison_agent(

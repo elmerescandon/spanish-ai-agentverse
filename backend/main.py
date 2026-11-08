@@ -3,9 +3,11 @@
 import logging
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
+from backend.api.protocol_pipeline import AnalysisFailedError
 from backend.api.routes import router
 from backend.shared.config import load_settings
 
@@ -23,6 +25,17 @@ app.add_middleware(
 )
 
 app.include_router(router)
+
+
+@app.exception_handler(AnalysisFailedError)
+async def answer_analysis_failure(
+    _request: Request, error: AnalysisFailedError
+) -> JSONResponse:
+    """Turn a failed parse or check into a 503 the UI can show."""
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"detail": f"protocol analysis failed: {error}"},
+    )
 
 
 def main() -> None:

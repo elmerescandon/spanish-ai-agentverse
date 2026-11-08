@@ -20,6 +20,8 @@ export interface ProtocolIngestionProps {
   onStepSelected?: (step: PipelineStep) => void;
   activeProtocolId?: string;
   isAnalyzing?: boolean;
+  // Hides the section and card titles when the page supplies its own CTA.
+  isCompact?: boolean;
   className?: string;
 }
 
@@ -54,6 +56,7 @@ export default function ProtocolIngestion({
   onProtocolLoaded,
   onStepSelected,
   isAnalyzing = false,
+  isCompact = false,
   className = "",
 }: ProtocolIngestionProps) {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -237,16 +240,17 @@ export default function ProtocolIngestion({
       aria-label="Protocol Intake & Data Ingestion"
       className={`space-y-6 ${className}`}
     >
-      {/* Minimalist Editorial Header */}
-      <header className="flex items-center gap-3">
-        <FileText
-          className="w-5 h-5 text-zinc-700 dark:text-zinc-300 shrink-0"
-          strokeWidth={1.5}
-        />
-        <h1 className="font-serif text-2xl font-normal tracking-tight text-zinc-900 dark:text-zinc-50">
-          Protocol Intake &amp; Data Ingestion
-        </h1>
-      </header>
+      {!isCompact && (
+        <header className="flex items-center gap-3">
+          <FileText
+            className="w-5 h-5 text-zinc-700 dark:text-zinc-300 shrink-0"
+            strokeWidth={1.5}
+          />
+          <h1 className="font-serif text-2xl font-normal tracking-tight text-zinc-900 dark:text-zinc-50">
+            Protocol Intake &amp; Data Ingestion
+          </h1>
+        </header>
+      )}
 
       {/* Error alert */}
       {errorMessage && (
@@ -267,14 +271,16 @@ export default function ProtocolIngestion({
 
       {/* Single Specific Card */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 space-y-6">
-        <div className="space-y-1">
-          <h2 className="font-serif text-lg font-normal text-zinc-900 dark:text-zinc-100">
-            Upload Protocol Document
-          </h2>
-          <p className="font-sans text-xs text-zinc-500 dark:text-zinc-400">
-            Upload a clinical protocol draft (.pdf, .json, .txt) or run the preselected benchmark.
-          </p>
-        </div>
+        {!isCompact && (
+          <div className="space-y-1">
+            <h2 className="font-serif text-lg font-normal text-zinc-900 dark:text-zinc-100">
+              Upload Protocol Document
+            </h2>
+            <p className="font-sans text-xs text-zinc-500 dark:text-zinc-400">
+              Upload a clinical protocol draft (.pdf, .json, .txt) or run the preselected benchmark.
+            </p>
+          </div>
+        )}
 
         {/* Single persistent file input */}
         <input

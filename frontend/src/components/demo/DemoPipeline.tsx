@@ -109,16 +109,11 @@ export default function DemoPipeline({
 
   if (!isLoaded) {
     return (
-      <div className="space-y-8">
-        <header className="space-y-2">
-          <p className="font-sans text-xs font-semibold uppercase tracking-wider text-emerald-800">
-            Protocol Gap Agent
-          </p>
-          <h1 className="font-serif text-4xl font-normal tracking-tight text-zinc-900">
-            From draft protocol to agent findings
-          </h1>
-        </header>
-        <ProtocolIngestion onProtocolLoaded={loadProtocol} />
+      <div className="mx-auto max-w-xl space-y-6 pt-12">
+        <h1 className="text-center font-serif text-4xl font-normal tracking-tight text-zinc-900">
+          Analyze a draft protocol
+        </h1>
+        <ProtocolIngestion onProtocolLoaded={loadProtocol} isCompact />
       </div>
     );
   }

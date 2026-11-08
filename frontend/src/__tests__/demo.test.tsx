@@ -81,9 +81,13 @@ describe("demo pipeline step bar flow", () => {
     mock.restore();
   });
 
-  it("shows the upload entry before any protocol is loaded", () => {
+  it("shows a single CTA and the upload before any protocol is loaded", () => {
     render(<DemoPage />);
 
+    expect(screen.getAllByRole("heading")).toHaveLength(1);
+    expect(
+      screen.getByRole("heading", { name: "Analyze a draft protocol" })
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Run Preselected Protocol/ })
     ).toBeInTheDocument();

@@ -18,16 +18,21 @@ from backend.agents.parser.prompts import (
 from backend.clients.gemini import ThinkingLevel
 from backend.shared.citations import make_citation_verifier
 from backend.shared.messages import (
+    AnalysisPlanExtraction,
     Citation,
     EligibilityExtraction,
     EndpointList,
+    EstimandExtraction,
     ExtractionWarning,
     FacetName,
+    InterventionExtraction,
     PageText,
     ProtocolDocument,
+    SafetyMonitoringExtraction,
     ScheduleOfActivities,
     SectionMap,
     StatisticalAssumptions,
+    SynopsisConsistencyExtraction,
     TrialDesignFacts,
 )
 
@@ -225,11 +230,27 @@ def _store_facet_result(
         case StatisticalAssumptions():
             document.statistics = result
             return None
+        case EstimandExtraction():
+            document.estimands = result
+            return None
+        case InterventionExtraction():
+            document.interventions = result
+            return None
+        case AnalysisPlanExtraction():
+            document.analysis = result
+            return None
+        case SynopsisConsistencyExtraction():
+            document.synopsis_check = result
+            return None
+        case SafetyMonitoringExtraction():
+            document.safety_monitoring = result
+            return None
         case EligibilityExtraction():
             document.eligibility_criteria = result.criteria
             return list(result.criteria)
         case SectionMap():
             document.sections = result.sections
+            document.subsections = result.subsections
             return list(result.sections)
         case EndpointList():
             document.endpoints = result.endpoints

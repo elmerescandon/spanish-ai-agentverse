@@ -5,13 +5,18 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from backend.agents.parser.facets import (
+    ANALYSIS_FACET,
     DESIGN_FACET,
     ELIGIBILITY_FACET,
     ENDPOINTS_FACET,
+    ESTIMANDS_FACET,
     FACETS,
+    INTERVENTIONS_FACET,
+    SAFETY_MONITORING_FACET,
     SCHEDULE_FACET,
     SECTIONS_FACET,
     STATISTICS_FACET,
+    SYNOPSIS_CHECK_FACET,
     assign_criterion_ids,
     normalize_design_facts,
     sort_sections,
@@ -31,22 +36,38 @@ from backend.agents.parser.logic import (
     verify_result,
 )
 from backend.shared.messages import (
+    AnalysisPlanExtraction,
+    AnalysisSetType,
     Citation,
     CitedValue,
+    CommitteeType,
     CriterionKind,
     EligibilityCriterion,
     EligibilityExtraction,
     Endpoint,
     EndpointKind,
     EndpointList,
+    EpochType,
+    EstimandExtraction,
+    EstimandStrategy,
     FacetName,
+    IntercurrentEventType,
+    InterventionArm,
+    InterventionExtraction,
+    InterventionType,
     M11Heading,
     PageText,
     ProtocolSection,
+    ProtocolSubsection,
+    SafetyMonitoringExtraction,
+    ScaleDirection,
     ScheduledVisit,
     ScheduleOfActivities,
     SectionMap,
     StatisticalAssumptions,
+    StratificationFactorType,
+    SubgroupDimension,
+    SynopsisConsistencyExtraction,
     TrialDesignFacts,
 )
 
@@ -572,7 +593,7 @@ def test_visit_without_procedures_produces_warning() -> None:
 def test_statistics_facet_tolerates_all_fields_null() -> None:
     empty_stats = StatisticalAssumptions()
 
-    assert len(STATISTICS_FACET.sanity_rules) == 4
+    assert len(STATISTICS_FACET.sanity_rules) == 7
     assert _run_sanity_rules(STATISTICS_FACET, empty_stats) == []
 
 
@@ -670,7 +691,7 @@ def test_non_positive_sample_size_produces_warning() -> None:
     assert _run_sanity_rules(STATISTICS_FACET, valid_sample) == []
 
 
-def test_registry_contains_all_six_facets() -> None:
+def test_registry_contains_all_eleven_facets() -> None:
     assert FACETS == (
         ELIGIBILITY_FACET,
         DESIGN_FACET,
@@ -678,6 +699,11 @@ def test_registry_contains_all_six_facets() -> None:
         ENDPOINTS_FACET,
         SCHEDULE_FACET,
         STATISTICS_FACET,
+        ESTIMANDS_FACET,
+        INTERVENTIONS_FACET,
+        ANALYSIS_FACET,
+        SYNOPSIS_CHECK_FACET,
+        SAFETY_MONITORING_FACET,
     )
     assert [facet.name for facet in FACETS] == [
         FacetName.ELIGIBILITY,
@@ -686,6 +712,11 @@ def test_registry_contains_all_six_facets() -> None:
         FacetName.ENDPOINTS,
         FacetName.SCHEDULE,
         FacetName.STATISTICS,
+        FacetName.ESTIMANDS,
+        FacetName.INTERVENTIONS,
+        FacetName.ANALYSIS,
+        FacetName.SYNOPSIS_CHECK,
+        FacetName.SAFETY_MONITORING,
     ]
 
 
@@ -733,3 +764,293 @@ def test_citation_stats_share_is_zero_without_citations() -> None:
     stats = citation_stats(None)
 
     assert (stats.verified, stats.total, stats.verified_share) == (0, 0, 0.0)
+
+
+def _subsection(
+    number: str, title: str, page_number: int
+) -> ProtocolSubsection:
+    return ProtocolSubsection(
+        number=number,
+        title=title,
+        page_number=page_number,
+        citation=_citation(VERIFIABLE_QUOTE, page_number=page_number),
+    )
+
+
+def test_sections_and_subsections_sorted_and_assembled() -> None:
+    raw = SectionMap(
+        sections=[_section("1 Protocol Summary", start_page=1, end_page=2)],
+        subsections=[
+            _subsection("4.2", "Exclusion Criteria", page_number=2),
+            _subsection("1.1", "Synopsis", page_number=1),
+            _subsection("4.1", "Inclusion Criteria", page_number=2),
+        ],
+    )
+
+    sorted_map = sort_sections(raw)
+
+    assert [sub.number for sub in sorted_map.subsections] == [
+        "1.1",
+        "4.1",
+        "4.2",
+    ]
+    outcomes = {
+        FacetName.SECTIONS: FacetOutcome(
+            facet=FacetName.SECTIONS,
+            result=sorted_map,
+            warnings=[],
+        )
+    }
+    document = assemble_document(PROTOCOL_ID, PROTOCOL_TITLE, PAGES, outcomes)
+    assert document.subsections == sorted_map.subsections
+
+
+def test_subsection_page_outside_document_produces_warning() -> None:
+    sections = SectionMap(
+        sections=[_section("1 Protocol Summary", start_page=1, end_page=2)],
+        subsections=[
+            _subsection("1.1", "Zero Page Sub", page_number=0),
+            _subsection("1.2", "Valid Sub", page_number=len(PAGES)),
+            _subsection("4.1", "Past End Sub", page_number=len(PAGES) + 1),
+        ],
+    )
+
+    warnings = _run_sanity_rules(SECTIONS_FACET, sections)
+
+    assert len(warnings) == 2
+    assert "1.1" in warnings[0]
+    assert "4.1" in warnings[1]
+
+
+def test_endpoint_inverted_scale_range_produces_warning() -> None:
+    inverted = EndpointList(
+        endpoints=[
+            Endpoint(
+                kind=EndpointKind.PRIMARY,
+                description="Change in DTSQ score",
+                scale_name=CitedValue[str](
+                    value="DTSQ", citation=_citation(VERIFIABLE_QUOTE)
+                ),
+                scale_min=CitedValue[float](
+                    value=36.0, citation=_citation(VERIFIABLE_QUOTE)
+                ),
+                scale_max=CitedValue[float](
+                    value=0.0, citation=_citation(VERIFIABLE_QUOTE)
+                ),
+                scale_better_direction=CitedValue[ScaleDirection](
+                    value=ScaleDirection.HIGHER,
+                    citation=_citation(VERIFIABLE_QUOTE),
+                ),
+                citation=_citation(VERIFIABLE_QUOTE),
+            )
+        ]
+    )
+    valid = EndpointList(
+        endpoints=[
+            Endpoint(
+                kind=EndpointKind.PRIMARY,
+                description="Change in DTSQ score",
+                scale_min=CitedValue[float](
+                    value=0.0, citation=_citation(VERIFIABLE_QUOTE)
+                ),
+                scale_max=CitedValue[float](
+                    value=36.0, citation=_citation(VERIFIABLE_QUOTE)
+                ),
+                citation=_citation(VERIFIABLE_QUOTE),
+            )
+        ]
+    )
+
+    warnings = _run_sanity_rules(ENDPOINTS_FACET, inverted)
+
+    assert len(warnings) == 1
+    assert "DTSQ" in warnings[0]
+    assert _run_sanity_rules(ENDPOINTS_FACET, valid) == []
+
+
+def test_non_positive_statistics_fields_produce_warnings() -> None:
+    invalid_stats = StatisticalAssumptions(
+        standard_deviation=CitedValue[float](
+            value=0.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        allocation_ratio=CitedValue[float](
+            value=-1.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        non_inferiority_margin=CitedValue[float](
+            value=0.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+    )
+    valid_stats = StatisticalAssumptions(
+        effect_size_value=CitedValue[float](
+            value=0.4, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        standard_deviation=CitedValue[float](
+            value=1.1, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        allocation_ratio=CitedValue[float](
+            value=2.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        non_inferiority_margin=CitedValue[float](
+            value=0.3, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+    )
+
+    warnings = _run_sanity_rules(STATISTICS_FACET, invalid_stats)
+
+    assert len(warnings) == 3
+    assert _run_sanity_rules(STATISTICS_FACET, valid_stats) == []
+
+
+def test_extended_facet_prompts_list_canonical_enums_and_fields() -> None:
+    assert "subsections" in SECTIONS_FACET.instructions
+    for direction in ScaleDirection:
+        assert f'"{direction.value}"' in ENDPOINTS_FACET.instructions
+    for epoch in EpochType:
+        assert f'"{epoch.value}"' in SCHEDULE_FACET.instructions
+    for field_name in (
+        "effect_size_value",
+        "standard_deviation",
+        "allocation_ratio",
+        "is_two_sided",
+        "has_sample_size_calculation",
+        "assumptions_source_citation",
+        "non_inferiority_margin",
+    ):
+        assert field_name in STATISTICS_FACET.instructions
+
+
+def test_new_facet_prompts_list_canonical_enums_and_other() -> None:
+    for strategy in EstimandStrategy:
+        assert f'"{strategy.value}"' in ESTIMANDS_FACET.instructions
+    for ice_type in IntercurrentEventType:
+        assert f'"{ice_type.value}"' in ESTIMANDS_FACET.instructions
+    for factor in StratificationFactorType:
+        assert f'"{factor.value}"' in INTERVENTIONS_FACET.instructions
+        assert f'"{factor.value}"' in ANALYSIS_FACET.instructions
+        assert f'"{factor.value}"' in SYNOPSIS_CHECK_FACET.instructions
+    for analysis_set in AnalysisSetType:
+        assert f'"{analysis_set.value}"' in ANALYSIS_FACET.instructions
+    for subgroup in SubgroupDimension:
+        assert f'"{subgroup.value}"' in ANALYSIS_FACET.instructions
+    for committee in CommitteeType:
+        assert f'"{committee.value}"' in SYNOPSIS_CHECK_FACET.instructions
+    for epoch in EpochType:
+        assert f'"{epoch.value}"' in SYNOPSIS_CHECK_FACET.instructions
+    assert "never default to false" in SAFETY_MONITORING_FACET.instructions
+
+
+def test_interventions_sanity_rules_check_arms_and_positive_weeks() -> None:
+    empty = InterventionExtraction(
+        background_therapy_stable_weeks=CitedValue[float](
+            value=0.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        prior_washout_weeks=CitedValue[float](
+            value=-2.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+    )
+    valid = InterventionExtraction(
+        arms=[
+            InterventionArm(
+                name="Active Drug",
+                intervention_type=InterventionType.DRUG,
+                citation=_citation(VERIFIABLE_QUOTE),
+            )
+        ],
+        background_therapy_stable_weeks=CitedValue[float](
+            value=8.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        prior_washout_weeks=CitedValue[float](
+            value=4.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+    )
+
+    warnings = _run_sanity_rules(INTERVENTIONS_FACET, empty)
+
+    assert len(warnings) == 3
+    assert any("arm" in w.lower() for w in warnings)
+    assert _run_sanity_rules(INTERVENTIONS_FACET, valid) == []
+
+
+def test_synopsis_check_and_safety_monitoring_sanity_rules() -> None:
+    invalid_synopsis = SynopsisConsistencyExtraction(
+        synopsis_enrollment=CitedValue[int](
+            value=0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        synopsis_arm_count=CitedValue[int](
+            value=0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        assessments_retention_years=CitedValue[float](
+            value=-1.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+    )
+    assert len(_run_sanity_rules(SYNOPSIS_CHECK_FACET, invalid_synopsis)) == 3
+    assert (
+        _run_sanity_rules(
+            SYNOPSIS_CHECK_FACET, SynopsisConsistencyExtraction()
+        )
+        == []
+    )
+
+    inverted_hypo = SafetyMonitoringExtraction(
+        level_1_glucose_mg_dl=CitedValue[float](
+            value=54.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        level_2_glucose_mg_dl=CitedValue[float](
+            value=70.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+    )
+    valid_hypo = SafetyMonitoringExtraction(
+        level_1_glucose_mg_dl=CitedValue[float](
+            value=70.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        level_2_glucose_mg_dl=CitedValue[float](
+            value=54.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+    )
+    hypo_warnings = _run_sanity_rules(SAFETY_MONITORING_FACET, inverted_hypo)
+    assert len(hypo_warnings) == 1
+    assert "level_2_glucose_mg_dl" in hypo_warnings[0]
+    assert _run_sanity_rules(SAFETY_MONITORING_FACET, valid_hypo) == []
+
+
+def test_assemble_document_maps_all_five_new_facets() -> None:
+    estimands = EstimandExtraction()
+    interventions = InterventionExtraction(
+        arms=[
+            InterventionArm(
+                name="Placebo",
+                intervention_type=InterventionType.DRUG,
+                is_control=True,
+                citation=_citation(VERIFIABLE_QUOTE),
+            )
+        ]
+    )
+    analysis = AnalysisPlanExtraction()
+    synopsis = SynopsisConsistencyExtraction()
+    safety = SafetyMonitoringExtraction()
+    outcomes = {
+        FacetName.ESTIMANDS: FacetOutcome(
+            facet=FacetName.ESTIMANDS, result=estimands, warnings=[]
+        ),
+        FacetName.INTERVENTIONS: FacetOutcome(
+            facet=FacetName.INTERVENTIONS, result=interventions, warnings=[]
+        ),
+        FacetName.ANALYSIS: FacetOutcome(
+            facet=FacetName.ANALYSIS, result=analysis, warnings=[]
+        ),
+        FacetName.SYNOPSIS_CHECK: FacetOutcome(
+            facet=FacetName.SYNOPSIS_CHECK, result=synopsis, warnings=[]
+        ),
+        FacetName.SAFETY_MONITORING: FacetOutcome(
+            facet=FacetName.SAFETY_MONITORING, result=safety, warnings=[]
+        ),
+    }
+
+    document = assemble_document(PROTOCOL_ID, PROTOCOL_TITLE, PAGES, outcomes)
+
+    assert document.estimands == estimands
+    assert document.interventions == interventions
+    assert document.analysis == analysis
+    assert document.synopsis_check == synopsis
+    assert document.safety_monitoring == safety
+    assert document.extraction_warnings == []

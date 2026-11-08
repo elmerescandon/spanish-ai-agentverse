@@ -25,6 +25,7 @@ from backend.clients.gemini import LlmCallFailedError, ThinkingLevel
 from backend.clients.pdf_reader import UnreadablePdfError
 from backend.shared.config import Settings
 from backend.shared.messages import (
+    AnalysisPlanExtraction,
     Citation,
     CitedValue,
     CriterionKind,
@@ -33,14 +34,20 @@ from backend.shared.messages import (
     Endpoint,
     EndpointKind,
     EndpointList,
+    EstimandExtraction,
     FacetName,
+    InterventionArm,
+    InterventionExtraction,
+    InterventionType,
     M11Heading,
     PageText,
     ProtocolSection,
+    SafetyMonitoringExtraction,
     ScheduledVisit,
     ScheduleOfActivities,
     SectionMap,
     StatisticalAssumptions,
+    SynopsisConsistencyExtraction,
     TrialDesignFacts,
 )
 from tests.conftest import FakeJsonGenerator, make_pdf
@@ -405,6 +412,19 @@ def _scripted_facet_responses() -> list[BaseModel | Exception]:
                 citation=Citation(page_number=1, quote=PDF_SAMPLE_SIZE_QUOTE),
             )
         ),
+        FacetName.ESTIMANDS: EstimandExtraction(),
+        FacetName.INTERVENTIONS: InterventionExtraction(
+            arms=[
+                InterventionArm(
+                    name="Food As Medicine",
+                    intervention_type=InterventionType.BEHAVIORAL,
+                    citation=Citation(page_number=1, quote=PDF_TITLE_QUOTE),
+                )
+            ]
+        ),
+        FacetName.ANALYSIS: AnalysisPlanExtraction(),
+        FacetName.SYNOPSIS_CHECK: SynopsisConsistencyExtraction(),
+        FacetName.SAFETY_MONITORING: SafetyMonitoringExtraction(),
     }
     return [by_facet[facet.name] for facet in FACETS]
 
@@ -425,6 +445,11 @@ async def test_parse_protocol_assembles_all_facets(tmp_path: Path) -> None:
     assert document.endpoints is not None
     assert document.schedule is not None
     assert document.statistics is not None
+    assert document.estimands is not None
+    assert document.interventions is not None
+    assert document.analysis is not None
+    assert document.synopsis_check is not None
+    assert document.safety_monitoring is not None
     assert document.extraction_warnings == []
 
 

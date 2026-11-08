@@ -15,6 +15,11 @@ class FacetName(StrEnum):
     ENDPOINTS = "ENDPOINTS"
     SCHEDULE = "SCHEDULE"
     STATISTICS = "STATISTICS"
+    ESTIMANDS = "ESTIMANDS"
+    INTERVENTIONS = "INTERVENTIONS"
+    ANALYSIS = "ANALYSIS"
+    SYNOPSIS_CHECK = "SYNOPSIS_CHECK"
+    SAFETY_MONITORING = "SAFETY_MONITORING"
 
 
 class CriterionKind(StrEnum):
@@ -89,6 +94,129 @@ class MaskingType(StrEnum):
     DOUBLE = "DOUBLE"
     TRIPLE = "TRIPLE"
     QUADRUPLE = "QUADRUPLE"
+
+
+class InterventionType(StrEnum):
+    """High-level category of the trial's primary intervention."""
+
+    DRUG = "DRUG"
+    BIOLOGIC = "BIOLOGIC"
+    DEVICE = "DEVICE"
+    BEHAVIORAL = "BEHAVIORAL"
+    OTHER = "OTHER"
+
+
+class DiabetesType(StrEnum):
+    """Target diabetes population type."""
+
+    T1D = "T1D"
+    T2D = "T2D"
+    OTHER = "OTHER"
+
+
+class DrugClass(StrEnum):
+    """Pharmacological class of the investigational diabetes therapy."""
+
+    METFORMIN = "METFORMIN"
+    SULFONYLUREA = "SULFONYLUREA"
+    DPP4_INHIBITOR = "DPP4_INHIBITOR"
+    SGLT2_INHIBITOR = "SGLT2_INHIBITOR"
+    GLP1_RECEPTOR_AGONIST = "GLP1_RECEPTOR_AGONIST"
+    TZD = "TZD"
+    INSULIN = "INSULIN"
+    OTHER = "OTHER"
+
+
+class ControlType(StrEnum):
+    """Comparator arm control type."""
+
+    PLACEBO = "PLACEBO"
+    ACTIVE = "ACTIVE"
+    USUAL_CARE = "USUAL_CARE"
+    NONE = "NONE"
+    OTHER = "OTHER"
+
+
+class EstimandStrategy(StrEnum):
+    """ICH E9(R1) intercurrent event handling strategies."""
+
+    TREATMENT_POLICY = "TREATMENT_POLICY"
+    HYPOTHETICAL = "HYPOTHETICAL"
+    COMPOSITE = "COMPOSITE"
+    WHILE_ON_TREATMENT = "WHILE_ON_TREATMENT"
+    PRINCIPAL_STRATUM = "PRINCIPAL_STRATUM"
+    OTHER = "OTHER"
+
+
+class IntercurrentEventType(StrEnum):
+    """Canonical intercurrent event categories for ICH E9(R1) estimands."""
+
+    RESCUE_MEDICATION = "RESCUE_MEDICATION"
+    TREATMENT_DISCONTINUATION = "TREATMENT_DISCONTINUATION"
+    BACKGROUND_THERAPY_CHANGE = "BACKGROUND_THERAPY_CHANGE"
+    DEATH = "DEATH"
+    OTHER = "OTHER"
+
+
+class AnalysisSetType(StrEnum):
+    """Canonical statistical analysis population categories."""
+
+    RANDOMIZED = "RANDOMIZED"
+    FULL_ANALYSIS = "FULL_ANALYSIS"
+    PER_PROTOCOL = "PER_PROTOCOL"
+    SAFETY = "SAFETY"
+    OTHER = "OTHER"
+
+
+class SubgroupDimension(StrEnum):
+    """Canonical prespecified subgroup analysis dimensions."""
+
+    SEX = "SEX"
+    AGE = "AGE"
+    RACE = "RACE"
+    ETHNICITY = "ETHNICITY"
+    BASELINE_HBA1C = "BASELINE_HBA1C"
+    DIABETES_DURATION = "DIABETES_DURATION"
+    OTHER = "OTHER"
+
+
+class StratificationFactorType(StrEnum):
+    """Canonical randomization stratification and model covariate factors."""
+
+    BASELINE_HBA1C = "BASELINE_HBA1C"
+    PRIOR_THERAPY = "PRIOR_THERAPY"
+    REGION = "REGION"
+    BMI = "BMI"
+    AGE = "AGE"
+    SEX = "SEX"
+    OTHER = "OTHER"
+
+
+class CommitteeType(StrEnum):
+    """Canonical trial oversight and governance committee categories."""
+
+    DATA_MONITORING = "DATA_MONITORING"
+    ADJUDICATION = "ADJUDICATION"
+    STEERING = "STEERING"
+    OTHER = "OTHER"
+
+
+class EpochType(StrEnum):
+    """Canonical trial schema epoch and scheduled visit phases."""
+
+    SCREENING = "SCREENING"
+    RUN_IN = "RUN_IN"
+    TREATMENT = "TREATMENT"
+    FOLLOW_UP = "FOLLOW_UP"
+    EXTENSION = "EXTENSION"
+    OTHER = "OTHER"
+
+
+class ScaleDirection(StrEnum):
+    """Whether a higher or lower score on an endpoint scale is better."""
+
+    HIGHER = "HIGHER"
+    LOWER = "LOWER"
 
 
 class PageText(BaseModel):
@@ -170,10 +298,20 @@ class ProtocolSection(BaseModel):
     citation: Citation
 
 
+class ProtocolSubsection(BaseModel):
+    """Numbered subsection heading extracted from the protocol body."""
+
+    number: str
+    title: str
+    page_number: int
+    citation: Citation
+
+
 class SectionMap(BaseModel):
     """Result schema for the SECTIONS facet."""
 
     sections: list[ProtocolSection]
+    subsections: list[ProtocolSubsection] = Field(default_factory=list)
 
 
 class Endpoint(BaseModel):
@@ -182,6 +320,10 @@ class Endpoint(BaseModel):
     kind: EndpointKind
     description: str
     time_frame: str | None = None
+    scale_name: CitedValue[str] | None = None
+    scale_min: CitedValue[float] | None = None
+    scale_max: CitedValue[float] | None = None
+    scale_better_direction: CitedValue[ScaleDirection] | None = None
     citation: Citation
 
 
@@ -196,6 +338,7 @@ class ScheduledVisit(BaseModel):
 
     visit_name: str
     study_day: int | None = None
+    epoch: EpochType | None = None
     procedures: list[str]
     citation: Citation | None = None
 
@@ -214,6 +357,170 @@ class StatisticalAssumptions(BaseModel):
     alpha: CitedValue[float] | None = None
     dropout_rate: CitedValue[float] | None = None
     effect_size: CitedValue[str] | None = None
+    effect_size_value: CitedValue[float] | None = None
+    standard_deviation: CitedValue[float] | None = None
+    allocation_ratio: CitedValue[float] | None = None
+    is_two_sided: CitedValue[bool] | None = None
+    has_sample_size_calculation: CitedValue[bool] | None = None
+    assumptions_source_citation: CitedValue[str] | None = None
+    non_inferiority_margin: CitedValue[float] | None = None
+
+
+class AnalysisSetItem(BaseModel):
+    """Canonical analysis set paired with its display label and citation."""
+
+    category: AnalysisSetType
+    label: str
+    citation: Citation
+
+
+class SubgroupItem(BaseModel):
+    """Canonical subgroup dimension paired with its label and citation."""
+
+    category: SubgroupDimension
+    label: str
+    citation: Citation
+
+
+class StratificationFactorItem(BaseModel):
+    """Canonical stratification or covariate factor with label and citation."""
+
+    category: StratificationFactorType
+    label: str
+    citation: Citation
+
+
+class CommitteeItem(BaseModel):
+    """Canonical oversight committee paired with its label and citation."""
+
+    category: CommitteeType
+    label: str
+    citation: Citation
+
+
+class IntercurrentEvent(BaseModel):
+    """Intercurrent event and its handling strategy inside an estimand."""
+
+    event_type: IntercurrentEventType
+    event: str
+    strategy: EstimandStrategy | None = None
+    citation: Citation
+
+
+class Estimand(BaseModel):
+    """Structured ICH E9(R1) estimand for one protocol endpoint."""
+
+    endpoint_kind: EndpointKind
+    endpoint_description: str
+    population: CitedValue[str] | None = None
+    variable: CitedValue[str] | None = None
+    intercurrent_events: list[IntercurrentEvent] = Field(default_factory=list)
+    population_level_summary: CitedValue[str] | None = None
+    treatment_condition: CitedValue[str] | None = None
+
+
+class EstimandExtraction(BaseModel):
+    """Result schema for the ESTIMANDS facet."""
+
+    estimands: list[Estimand] = Field(default_factory=list)
+    lists_all_five_attributes: CitedValue[bool] | None = None
+
+
+class InterventionArm(BaseModel):
+    """One study intervention or control arm extracted from the protocol."""
+
+    name: str
+    intervention_type: InterventionType
+    drug_class: DrugClass | None = None
+    dose_and_regimen: str | None = None
+    is_control: bool = False
+    control_type: ControlType | None = None
+    citation: Citation
+
+
+class InterventionExtraction(BaseModel):
+    """Result schema for the INTERVENTIONS facet."""
+
+    arms: list[InterventionArm] = Field(default_factory=list)
+    background_therapy: CitedValue[str] | None = None
+    background_therapy_stable_weeks: CitedValue[float] | None = None
+    rescue_therapy_criteria: CitedValue[str] | None = None
+    rescue_medication_regimen: CitedValue[str] | None = None
+    prohibited_medications: list[CitedValue[str]] = Field(default_factory=list)
+    prior_washout_weeks: CitedValue[float] | None = None
+    stratification_factors: list[StratificationFactorItem] = Field(
+        default_factory=list
+    )
+    continues_follow_up_after_discontinuation: CitedValue[bool] | None = None
+    collects_hba1c_after_discontinuation: CitedValue[bool] | None = None
+
+
+class AnalysisPlanExtraction(BaseModel):
+    """Result schema for the ANALYSIS facet."""
+
+    analysis_sets: list[AnalysisSetItem] = Field(default_factory=list)
+    primary_analysis_set: AnalysisSetItem | None = None
+    primary_analysis_method: CitedValue[str] | None = None
+    primary_analysis_covariates: list[StratificationFactorItem] = Field(
+        default_factory=list
+    )
+    adjusts_for_baseline: CitedValue[bool] | None = None
+    missing_data_method: CitedValue[str] | None = None
+    sensitivity_analyses: list[CitedValue[str]] = Field(default_factory=list)
+    confirmatory_hierarchy: CitedValue[str] | None = None
+    controls_type_i_error: CitedValue[bool] | None = None
+    prespecified_subgroups: list[SubgroupItem] = Field(default_factory=list)
+    has_interim_analysis: CitedValue[bool] | None = None
+    stopping_boundaries: CitedValue[str] | None = None
+    alpha_spending_function: CitedValue[str] | None = None
+
+
+class TrialEpoch(BaseModel):
+    """One study phase or epoch in the trial schema."""
+
+    epoch_type: EpochType
+    name: str
+    duration_weeks: float | None = None
+    citation: Citation
+
+
+class SynopsisConsistencyExtraction(BaseModel):
+    """Result schema for the SYNOPSIS_CHECK facet."""
+
+    synopsis_enrollment: CitedValue[int] | None = None
+    synopsis_arm_count: CitedValue[int] | None = None
+    synopsis_treatment_duration_weeks: CitedValue[float] | None = None
+    synopsis_primary_timepoint_weeks: CitedValue[float] | None = None
+    body_treatment_duration_weeks: CitedValue[float] | None = None
+    body_primary_timepoint_weeks: CitedValue[float] | None = None
+    synopsis_stratification_factors: list[StratificationFactorItem] = Field(
+        default_factory=list
+    )
+    synopsis_committees: list[CommitteeItem] = Field(default_factory=list)
+    governance_committees: list[CommitteeItem] = Field(default_factory=list)
+    schema_epochs: list[TrialEpoch] = Field(default_factory=list)
+    synopsis_ice_strategies: list[IntercurrentEvent] = Field(
+        default_factory=list
+    )
+    assessments_retention_years: CitedValue[float] | None = None
+    icf_retention_years: CitedValue[float] | None = None
+    has_lay_summary: CitedValue[bool] | None = None
+    states_no_amendments: CitedValue[bool] | None = None
+    amendment_numbers: list[CitedValue[int]] = Field(default_factory=list)
+
+
+class SafetyMonitoringExtraction(BaseModel):
+    """Result schema for the SAFETY_MONITORING facet."""
+
+    defines_hypoglycemia_levels: CitedValue[bool] | None = None
+    level_1_glucose_mg_dl: CitedValue[float] | None = None
+    level_2_glucose_mg_dl: CitedValue[float] | None = None
+    level_3_requires_assistance: CitedValue[bool] | None = None
+    captures_hypoglycemia_diary: CitedValue[bool] | None = None
+    defines_dka_criteria: CitedValue[bool] | None = None
+    defines_sae_escalation: CitedValue[bool] | None = None
+    monitors_renal_function: CitedValue[bool] | None = None
+    has_cv_adjudication: CitedValue[bool] | None = None
 
 
 class ProtocolDocument(BaseModel):
@@ -226,9 +533,15 @@ class ProtocolDocument(BaseModel):
     design: TrialDesignFacts | None = None
     eligibility_criteria: list[EligibilityCriterion] | None = None
     sections: list[ProtocolSection] | None = None
+    subsections: list[ProtocolSubsection] | None = None
     endpoints: list[Endpoint] | None = None
     schedule: list[ScheduledVisit] | None = None
     statistics: StatisticalAssumptions | None = None
+    estimands: EstimandExtraction | None = None
+    interventions: InterventionExtraction | None = None
+    analysis: AnalysisPlanExtraction | None = None
+    synopsis_check: SynopsisConsistencyExtraction | None = None
+    safety_monitoring: SafetyMonitoringExtraction | None = None
     extraction_warnings: list[ExtractionWarning] = Field(default_factory=list)
 
 
@@ -298,47 +611,6 @@ class SourceTier(StrEnum):
     REPORTING_GUIDELINE = "reporting_guideline"
     COMPARATOR_NORM = "comparator_norm"
     HEURISTIC = "heuristic"
-
-
-class InterventionType(StrEnum):
-    """High-level category of the trial's primary intervention."""
-
-    DRUG = "DRUG"
-    BIOLOGIC = "BIOLOGIC"
-    DEVICE = "DEVICE"
-    BEHAVIORAL = "BEHAVIORAL"
-    OTHER = "OTHER"
-
-
-class DiabetesType(StrEnum):
-    """Target diabetes population type."""
-
-    T1D = "T1D"
-    T2D = "T2D"
-    OTHER = "OTHER"
-
-
-class DrugClass(StrEnum):
-    """Pharmacological class of the investigational diabetes therapy."""
-
-    METFORMIN = "METFORMIN"
-    SULFONYLUREA = "SULFONYLUREA"
-    DPP4_INHIBITOR = "DPP4_INHIBITOR"
-    SGLT2_INHIBITOR = "SGLT2_INHIBITOR"
-    GLP1_RECEPTOR_AGONIST = "GLP1_RECEPTOR_AGONIST"
-    TZD = "TZD"
-    INSULIN = "INSULIN"
-    OTHER = "OTHER"
-
-
-class ControlType(StrEnum):
-    """Comparator arm control type."""
-
-    PLACEBO = "PLACEBO"
-    ACTIVE = "ACTIVE"
-    USUAL_CARE = "USUAL_CARE"
-    NONE = "NONE"
-    OTHER = "OTHER"
 
 
 class SearchedLocation(BaseModel):

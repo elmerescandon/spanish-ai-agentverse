@@ -8,11 +8,22 @@ from enum import StrEnum
 
 from backend.shared.messages import (
     AllocationType,
+    AnalysisSetType,
+    CommitteeType,
+    ControlType,
     CriterionKind,
+    DrugClass,
     EndpointKind,
+    EpochType,
+    EstimandStrategy,
+    IntercurrentEventType,
     InterventionModelType,
+    InterventionType,
     M11Heading,
     MaskingType,
+    ScaleDirection,
+    StratificationFactorType,
+    SubgroupDimension,
     TrialPhase,
 )
 
@@ -31,6 +42,17 @@ ALLOWED_INTERVENTION_MODELS = quoted_values(InterventionModelType)
 ALLOWED_MASKING = quoted_values(MaskingType)
 ALLOWED_M11_HEADINGS = quoted_values(M11Heading)
 ALLOWED_ENDPOINT_KINDS = quoted_values(EndpointKind)
+ALLOWED_SCALE_DIRECTIONS = quoted_values(ScaleDirection)
+ALLOWED_EPOCH_TYPES = quoted_values(EpochType)
+ALLOWED_ESTIMAND_STRATEGIES = quoted_values(EstimandStrategy)
+ALLOWED_ICE_TYPES = quoted_values(IntercurrentEventType)
+ALLOWED_INTERVENTION_TYPES = quoted_values(InterventionType)
+ALLOWED_DRUG_CLASSES = quoted_values(DrugClass)
+ALLOWED_CONTROL_TYPES = quoted_values(ControlType)
+ALLOWED_ANALYSIS_SETS = quoted_values(AnalysisSetType)
+ALLOWED_SUBGROUP_DIMENSIONS = quoted_values(SubgroupDimension)
+ALLOWED_STRATIFICATION_FACTORS = quoted_values(StratificationFactorType)
+ALLOWED_COMMITTEES = quoted_values(CommitteeType)
 
 COMMON_EXTRACTION_RULES = (
     "Rules:\n"
@@ -101,11 +123,15 @@ DESIGN_INSTRUCTIONS = (
 )
 
 SECTIONS_INSTRUCTIONS = (
-    "Extract the top-level sections of the protocol body into JSON matching "
-    "the SectionMap schema.\n"
-    "- Produce one entry per top-level section of the protocol body "
-    "(1, 2, 3, ..., plus a standalone SYNOPSIS if unnumbered), not every "
-    "subsection (do not list 1.1, 1.2, 4.1, etc. as separate entries).\n"
+    "Extract the top-level sections and numbered subsections of the protocol "
+    "body into JSON matching the SectionMap schema.\n"
+    "- In sections, produce one entry per top-level section of the protocol "
+    "body (1, 2, 3, ..., plus a standalone SYNOPSIS if unnumbered), not "
+    "subsections.\n"
+    "- In subsections, produce one entry per numbered subsection in the "
+    "protocol body (for example, '1.1', '1.2', '4.1', '4.2', '9.2', '11.3') "
+    "with its number, title, 1-based PDF page_number, and verbatim "
+    "citation.\n"
     "- Skip front and back matter: title page, statement of compliance, "
     "signature pages, table of contents, list of attachments/tables/figures, "
     "abbreviation lists, definitions of terms, and references.\n"
@@ -115,14 +141,16 @@ SECTIONS_INSTRUCTIONS = (
     "'5 TARGET POPULATION AND STUDY SAMPLE' or '4. SUBJECT POPULATION' "
     "containing inclusion/exclusion criteria must be classified as "
     '"TRIAL_POPULATION". Use "OTHER" when nothing fits.\n'
-    "- CRITICAL page numbering rule: start_page and end_page MUST be the "
-    "1-based PDF page positions from the === PAGE n === markers, NOT the "
-    "page numbers printed inside the document headers, footers, or Table of "
-    "Contents (for example, if a section starts under === PAGE 22 === even "
-    "though the page header prints '17', start_page is 22).\n"
-    "- Set citation.page_number to start_page and quote the section's "
-    "heading line plus the immediately following words on start_page so the "
-    "verbatim quote is at least 15 non-space, non-hyphen characters.\n"
+    "- CRITICAL page numbering rule: start_page, end_page, and subsection "
+    "page_number MUST be the 1-based PDF page positions from the "
+    "=== PAGE n === markers, NOT the page numbers printed inside the "
+    "document headers, footers, or Table of Contents (for example, if a "
+    "section starts under === PAGE 22 === even though the page header prints "
+    "'17', start_page is 22).\n"
+    "- Set citation.page_number to start_page (or subsection page_number) "
+    "and quote the heading line plus the immediately following words on that "
+    "page so the verbatim quote is at least 15 non-space, non-hyphen "
+    "characters.\n"
     "- Write summary as a single concise sentence."
 )
 
@@ -133,6 +161,10 @@ ENDPOINTS_INSTRUCTIONS = (
     f"- Set kind to one of: {ALLOWED_ENDPOINT_KINDS}.\n"
     "- Set time_frame to the assessment timepoint if stated (for example, "
     "'6 months' or '26 weeks'), or null if not stated.\n"
+    "- When an endpoint uses a rating or score scale (for example, DTSQ, "
+    "SF-36, DDS), extract scale_name, numeric scale_min, numeric scale_max, "
+    f"and scale_better_direction (one of {ALLOWED_SCALE_DIRECTIONS}) if "
+    "stated in the protocol; return null for any scale field not stated.\n"
     "- Extract measured endpoints/outcome measures (for example, 'Change "
     "in HbA1c from baseline to Week 26'), not study objectives or "
     "hypotheses. When an objective or hypothesis restates an endpoint "
@@ -159,6 +191,9 @@ SCHEDULE_INSTRUCTIONS = (
     "'Screening', 'Baseline / Day 1', 'Week 26', '6-month assessment').\n"
     "  - study_day: integer study day when stated in the text, or null when "
     "not stated.\n"
+    f"  - epoch: canonical study period from {ALLOWED_EPOCH_TYPES} when the "
+    'visit period is stated (use "OTHER" if a stated period does not fit '
+    "the standard categories), or null when not stated.\n"
     "  - procedures: non-empty list of procedures, assessments, or "
     "activities performed at that visit as stated in the text.\n"
     "  - citation: quote the visit's row, column, footnote, or bullet text "
@@ -190,5 +225,149 @@ STATISTICS_INSTRUCTIONS = (
     "'drop-out rate < 10%' -> 0.10, '10% sample size inflation factor' -> "
     "0.10).\n"
     "- effect_size: assumed primary treatment effect or difference as "
-    "stated in the text (string, for example '0.5%' or '0.4% to 0.5%')."
+    "stated in the text (string, for example '0.5%' or '0.4% to 0.5%').\n"
+    "- effect_size_value: numeric absolute primary treatment difference in "
+    "endpoint units when stated as a number (for example, 0.5 for '0.5% "
+    "HbA1c'), or null when not stated as a single number.\n"
+    "- standard_deviation: assumed standard deviation for the primary "
+    "endpoint in the sample size calculation (positive float), or null.\n"
+    "- allocation_ratio: ratio of treatment to control sample size (float, "
+    "for example 1.0 for 1:1 randomization, 2.0 for 2:1), or null.\n"
+    "- is_two_sided: tri-state boolean: true with quote if alpha is "
+    "explicitly two-sided, false with quote if explicitly one-sided, or null "
+    "if not stated (never default to false).\n"
+    "- has_sample_size_calculation: tri-state boolean: true with quote if a "
+    "formal sample-size or power calculation is given, false with quote if "
+    "the protocol explicitly states sample size is not based on a power "
+    "calculation, or null if not stated (never default to false).\n"
+    "- assumptions_source_citation: cited prior trial, publication, or "
+    "pilot study justifying the assumed effect size or SD, or null.\n"
+    "- non_inferiority_margin: numeric non-inferiority margin when stated "
+    "(positive float, for example 0.3 for '0.3%'), or null."
+)
+
+ESTIMANDS_INSTRUCTIONS = (
+    "Extract structured ICH E9(R1) estimands from the objectives, estimands, "
+    "and statistical sections into JSON matching the EstimandExtraction "
+    "schema.\n"
+    f"- For each defined estimand, set endpoint_kind to one of "
+    f"{ALLOWED_ENDPOINT_KINDS}, endpoint_description, and any stated "
+    "attributes (population, variable, intercurrent_events, "
+    "population_level_summary, treatment_condition).\n"
+    "- For each IntercurrentEvent in intercurrent_events, set:\n"
+    f"  - event_type: canonical category from {ALLOWED_ICE_TYPES} "
+    '(use "OTHER" rather than forcing a match when an event does not fit).\n'
+    "  - event: description of the intercurrent event as stated.\n"
+    f"  - strategy: canonical ICH E9(R1) strategy from "
+    f"{ALLOWED_ESTIMAND_STRATEGIES}, or null if no handling strategy is "
+    'stated (use "OTHER" rather than forcing a match).\n'
+    "  - citation: verbatim quote from the cited page.\n"
+    "- lists_all_five_attributes: tri-state boolean: true with quote if all "
+    "5 ICH E9(R1) estimand attributes are explicitly stated for the primary "
+    "estimand, false with quote if the protocol explicitly states estimands "
+    "are not used, or null if not stated (never default to false)."
+)
+
+INTERVENTIONS_INSTRUCTIONS = (
+    "Extract the study's intervention arms, background therapy, rescue "
+    "therapy, prohibited medications, washout, stratification factors, and "
+    "post-discontinuation follow-up into JSON matching the "
+    "InterventionExtraction schema.\n"
+    "- For each arm in arms, set name, intervention_type from "
+    f"{ALLOWED_INTERVENTION_TYPES}, drug_class from {ALLOWED_DRUG_CLASSES} "
+    "(or null for non-drug arms), dose_and_regimen, is_control, control_type "
+    f"from {ALLOWED_CONTROL_TYPES} (or null for non-control arms), and "
+    "verbatim citation.\n"
+    "- background_therapy and background_therapy_stable_weeks: required "
+    "background diabetes therapy and stable run-in/pre-trial duration in "
+    "weeks (positive float), or null.\n"
+    "- rescue_therapy_criteria and rescue_medication_regimen: glycemic "
+    "thresholds and allowed drugs for rescue therapy, or null.\n"
+    "- prohibited_medications and prior_washout_weeks: excluded therapies "
+    "and required washout duration in weeks (positive float), or null.\n"
+    "- stratification_factors: randomization stratification factors stated "
+    "in the design or intervention sections; set category to one of "
+    f'{ALLOWED_STRATIFICATION_FACTORS} (use "OTHER" rather than forcing a '
+    "match), label, and citation.\n"
+    "- continues_follow_up_after_discontinuation and "
+    "collects_hba1c_after_discontinuation: tri-state booleans: true with "
+    "quote if participants who discontinue treatment continue scheduled "
+    "follow-up / HbA1c assessments, false with quote if the protocol states "
+    "assessments stop at treatment discontinuation, or null if not stated "
+    "(never default to false)."
+)
+
+ANALYSIS_INSTRUCTIONS = (
+    "Extract the statistical analysis plan from the statistical section into "
+    "JSON matching the AnalysisPlanExtraction schema.\n"
+    "- analysis_sets and primary_analysis_set: defined analysis populations; "
+    f'set category to one of {ALLOWED_ANALYSIS_SETS} (use "OTHER" rather '
+    "than forcing a match), label, and verbatim citation.\n"
+    "- primary_analysis_method: statistical model or test for the primary "
+    "endpoint (for example, 'MMRM', 'ANCOVA', 'linear mixed model'), or "
+    "null.\n"
+    "- primary_analysis_covariates: covariates or factors included in the "
+    "primary analysis model; set category to one of "
+    f'{ALLOWED_STRATIFICATION_FACTORS} (use "OTHER" rather than forcing a '
+    "match), label, and citation.\n"
+    "- missing_data_method, sensitivity_analyses, confirmatory_hierarchy, "
+    "stopping_boundaries, and alpha_spending_function: wrap each stated "
+    "fact in a CitedValue or return null/empty list.\n"
+    "- prespecified_subgroups: subgroup variables planned for subgroup "
+    f"analyses; set category to one of {ALLOWED_SUBGROUP_DIMENSIONS} "
+    '(use "OTHER" rather than forcing a match), label, and citation.\n'
+    "- adjusts_for_baseline, controls_type_i_error, and "
+    "has_interim_analysis: tri-state booleans: true with quote if explicitly "
+    "stated, false with quote if the protocol explicitly states the "
+    "opposite (for example, 'No interim analysis is planned' -> false), or "
+    "null if not stated (never default to false)."
+)
+
+SYNOPSIS_CHECK_INSTRUCTIONS = (
+    "Extract synopsis-vs-body consistency facts, oversight committees, study "
+    "schema epochs, biospecimen retention periods, lay summary, and amendment "
+    "history into JSON matching the SynopsisConsistencyExtraction schema.\n"
+    "- Quote synopsis_enrollment, synopsis_arm_count, "
+    "synopsis_treatment_duration_weeks, synopsis_primary_timepoint_weeks, "
+    "synopsis_stratification_factors, synopsis_committees, and "
+    "synopsis_ice_strategies ONLY from the Synopsis / Protocol Summary "
+    "section; return null or empty list if not stated in the Synopsis.\n"
+    "- Quote body_treatment_duration_weeks and body_primary_timepoint_weeks "
+    "ONLY from the main protocol body sections (outside the Synopsis).\n"
+    "- For synopsis_stratification_factors, set category to one of "
+    f'{ALLOWED_STRATIFICATION_FACTORS} (use "OTHER" rather than forcing a '
+    "match).\n"
+    "- For synopsis_committees and governance_committees (from oversight or "
+    "governance sections in the body), set category to one of "
+    f'{ALLOWED_COMMITTEES} (use "OTHER" rather than forcing a match).\n'
+    "- For schema_epochs, extract each study period/epoch from the study "
+    f"schema or design overview with epoch_type from {ALLOWED_EPOCH_TYPES} "
+    '(use "OTHER" rather than forcing a match), name, duration_weeks, and '
+    "citation.\n"
+    "- For synopsis_ice_strategies, use event_type from "
+    f"{ALLOWED_ICE_TYPES} and strategy from {ALLOWED_ESTIMAND_STRATEGIES}.\n"
+    "- assessments_retention_years and icf_retention_years: biospecimen or "
+    "record retention duration in years stated in the Assessments section vs "
+    "the Regulatory/Informed Consent section, or null.\n"
+    "- has_lay_summary and states_no_amendments: tri-state booleans: true "
+    "with quote if present/stated, false with quote if the opposite is "
+    "stated, or null if not found (never default to false).\n"
+    "- amendment_numbers: integer amendment numbers listed in the amendment "
+    "history."
+)
+
+SAFETY_MONITORING_INSTRUCTIONS = (
+    "Extract diabetes and general safety monitoring definitions from the "
+    "safety and adverse-event sections into JSON matching the "
+    "SafetyMonitoringExtraction schema.\n"
+    "- level_1_glucose_mg_dl and level_2_glucose_mg_dl: numeric blood "
+    "glucose thresholds in mg/dL for Level 1 (for example, 70.0) and Level 2 "
+    "(for example, 54.0) hypoglycemia when stated, or null.\n"
+    "- defines_hypoglycemia_levels, level_3_requires_assistance, "
+    "captures_hypoglycemia_diary, defines_dka_criteria, "
+    "defines_sae_escalation, monitors_renal_function, and "
+    "has_cv_adjudication: tri-state booleans: true with quote if explicitly "
+    "defined or performed in the protocol, false with quote if the protocol "
+    "explicitly states the opposite, or null if not stated (never default to "
+    "false)."
 )

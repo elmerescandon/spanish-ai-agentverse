@@ -15,7 +15,9 @@ from pydantic import BaseModel
 from backend.agents.parser.agent import parse_protocol
 from backend.agents.parser.logic import citation_stats
 from backend.shared.messages import (
+    AnalysisSetType,
     CitedValue,
+    ControlType,
     CriterionKind,
     EligibilityCriterion,
     EndpointKind,
@@ -45,8 +47,20 @@ CANAGLIFLOZIN_CRITERIA_PAGE = 47
 FAME_D_PRIMARY_ENDPOINT_SUBSTRING = "a1c"
 FAME_D_SAMPLE_SIZE = 200  # PDF page 52
 FAME_D_DROPOUT_RATE = 0.10  # PDF page 52, "drop-out rate < 10%"
+# FAME-D PDF page 53: "assumes a population treatment effect of 0.5% or
+# greater, a SD of 1.1%, and 1:1 randomization"
+FAME_D_EFFECT_SIZE_VALUE = 0.5
+FAME_D_SD = 1.1
+# CANA PDF page 80: "2-sample, 2-sided t-test with Type 1 error rate of
+# 0.05 ... common standard deviation of 0.9%"
 CANAGLIFLOZIN_ALPHA = 0.05  # PDF page 82
+CANAGLIFLOZIN_SD = 0.9  # PDF page 80
+# FAME-D PDF page 22: "5.1 INCLUSION CRITERIA"
+FAME_D_INCLUSION_SUBSECTION = "5.1"
+# CANA PDF page 47: "4.1. Inclusion Criteria"
+CANAGLIFLOZIN_INCLUSION_SUBSECTION = "4.1"
 MIN_EXPECTED_VISITS = 2
+MIN_EXPECTED_ARMS = 2
 
 
 class ExpectedCriterion(BaseModel):
@@ -139,9 +153,15 @@ def test_every_facet_present_and_citations_verified(
             "design": document.design,
             "eligibility_criteria": document.eligibility_criteria,
             "sections": document.sections,
+            "subsections": document.subsections,
             "endpoints": document.endpoints,
             "schedule": document.schedule,
             "statistics": document.statistics,
+            "estimands": document.estimands,
+            "interventions": document.interventions,
+            "analysis": document.analysis,
+            "synopsis_check": document.synopsis_check,
+            "safety_monitoring": document.safety_monitoring,
         }
         missing = [name for name, value in facet_fields.items() if not value]
         assert missing == [], f"{pdf_path.name}: facets missing: {missing}"
@@ -241,8 +261,20 @@ def test_statistics_match_values_stated_in_pdfs(
     assert fame.sample_size.value == FAME_D_SAMPLE_SIZE, fame
     assert fame.dropout_rate is not None
     assert fame.dropout_rate.value == pytest.approx(FAME_D_DROPOUT_RATE), fame
+    assert fame.effect_size_value is not None
+    assert fame.effect_size_value.value == pytest.approx(
+        FAME_D_EFFECT_SIZE_VALUE
+    ), fame
+    assert fame.standard_deviation is not None
+    assert fame.standard_deviation.value == pytest.approx(FAME_D_SD), fame
     assert cana is not None and cana.alpha is not None
     assert cana.alpha.value == pytest.approx(CANAGLIFLOZIN_ALPHA), cana
+    assert cana.standard_deviation is not None
+    assert cana.standard_deviation.value == pytest.approx(CANAGLIFLOZIN_SD), (
+        cana
+    )
+    assert cana.is_two_sided is not None
+    assert cana.is_two_sided.value is True, cana
 
 
 @pytest.mark.live
@@ -255,3 +287,66 @@ def test_schedules_have_visits(
             f"{pdf_path.name}: fewer than {MIN_EXPECTED_VISITS} visits: "
             f"{visits}"
         )
+
+
+@pytest.mark.live
+def test_subsections_include_inclusion_criteria_headings(
+    parsed_protocols: dict[Path, ProtocolDocument],
+) -> None:
+    for pdf_path, expected_number in (
+        (FAME_D_PDF_PATH, FAME_D_INCLUSION_SUBSECTION),
+        (CANAGLIFLOZIN_PDF_PATH, CANAGLIFLOZIN_INCLUSION_SUBSECTION),
+    ):
+        subsections = parsed_protocols[pdf_path].subsections or []
+        assert any(
+            sub.number.rstrip(".") == expected_number for sub in subsections
+        ), (
+            f"{pdf_path.name}: subsection {expected_number} missing from "
+            f"{subsections}"
+        )
+
+
+@pytest.mark.live
+def test_interventions_analysis_and_safety_match_pdfs(
+    parsed_protocols: dict[Path, ProtocolDocument],
+) -> None:
+    fame = parsed_protocols[FAME_D_PDF_PATH]
+    cana = parsed_protocols[CANAGLIFLOZIN_PDF_PATH]
+
+    # FAME-D PDF page 20: "assign them by 1:1 randomization to the two
+    # treatment regimens: MTM intervention (N=100), versus the control
+    # regimen of usual care + monthly food subsidy (N=100)"
+    assert fame.interventions is not None
+    assert len(fame.interventions.arms) >= MIN_EXPECTED_ARMS
+
+    # CANA PDF page 93: "Canagliflozin 100 mg and 300 mg tablets with
+    # matching placebo tablets for each dose strength will be supplied"
+    assert cana.interventions is not None
+    assert any(
+        arm.control_type == ControlType.PLACEBO
+        for arm in cana.interventions.arms
+    ), cana.interventions.arms
+
+    # FAME-D PDF page 53: "Per Protocol (PP) Population (secondary
+    # population)"
+    assert fame.analysis is not None
+    assert any(
+        item.category == AnalysisSetType.PER_PROTOCOL
+        for item in fame.analysis.analysis_sets
+    ), fame.analysis.analysis_sets
+
+    # CANA PDF page 82: "To strongly control the family-wise error rate
+    # at the 5% significance level, a sequential testing procedure ...
+    # will be applied"
+    assert cana.analysis is not None
+    assert cana.analysis.controls_type_i_error is not None
+    assert cana.analysis.controls_type_i_error.value is True
+
+    # CANA PDF page 91: "12.3. Hypoglycemia ... asymptomatic (low measured
+    # glucose [ie, <=70 mg/dL (<=3.9 mmol/L)], without symptoms)" and
+    # "12.4. Diabetic Ketoacidosis"
+    assert cana.safety_monitoring is not None
+    assert cana.safety_monitoring.defines_hypoglycemia_levels is not None
+    assert cana.safety_monitoring.defines_hypoglycemia_levels.value is True
+    assert cana.safety_monitoring.defines_dka_criteria is not None
+    assert cana.safety_monitoring.defines_dka_criteria.value is True

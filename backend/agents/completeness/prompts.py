@@ -44,3 +44,36 @@ TRIAL_PROFILE_INSTRUCTIONS = (
     "- If the protocol does not state a fact, return null for it. Never "
     "guess, and never default a missing true/false fact to false."
 )
+
+JUDGEMENT_BATCH_INSTRUCTIONS = (
+    "Evaluate each clinical trial protocol rule listed above against the "
+    "provided protocol pages and extracted JSON context. Return JSON "
+    "matching the JudgementVerdicts schema with one entry per rule_id.\n\n"
+    "Rules:\n"
+    "- Every quote in evidence must be copied verbatim from the cited page "
+    "(at least 15 characters) and use the === PAGE n === marker's page "
+    "number.\n"
+    '- Status "fired" requires a verbatim quote of the defect in evidence, '
+    "or for an absence the nearest section heading quote plus the word "
+    '"absent" in the finding text.\n'
+    '- Status "not_applicable" is allowed ONLY when the rule\'s trigger is '
+    "absent in the protocol text; state a one-line status_reason.\n"
+    '- Status "cannot_assess" requires a one-line status_reason.\n'
+    "- Never invent facts not present in the protocol pages.\n"
+    '- Always cite any FDA draft guidance as "FDA draft guidance '
+    '(non-binding)".\n'
+    "- Set confidence between 0.0 and 1.0 reflecting your certainty."
+)
+
+SECOND_OPINION_INSTRUCTIONS = (
+    "Review each flagged protocol finding above against the provided "
+    "protocol pages and evidence. Return JSON matching the "
+    "SecondOpinionVerdicts schema with one entry per rule_id.\n\n"
+    "Rules:\n"
+    "- Set confirmed = true only when the cited verbatim quote or the "
+    "searched section pages clearly support the rule's flag_if trigger.\n"
+    "- Set confirmed = false when the quote is taken out of context, the "
+    "searched pages actually contain the required information, or the "
+    "rule's trigger does not apply.\n"
+    "- Provide a concise reason and your confidence between 0.0 and 1.0."
+)

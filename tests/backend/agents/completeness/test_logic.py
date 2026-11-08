@@ -6,12 +6,24 @@ from backend.agents.completeness.logic import (
     PERFECT_SCORE,
     CheckOutcome,
     EvaluatedRule,
+    JudgementStatus,
+    JudgementVerdict,
+    JudgementVerdicts,
+    SecondOpinionVerdict,
+    SecondOpinionVerdicts,
+    apply_second_opinion,
+    apply_second_opinion_failure,
     assemble_report,
+    build_judgement_batches,
     compute_run_result,
     condition_holds,
+    evaluate_precheck,
     evaluate_rule,
+    failed_judgement_batch,
     finding_from_outcome,
     pre_decide,
+    resolve_judgement_batch,
+    select_batch_pages,
     select_profile_pages,
 )
 from backend.agents.completeness.rules import (
@@ -528,3 +540,230 @@ def _section(heading: M11Heading, start: int, end: int) -> ProtocolSection:
         summary="Example.",
         citation=_citation(page_number=start),
     )
+
+
+# --- step 6: prechecks, batching, verdicts, second opinion -------------
+
+
+def _judgement_rule(
+    rule_id: str,
+    sections: tuple[M11Heading, ...] = (M11Heading.OBJECTIVES_AND_ESTIMANDS,),
+) -> RuleDefinition:
+    prefix = rule_id.split("-")[0]
+    return RuleDefinition(
+        id=rule_id,
+        family=RuleFamily(prefix),
+        severity=RuleSeverity.S1,
+        detection=("J",),
+        applies_when=(),
+        needs_inputs=(),
+        sections=sections,
+        check=CheckMethod.JUDGEMENT,
+        title=f"Rule {rule_id}",
+        flag_if=f"Trigger for {rule_id}.",
+        fix=f"Fix for {rule_id}.",
+        source="ICH E9(R1)",
+        source_tier=SourceTier.ICH,
+    )
+
+
+def test_evaluate_precheck_records_deterministic_or_returns_none() -> None:
+    rule = _judgement_rule("DM-15")
+    doc = _document()
+
+    def decided_precheck(
+        _doc: ProtocolDocument, _prof: TrialProfile
+    ) -> CheckOutcome | None:
+        return CheckOutcome(
+            status=RuleStatus.FIRED,
+            finding="Margin absent.",
+            needs_second_opinion=True,
+        )
+
+    def undecided_precheck(
+        _doc: ProtocolDocument, _prof: TrialProfile
+    ) -> CheckOutcome | None:
+        return None
+
+    res = evaluate_precheck(
+        rule, doc, TrialProfile(), {"DM-15": decided_precheck}
+    )
+    assert res is not None
+    assert res.finding.status == RuleStatus.FIRED
+    assert res.finding.check_method == CheckMethod.DETERMINISTIC
+    assert res.needs_second_opinion is True
+
+    assert (
+        evaluate_precheck(
+            rule, doc, TrialProfile(), {"DM-15": undecided_precheck}
+        )
+        is None
+    )
+
+
+def test_build_judgement_batches_groups_by_sections_and_caps_counts() -> None:
+    headings = list(M11Heading)
+    rules = [
+        _judgement_rule(f"EST-{idx:02d}", (headings[idx % len(headings)],))
+        for idx in range(1, 28)
+    ]
+    batches = build_judgement_batches(rules)
+    assert 1 <= len(batches) <= 8
+    assert all(1 <= len(batch.rules) <= 6 for batch in batches)
+    batched_ids = [r.id for batch in batches for r in batch.rules]
+    assert sorted(batched_ids) == sorted(r.id for r in rules)
+
+
+def test_select_batch_pages_uses_union_of_sections_or_falls_back() -> None:
+    doc_with_sections = ProtocolDocument(
+        protocol_id="NCT00000000",
+        title="Example",
+        page_count=5,
+        pages=[PageText(page_number=n, text=f"p{n}") for n in range(1, 6)],
+        sections=[
+            _section(M11Heading.OBJECTIVES_AND_ESTIMANDS, 2, 3),
+            _section(M11Heading.STATISTICAL_CONSIDERATIONS, 5, 5),
+        ],
+    )
+    pages = select_batch_pages(
+        doc_with_sections,
+        (
+            M11Heading.OBJECTIVES_AND_ESTIMANDS,
+            M11Heading.STATISTICAL_CONSIDERATIONS,
+        ),
+    )
+    assert [p.page_number for p in pages] == [2, 3, 5]
+
+    doc_no_sections = _document()
+    assert [
+        p.page_number for p in select_batch_pages(doc_no_sections, ())
+    ] == [1]
+
+
+def test_resolve_judgement_batch_verifies_quotes_and_handles_missing() -> None:
+    r1 = _judgement_rule("EST-01")
+    r2 = _judgement_rule("EST-05")
+    r3 = _judgement_rule("EST-07")
+    r4 = _judgement_rule("EST-08")
+    batch = build_judgement_batches([r1, r2, r3, r4])[0]
+    doc = _document()
+
+    verdicts = JudgementVerdicts(
+        verdicts=[
+            JudgementVerdict(
+                rule_id="EST-01",
+                status=JudgementStatus.FIRED,
+                finding="Primary objective is vague.",
+                evidence=[Citation(page_number=1, quote=QUOTE)],
+                confidence=0.85,
+            ),
+            JudgementVerdict(
+                rule_id="EST-05",
+                status=JudgementStatus.FIRED,
+                finding="Hallucinated defect.",
+                evidence=[
+                    Citation(page_number=1, quote="invented quote not on page")
+                ],
+                confidence=0.9,
+            ),
+            JudgementVerdict(
+                rule_id="EST-07",
+                status=JudgementStatus.FIRED,
+                finding="Rationale is absent in Section 4.2.1.",
+                evidence=[],
+                confidence=0.75,
+            ),
+            # EST-08 is omitted from response
+        ]
+    )
+
+    evaluated = {
+        item.finding.rule_id: item
+        for item in resolve_judgement_batch(batch, verdicts, doc)
+    }
+
+    # EST-01: verified quote -> stays FIRED, needs_second_opinion=True
+    assert evaluated["EST-01"].finding.status == RuleStatus.FIRED
+    assert evaluated["EST-01"].finding.evidence[0].is_verified is True
+    assert evaluated["EST-01"].needs_second_opinion is True
+
+    # EST-05: unverified quote dropped -> CANNOT_ASSESS ("evidence did not...")
+    assert evaluated["EST-05"].finding.status == RuleStatus.CANNOT_ASSESS
+    assert evaluated["EST-05"].finding.status_reason == (
+        "evidence did not verify"
+    )
+
+    # EST-07: absence claim -> stays FIRED with searched_locations filled
+    assert evaluated["EST-07"].finding.status == RuleStatus.FIRED
+    assert evaluated["EST-07"].finding.searched_locations
+
+    # EST-08: missing from response -> CANNOT_ASSESS
+    assert evaluated["EST-08"].finding.status == RuleStatus.CANNOT_ASSESS
+
+    # Failed batch -> all rules CANNOT_ASSESS
+    failed = failed_judgement_batch(batch, "timeout")
+    assert all(i.finding.status == RuleStatus.CANNOT_ASSESS for i in failed)
+
+
+def test_second_opinion_confirms_rejects_and_caps_on_failure() -> None:
+    r1 = _judgement_rule("EST-01")
+    r2 = _judgement_rule("EST-05")
+    ev1 = EvaluatedRule(
+        finding=finding_from_outcome(
+            r1,
+            CheckOutcome(
+                status=RuleStatus.FIRED,
+                finding="Objective not treatment effect.",
+                evidence=(_citation(),),
+                confidence=0.9,
+            ),
+            CheckMethod.JUDGEMENT,
+        ),
+        needs_second_opinion=True,
+    )
+    ev2 = EvaluatedRule(
+        finding=finding_from_outcome(
+            r2,
+            CheckOutcome(
+                status=RuleStatus.FIRED,
+                finding="Rationale missing.",
+                evidence=(_citation(),),
+                confidence=0.8,
+            ),
+            CheckMethod.JUDGEMENT,
+        ),
+        needs_second_opinion=True,
+    )
+
+    so_response = SecondOpinionVerdicts(
+        verdicts=[
+            SecondOpinionVerdict(
+                rule_id="EST-01",
+                confirmed=True,
+                reason="Quote confirms objective is not a treatment effect.",
+                confidence=0.75,
+            ),
+            SecondOpinionVerdict(
+                rule_id="EST-05",
+                confirmed=False,
+                reason="Section 4.2.1 explicitly justifies the strategy.",
+                confidence=0.9,
+            ),
+        ]
+    )
+
+    resolved = {
+        f.rule_id: f for f in apply_second_opinion([ev1, ev2], so_response)
+    }
+    assert resolved["EST-01"].status == RuleStatus.FIRED
+    assert resolved["EST-01"].confidence == pytest.approx(0.75)
+    assert resolved["EST-05"].status == RuleStatus.CANNOT_ASSESS
+    assert resolved["EST-05"].status_reason == (
+        "second opinion did not confirm: "
+        "Section 4.2.1 explicitly justifies the strategy."
+    )
+
+    fallback = {f.rule_id: f for f in apply_second_opinion_failure([ev1, ev2])}
+    assert fallback["EST-01"].status == RuleStatus.FIRED
+    assert fallback["EST-01"].confidence == pytest.approx(0.5)
+    assert "second opinion unavailable" in fallback["EST-01"].finding

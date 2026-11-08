@@ -5,18 +5,29 @@ rule checks; this module decides which rules apply, turns check outcomes
 into findings, and computes the score and gates from the guidelines.
 """
 
+import json
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import assert_never
 
+from pydantic import BaseModel, ConfigDict, Field
+
+from backend.agents.completeness.prompts import (
+    INSTRUCTIONS_SEPARATOR,
+    JUDGEMENT_BATCH_INSTRUCTIONS,
+    SECOND_OPINION_INSTRUCTIONS,
+)
 from backend.agents.completeness.rules import (
     ApplicabilityCondition,
     RequiredInput,
     RuleCatalogue,
     RuleDefinition,
 )
+from backend.shared.citations import make_citation_verifier
 from backend.shared.messages import (
+    NON_SCORED_RULE_STATUSES,
     AllocationType,
     CheckMethod,
     Citation,
@@ -106,8 +117,15 @@ INPUT_LABELS: dict[RequiredInput, str] = {
     RequiredInput.COMPARATOR_CORPUS: "prior protocols of the same drug",
 }
 
-
 NOT_IMPLEMENTED_REASON = "This rule's check is not implemented yet."
+UNVERIFIED_EVIDENCE_REASON = "evidence did not verify"
+MISSING_VERDICT_REASON = "Rule omitted from judgement batch response."
+SECOND_OPINION_FAILURE_CONFIDENCE_CAP = 0.5
+SECOND_OPINION_FAILURE_NOTE = (
+    " (second opinion unavailable; confidence capped at 0.5)"
+)
+MAX_RULES_PER_BATCH = 6
+MAX_JUDGEMENT_BATCHES = 8
 # Where trial-level facts (intervention, population, control) are stated.
 PROFILE_HEADINGS = frozenset(
     {
@@ -119,6 +137,55 @@ PROFILE_HEADINGS = frozenset(
 )
 PROFILE_FALLBACK_PAGE_COUNT = 15  # title page + synopsis, without sections
 PAGE_MARKER_TEMPLATE = "=== PAGE {page_number} ==="
+
+
+class JudgementStatus(StrEnum):
+    """Allowed rule statuses returned by a Gemini judgement batch."""
+
+    FIRED = "fired"
+    PASSED = "passed"
+    NOT_APPLICABLE = "not_applicable"
+    CANNOT_ASSESS = "cannot_assess"
+
+
+class JudgementVerdict(BaseModel):
+    """Single rule verdict inside a Gemini judgement batch response."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rule_id: str
+    status: JudgementStatus
+    finding: str
+    evidence: list[Citation] = Field(default_factory=list)
+    status_reason: str | None = None
+    confidence: float = Field(default=0.8, ge=0.0, le=1.0)
+
+
+class JudgementVerdicts(BaseModel):
+    """Response schema for a Gemini judgement batch call."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    verdicts: list[JudgementVerdict] = Field(default_factory=list)
+
+
+class SecondOpinionVerdict(BaseModel):
+    """Single verification verdict from the second-opinion pass."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rule_id: str
+    confirmed: bool
+    reason: str
+    confidence: float = Field(ge=0.0, le=1.0)
+
+
+class SecondOpinionVerdicts(BaseModel):
+    """Response schema for the batched second-opinion verification call."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    verdicts: list[SecondOpinionVerdict] = Field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -149,6 +216,14 @@ class EvaluatedRule:
 
     finding: RuleFinding
     needs_second_opinion: bool = False
+
+
+@dataclass(frozen=True)
+class JudgementBatch:
+    """A batch of judgement rules sharing protocol sections."""
+
+    rules: tuple[RuleDefinition, ...]
+    headings: tuple[M11Heading, ...]
 
 
 type DeterministicCheck = Callable[
@@ -312,6 +387,27 @@ def _default_searched_locations(
     )
 
 
+def _with_default_searched_locations(
+    rule: RuleDefinition, document: ProtocolDocument, outcome: CheckOutcome
+) -> CheckOutcome:
+    if (
+        outcome.status == RuleStatus.FIRED
+        and not outcome.evidence
+        and not outcome.searched_locations
+    ):
+        return CheckOutcome(
+            status=outcome.status,
+            finding=outcome.finding,
+            evidence=outcome.evidence,
+            searched_locations=_default_searched_locations(rule, document),
+            location=outcome.location,
+            status_reason=outcome.status_reason,
+            confidence=outcome.confidence,
+            needs_second_opinion=outcome.needs_second_opinion,
+        )
+    return outcome
+
+
 def evaluate_rule(
     rule: RuleDefinition,
     document: ProtocolDocument,
@@ -341,26 +437,482 @@ def evaluate_rule(
             finding=finding_from_outcome(rule, not_implemented, rule.check),
             needs_second_opinion=False,
         )
-    outcome = check(document, profile)
-    if (
-        outcome.status == RuleStatus.FIRED
-        and not outcome.evidence
-        and not outcome.searched_locations
-    ):
-        outcome = CheckOutcome(
-            status=outcome.status,
-            finding=outcome.finding,
-            evidence=outcome.evidence,
-            searched_locations=_default_searched_locations(rule, document),
-            location=outcome.location,
-            status_reason=outcome.status_reason,
-            confidence=outcome.confidence,
-            needs_second_opinion=outcome.needs_second_opinion,
-        )
+    outcome = _with_default_searched_locations(
+        rule, document, check(document, profile)
+    )
     return EvaluatedRule(
         finding=finding_from_outcome(rule, outcome, CheckMethod.DETERMINISTIC),
         needs_second_opinion=outcome.needs_second_opinion,
     )
+
+
+def evaluate_precheck(
+    rule: RuleDefinition,
+    document: ProtocolDocument,
+    profile: TrialProfile,
+    prechecks: Mapping[
+        str, Callable[[ProtocolDocument, TrialProfile], CheckOutcome | None]
+    ],
+) -> EvaluatedRule | None:
+    """Run a measurable pre-check for a judgement rule, or return None."""
+    precheck = prechecks.get(rule.id)
+    if precheck is None:
+        return None
+    outcome = precheck(document, profile)
+    if outcome is None:
+        return None
+    filled = _with_default_searched_locations(rule, document, outcome)
+    return EvaluatedRule(
+        finding=finding_from_outcome(rule, filled, CheckMethod.DETERMINISTIC),
+        needs_second_opinion=filled.needs_second_opinion,
+    )
+
+
+def _merge_headings(
+    first: Sequence[M11Heading], second: Sequence[M11Heading]
+) -> tuple[M11Heading, ...]:
+    seen: list[M11Heading] = []
+    for heading in (*first, *second):
+        if heading not in seen:
+            seen.append(heading)
+    return tuple(seen)
+
+
+def build_judgement_batches(
+    rules: Sequence[RuleDefinition],
+    max_rules_per_batch: int = MAX_RULES_PER_BATCH,
+    max_batches: int = MAX_JUDGEMENT_BATCHES,
+) -> list[JudgementBatch]:
+    """Group judgement rules by section, capped at max rules and batches."""
+    if not rules:
+        return []
+    groups: dict[frozenset[M11Heading], list[RuleDefinition]] = {}
+    heading_order: dict[frozenset[M11Heading], tuple[M11Heading, ...]] = {}
+    for rule in rules:
+        key = frozenset(rule.sections)
+        if key not in groups:
+            groups[key] = []
+            heading_order[key] = tuple(rule.sections)
+        groups[key].append(rule)
+
+    batches: list[JudgementBatch] = []
+    for key, group_rules in groups.items():
+        headings = heading_order[key]
+        for idx in range(0, len(group_rules), max_rules_per_batch):
+            chunk = tuple(group_rules[idx : idx + max_rules_per_batch])
+            batches.append(JudgementBatch(rules=chunk, headings=headings))
+
+    while len(batches) > max_batches:
+        best_pair: tuple[int, int] | None = None
+        best_score: tuple[int, int, int] | None = None
+        for i in range(len(batches)):
+            for j in range(i + 1, len(batches)):
+                combined_rules = len(batches[i].rules) + len(batches[j].rules)
+                if combined_rules > max_rules_per_batch:
+                    continue
+                set_i = set(batches[i].headings)
+                set_j = set(batches[j].headings)
+                overlap = len(set_i & set_j)
+                union_size = len(set_i | set_j)
+                score = (overlap, -union_size, -combined_rules)
+                if best_score is None or score > best_score:
+                    best_score = score
+                    best_pair = (i, j)
+        if best_pair is None:
+            break
+        i, j = best_pair
+        merged = JudgementBatch(
+            rules=(*batches[i].rules, *batches[j].rules),
+            headings=_merge_headings(batches[i].headings, batches[j].headings),
+        )
+        batches[i] = merged
+        del batches[j]
+
+    return batches
+
+
+def select_batch_pages(
+    document: ProtocolDocument, headings: Sequence[M11Heading]
+) -> list[PageText]:
+    """Return pages in the union of headings, or all pages if unmapped."""
+    if not headings or not document.sections:
+        return list(document.pages)
+    wanted_headings = set(headings)
+    wanted_pages = {
+        page_num
+        for sec in document.sections
+        if sec.heading in wanted_headings
+        for page_num in range(sec.start_page, sec.end_page + 1)
+    }
+    if not wanted_pages:
+        return list(document.pages)
+    return [
+        page for page in document.pages if page.page_number in wanted_pages
+    ]
+
+
+def rule_extracted_context(
+    rule: RuleDefinition, document: ProtocolDocument, profile: TrialProfile
+) -> dict[str, object]:
+    """Extract compact JSON-serializable facet context relevant to rule."""
+    context: dict[str, object] = {
+        "trial_profile": profile.model_dump(mode="json", exclude_none=True),
+    }
+    headings = set(rule.sections)
+    if (
+        M11Heading.OBJECTIVES_AND_ESTIMANDS in headings
+        and document.endpoints is not None
+    ):
+        context["endpoints"] = [
+            ep.model_dump(mode="json", exclude={"citation"})
+            for ep in document.endpoints
+        ]
+    if (
+        M11Heading.OBJECTIVES_AND_ESTIMANDS in headings
+        and document.estimands is not None
+    ):
+        context["estimands"] = document.estimands.model_dump(
+            mode="json", exclude_none=True
+        )
+    if M11Heading.TRIAL_DESIGN in headings and document.design is not None:
+        context["design"] = document.design.model_dump(
+            mode="json", exclude_none=True
+        )
+    if (
+        M11Heading.TRIAL_POPULATION in headings
+        and document.eligibility_criteria is not None
+    ):
+        context["eligibility_criteria"] = [
+            crit.model_dump(mode="json", exclude={"citation"})
+            for crit in document.eligibility_criteria
+        ]
+    if (
+        M11Heading.TRIAL_INTERVENTION in headings
+        and document.interventions is not None
+    ):
+        context["interventions"] = document.interventions.model_dump(
+            mode="json", exclude_none=True
+        )
+    if M11Heading.STATISTICAL_CONSIDERATIONS in headings:
+        if document.statistics is not None:
+            context["statistics"] = document.statistics.model_dump(
+                mode="json", exclude_none=True
+            )
+        if document.analysis is not None:
+            context["analysis"] = document.analysis.model_dump(
+                mode="json", exclude_none=True
+            )
+    if M11Heading.ASSESSMENTS_AND_PROCEDURES in headings:
+        if document.schedule is not None:
+            context["schedule"] = [
+                v.model_dump(mode="json", exclude={"citation"})
+                for v in document.schedule
+            ]
+        if document.safety_monitoring is not None:
+            context["safety_monitoring"] = (
+                document.safety_monitoring.model_dump(
+                    mode="json", exclude_none=True
+                )
+            )
+    if (
+        M11Heading.PROTOCOL_SUMMARY in headings
+        and document.synopsis_check is not None
+    ):
+        context["synopsis_check"] = document.synopsis_check.model_dump(
+            mode="json", exclude_none=True
+        )
+    return context
+
+
+def format_judgement_batch_prompt(
+    batch: JudgementBatch,
+    document: ProtocolDocument,
+    profile: TrialProfile,
+) -> str:
+    """Build the Gemini prompt for one judgement batch."""
+    pages = select_batch_pages(document, batch.headings)
+    rules_payload = [
+        {
+            "rule_id": rule.id,
+            "title": rule.title,
+            "flag_if": rule.flag_if,
+            "sections": [h.value for h in rule.sections],
+            "extracted_context": rule_extracted_context(
+                rule, document, profile
+            ),
+        }
+        for rule in batch.rules
+    ]
+    return (
+        format_pages_for_prompt(pages)
+        + INSTRUCTIONS_SEPARATOR
+        + "Rules to evaluate:\n"
+        + json.dumps(rules_payload, indent=2)
+        + INSTRUCTIONS_SEPARATOR
+        + JUDGEMENT_BATCH_INSTRUCTIONS
+    )
+
+
+def resolve_judgement_batch(
+    batch: JudgementBatch,
+    response: JudgementVerdicts,
+    document: ProtocolDocument,
+) -> list[EvaluatedRule]:
+    """Verify quotes and convert batch verdicts into EvaluatedRules."""
+    verify = make_citation_verifier(document.pages)
+    by_id = {v.rule_id: v for v in response.verdicts}
+    results: list[EvaluatedRule] = []
+
+    for rule in batch.rules:
+        verdict = by_id.get(rule.id)
+        if verdict is None:
+            missing_outcome = CheckOutcome(
+                status=RuleStatus.CANNOT_ASSESS,
+                finding=f"Cannot assess: rule {rule.id} omitted by model.",
+                status_reason=MISSING_VERDICT_REASON,
+            )
+            results.append(
+                EvaluatedRule(
+                    finding=finding_from_outcome(
+                        rule, missing_outcome, CheckMethod.JUDGEMENT
+                    ),
+                    needs_second_opinion=False,
+                )
+            )
+            continue
+
+        verified_citations = tuple(
+            checked
+            for raw_cit in verdict.evidence
+            if (checked := verify(raw_cit)).is_verified
+        )
+        status = RuleStatus(verdict.status.value)
+
+        if status == RuleStatus.FIRED:
+            is_absence_claim = (
+                "absent" in verdict.finding.lower() and not verdict.evidence
+            )
+            if not verified_citations and not is_absence_claim:
+                unverified_outcome = CheckOutcome(
+                    status=RuleStatus.CANNOT_ASSESS,
+                    finding=(
+                        f"Cannot assess {rule.id}: model evidence did not "
+                        "verify against the protocol pages."
+                    ),
+                    status_reason=UNVERIFIED_EVIDENCE_REASON,
+                    confidence=verdict.confidence,
+                )
+                results.append(
+                    EvaluatedRule(
+                        finding=finding_from_outcome(
+                            rule, unverified_outcome, CheckMethod.JUDGEMENT
+                        ),
+                        needs_second_opinion=False,
+                    )
+                )
+                continue
+
+        status_reason = verdict.status_reason
+        if status in NON_SCORED_RULE_STATUSES and (
+            status_reason is None or not status_reason.strip()
+        ):
+            status_reason = verdict.finding or f"Marked {status.value}."
+
+        first_page = (
+            verified_citations[0].page_number if verified_citations else None
+        )
+        default_heading = rule.sections[0] if rule.sections else None
+        location = FindingLocation(heading=default_heading, page=first_page)
+        outcome = _with_default_searched_locations(
+            rule,
+            document,
+            CheckOutcome(
+                status=status,
+                finding=verdict.finding,
+                evidence=verified_citations,
+                location=location,
+                status_reason=status_reason,
+                confidence=verdict.confidence,
+                needs_second_opinion=(status == RuleStatus.FIRED),
+            ),
+        )
+        results.append(
+            EvaluatedRule(
+                finding=finding_from_outcome(
+                    rule, outcome, CheckMethod.JUDGEMENT
+                ),
+                needs_second_opinion=outcome.needs_second_opinion,
+            )
+        )
+
+    return results
+
+
+def failed_judgement_batch(
+    batch: JudgementBatch, error_message: str
+) -> list[EvaluatedRule]:
+    """Turn a failed batch LLM call into cannot_assess rule findings."""
+    reason = f"Judgement batch call failed: {error_message}"
+    return [
+        EvaluatedRule(
+            finding=finding_from_outcome(
+                rule,
+                CheckOutcome(
+                    status=RuleStatus.CANNOT_ASSESS,
+                    finding=f"Cannot assess: {reason}",
+                    status_reason=reason,
+                ),
+                CheckMethod.JUDGEMENT,
+            ),
+            needs_second_opinion=False,
+        )
+        for rule in batch.rules
+    ]
+
+
+def needs_second_opinion_review(item: EvaluatedRule) -> bool:
+    """Return True if an evaluated rule must go to the second-opinion pass."""
+    return item.finding.status == RuleStatus.FIRED and (
+        item.finding.check_method == CheckMethod.JUDGEMENT
+        or item.needs_second_opinion
+    )
+
+
+def select_second_opinion_pages(
+    document: ProtocolDocument,
+    candidates: Sequence[EvaluatedRule],
+) -> list[PageText]:
+    """Collect the pages cited or searched by all second-opinion candidates."""
+    wanted_pages: set[int] = set()
+    for item in candidates:
+        for cit in item.finding.evidence:
+            wanted_pages.add(cit.page_number)
+        for loc in item.finding.searched_locations:
+            wanted_pages.update(range(loc.start_page, loc.end_page + 1))
+    if not wanted_pages:
+        return select_profile_pages(document)
+    selected = [p for p in document.pages if p.page_number in wanted_pages]
+    return selected if selected else select_profile_pages(document)
+
+
+def format_second_opinion_prompt(
+    document: ProtocolDocument,
+    candidates: Sequence[EvaluatedRule],
+    rules_by_id: Mapping[str, RuleDefinition],
+) -> str:
+    """Build the Gemini prompt for the batched second-opinion pass."""
+    pages = select_second_opinion_pages(document, candidates)
+    flags_payload = [
+        {
+            "rule_id": item.finding.rule_id,
+            "flag_if": (
+                rules_by_id[item.finding.rule_id].flag_if
+                if item.finding.rule_id in rules_by_id
+                else item.finding.title
+            ),
+            "finding": item.finding.finding,
+            "evidence": [
+                cit.model_dump(mode="json") for cit in item.finding.evidence
+            ],
+            "searched_locations": [
+                loc.model_dump(mode="json")
+                for loc in item.finding.searched_locations
+            ],
+        }
+        for item in candidates
+    ]
+    return (
+        format_pages_for_prompt(pages)
+        + INSTRUCTIONS_SEPARATOR
+        + "Flags to verify:\n"
+        + json.dumps(flags_payload, indent=2)
+        + INSTRUCTIONS_SEPARATOR
+        + SECOND_OPINION_INSTRUCTIONS
+    )
+
+
+def apply_second_opinion(
+    evaluated: Sequence[EvaluatedRule],
+    response: SecondOpinionVerdicts,
+) -> list[RuleFinding]:
+    """Update candidate findings from the second-opinion verdicts."""
+    by_id = {v.rule_id: v for v in response.verdicts}
+    final_findings: list[RuleFinding] = []
+
+    for item in evaluated:
+        if not needs_second_opinion_review(item):
+            final_findings.append(item.finding)
+            continue
+
+        verdict = by_id.get(item.finding.rule_id)
+        if verdict is None:
+            reason = (
+                "second opinion did not confirm: "
+                "rule omitted from second-opinion response"
+            )
+            final_findings.append(
+                item.finding.model_copy(
+                    update={
+                        "status": RuleStatus.CANNOT_ASSESS,
+                        "status_reason": reason,
+                        "finding": f"Cannot assess: {reason}.",
+                        "proposed_fix": None,
+                    }
+                )
+            )
+            continue
+
+        if not verdict.confirmed:
+            reason = f"second opinion did not confirm: {verdict.reason}"
+            final_findings.append(
+                item.finding.model_copy(
+                    update={
+                        "status": RuleStatus.CANNOT_ASSESS,
+                        "status_reason": reason,
+                        "finding": f"Cannot assess: {reason}.",
+                        "proposed_fix": None,
+                        "confidence": verdict.confidence,
+                    }
+                )
+            )
+            continue
+
+        final_findings.append(
+            item.finding.model_copy(
+                update={
+                    "confidence": min(
+                        item.finding.confidence, verdict.confidence
+                    )
+                }
+            )
+        )
+
+    return final_findings
+
+
+def apply_second_opinion_failure(
+    evaluated: Sequence[EvaluatedRule],
+) -> list[RuleFinding]:
+    """Keep fired flags when second opinion fails; cap confidence at 0.5."""
+    final_findings: list[RuleFinding] = []
+    for item in evaluated:
+        if not needs_second_opinion_review(item):
+            final_findings.append(item.finding)
+            continue
+        final_findings.append(
+            item.finding.model_copy(
+                update={
+                    "confidence": min(
+                        item.finding.confidence,
+                        SECOND_OPINION_FAILURE_CONFIDENCE_CAP,
+                    ),
+                    "finding": (
+                        f"{item.finding.finding}{SECOND_OPINION_FAILURE_NOTE}"
+                    ),
+                }
+            )
+        )
+    return final_findings
 
 
 def select_profile_pages(document: ProtocolDocument) -> list[PageText]:

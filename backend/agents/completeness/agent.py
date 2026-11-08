@@ -3,15 +3,35 @@
 Other parts of the backend call check_protocol() directly.
 """
 
+import asyncio
 import logging
 from collections.abc import Mapping
 
-from backend.agents.completeness.checks import DETERMINISTIC_CHECKS
+from backend.agents.completeness.checks import (
+    DETERMINISTIC_CHECKS,
+    JUDGEMENT_PRECHECKS,
+    JudgementPrecheck,
+)
 from backend.agents.completeness.logic import (
     DeterministicCheck,
+    EvaluatedRule,
+    JudgementBatch,
+    JudgementVerdicts,
+    SecondOpinionVerdicts,
+    apply_second_opinion,
+    apply_second_opinion_failure,
     assemble_report,
+    build_judgement_batches,
+    evaluate_precheck,
     evaluate_rule,
+    failed_judgement_batch,
+    finding_from_outcome,
+    format_judgement_batch_prompt,
     format_pages_for_prompt,
+    format_second_opinion_prompt,
+    needs_second_opinion_review,
+    pre_decide,
+    resolve_judgement_batch,
     select_profile_pages,
 )
 from backend.agents.completeness.prompts import (
@@ -21,6 +41,7 @@ from backend.agents.completeness.prompts import (
 from backend.agents.completeness.rules import (
     RequiredInput,
     RuleCatalogue,
+    RuleDefinition,
     load_rule_catalogue,
 )
 from backend.clients.gemini import (
@@ -30,8 +51,11 @@ from backend.clients.gemini import (
 )
 from backend.shared.citations import make_citation_verifier
 from backend.shared.messages import (
+    CheckMethod,
     ComplianceReport,
     ProtocolDocument,
+    RuleFinding,
+    RuleStatus,
     TrialProfile,
 )
 
@@ -94,30 +118,214 @@ async def extract_trial_profile(
     return raw_profile.model_copy(update=updates)
 
 
+async def _run_judgement_batch(
+    batch: JudgementBatch,
+    document: ProtocolDocument,
+    profile: TrialProfile,
+    llm: JsonGenerator,
+) -> list[EvaluatedRule]:
+    """Run one batched Gemini judgement call and verify quote citations."""
+    prompt = format_judgement_batch_prompt(batch, document, profile)
+    try:
+        response = await llm.generate_json(
+            prompt, JudgementVerdicts, ThinkingLevel.HIGH
+        )
+    except LlmCallFailedError as error:
+        logger.warning(
+            "judgement batch failed: agent=%s protocol_id=%s rules=%s "
+            "error=%s",
+            AGENT_NAME,
+            document.protocol_id,
+            [rule.id for rule in batch.rules],
+            error,
+        )
+        return failed_judgement_batch(batch, str(error))
+    return resolve_judgement_batch(batch, response, document)
+
+
+async def _run_second_opinion(
+    document: ProtocolDocument,
+    catalogue: RuleCatalogue,
+    evaluated: list[EvaluatedRule],
+    llm: JsonGenerator,
+) -> list[RuleFinding]:
+    """Run one batched second-opinion check over judgement and absence hits."""
+    candidates = [
+        item for item in evaluated if needs_second_opinion_review(item)
+    ]
+    if not candidates:
+        logger.info(
+            "completeness stage=second_opinion protocol_id=%s candidates=0 "
+            "confirmed=0",
+            document.protocol_id,
+        )
+        return [item.finding for item in evaluated]
+
+    rules_by_id = {rule.id: rule for rule in catalogue.rules}
+    prompt = format_second_opinion_prompt(document, candidates, rules_by_id)
+    try:
+        response = await llm.generate_json(
+            prompt, SecondOpinionVerdicts, ThinkingLevel.HIGH
+        )
+    except LlmCallFailedError as error:
+        logger.warning(
+            "second opinion failed, keeping flags at capped confidence: "
+            "agent=%s protocol_id=%s candidates=%d error=%s",
+            AGENT_NAME,
+            document.protocol_id,
+            len(candidates),
+            error,
+        )
+        findings = apply_second_opinion_failure(evaluated)
+        logger.info(
+            "completeness stage=second_opinion protocol_id=%s candidates=%d "
+            "status=failed",
+            document.protocol_id,
+            len(candidates),
+        )
+        return findings
+
+    findings = apply_second_opinion(evaluated, response)
+    candidate_ids = {item.finding.rule_id for item in candidates}
+    confirmed_count = sum(
+        1
+        for finding in findings
+        if finding.rule_id in candidate_ids
+        and finding.status == RuleStatus.FIRED
+    )
+    logger.info(
+        "completeness stage=second_opinion protocol_id=%s candidates=%d "
+        "confirmed=%d",
+        document.protocol_id,
+        len(candidates),
+        confirmed_count,
+    )
+    return findings
+
+
 async def check_protocol(
     document: ProtocolDocument,
     llm: JsonGenerator,
     catalogue: RuleCatalogue | None = None,
     available_inputs: frozenset[RequiredInput] = frozenset(),
     checks: Mapping[str, DeterministicCheck] = DETERMINISTIC_CHECKS,
+    prechecks: Mapping[str, JudgementPrecheck] = JUDGEMENT_PRECHECKS,
 ) -> ComplianceReport:
     """Check a parsed protocol against every rule; one finding per rule.
+
+    Pipeline order:
+    profile -> pre_decide -> deterministic checks -> prechecks
+    -> judgement batches -> second opinion -> assemble_report.
 
     Raises:
         ValueError: the catalogue file is invalid (see rules.py).
     """
     rule_catalogue = catalogue or load_rule_catalogue()
+
+    # 1. Trial profile
     profile = await extract_trial_profile(document, llm)
-    evaluated = [
-        evaluate_rule(rule, document, profile, available_inputs, checks)
-        for rule in rule_catalogue.rules
+    verified_facts = sum(
+        1
+        for field_name in TrialProfile.model_fields
+        if getattr(profile, field_name) is not None
+    )
+    logger.info(
+        "completeness stage=profile protocol_id=%s verified_facts=%d",
+        document.protocol_id,
+        verified_facts,
+    )
+
+    # 2. Pre-decide applicability and missing inputs
+    evaluated_by_id: dict[str, EvaluatedRule] = {}
+    deterministic_rules: list[RuleDefinition] = []
+    judgement_rules: list[RuleDefinition] = []
+    for rule in rule_catalogue.rules:
+        outcome = pre_decide(rule, profile, document.design, available_inputs)
+        if outcome is not None:
+            evaluated_by_id[rule.id] = EvaluatedRule(
+                finding=finding_from_outcome(rule, outcome, rule.check),
+                needs_second_opinion=False,
+            )
+        elif rule.check == CheckMethod.DETERMINISTIC:
+            deterministic_rules.append(rule)
+        else:
+            judgement_rules.append(rule)
+    logger.info(
+        "completeness stage=pre_decide protocol_id=%s decided=%d "
+        "deterministic_remaining=%d judgement_remaining=%d",
+        document.protocol_id,
+        len(evaluated_by_id),
+        len(deterministic_rules),
+        len(judgement_rules),
+    )
+
+    # 3. Deterministic checks
+    for rule in deterministic_rules:
+        evaluated_by_id[rule.id] = evaluate_rule(
+            rule, document, profile, available_inputs, checks
+        )
+    det_outcomes = [evaluated_by_id[r.id] for r in deterministic_rules]
+    logger.info(
+        "completeness stage=deterministic_checks protocol_id=%s evaluated=%d "
+        "fired=%d passed=%d",
+        document.protocol_id,
+        len(det_outcomes),
+        sum(1 for e in det_outcomes if e.finding.status == RuleStatus.FIRED),
+        sum(1 for e in det_outcomes if e.finding.status == RuleStatus.PASSED),
+    )
+
+    # 4. Measurable prechecks for judgement rules
+    unresolved_judgement: list[RuleDefinition] = []
+    for rule in judgement_rules:
+        prechecked = evaluate_precheck(rule, document, profile, prechecks)
+        if prechecked is not None:
+            evaluated_by_id[rule.id] = prechecked
+        else:
+            unresolved_judgement.append(rule)
+    logger.info(
+        "completeness stage=prechecks protocol_id=%s decided=%d "
+        "needs_gemini=%d",
+        document.protocol_id,
+        len(judgement_rules) - len(unresolved_judgement),
+        len(unresolved_judgement),
+    )
+
+    # 5. Batched Gemini judgement
+    batches = build_judgement_batches(unresolved_judgement)
+    batch_results = await asyncio.gather(
+        *(
+            _run_judgement_batch(batch, document, profile, llm)
+            for batch in batches
+        )
+    )
+    judged_items = [
+        item for batch_items in batch_results for item in batch_items
     ]
-    findings = [item.finding for item in evaluated]
+    for item in judged_items:
+        evaluated_by_id[item.finding.rule_id] = item
+    logger.info(
+        "completeness stage=judgement_batches protocol_id=%s batches=%d "
+        "rules=%d fired=%d",
+        document.protocol_id,
+        len(batches),
+        len(judged_items),
+        sum(1 for e in judged_items if e.finding.status == RuleStatus.FIRED),
+    )
+
+    # 6. Second opinion pass
+    evaluated = [evaluated_by_id[rule.id] for rule in rule_catalogue.rules]
+    findings = await _run_second_opinion(
+        document, rule_catalogue, evaluated, llm
+    )
+
+    # 7. Assemble report
     report = assemble_report(document, profile, rule_catalogue, findings)
     logger.info(
-        "protocol checked: agent=%s protocol_id=%s score=%.1f",
-        AGENT_NAME,
+        "completeness stage=assemble_report protocol_id=%s rules=%d "
+        "fired=%d score=%.1f",
         document.protocol_id,
+        report.rules_evaluated,
+        sum(1 for f in findings if f.status == RuleStatus.FIRED),
         report.before.score,
     )
     return report

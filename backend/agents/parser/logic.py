@@ -17,7 +17,9 @@ from backend.agents.parser.prompts import (
     ENDPOINTS_INSTRUCTIONS,
     INSTRUCTIONS_SEPARATOR,
     REPAIR_INSTRUCTIONS,
+    SCHEDULE_INSTRUCTIONS,
     SECTIONS_INSTRUCTIONS,
+    STATISTICS_INSTRUCTIONS,
 )
 from backend.clients.gemini import ThinkingLevel
 from backend.shared.citations import verify_citation
@@ -351,6 +353,77 @@ def _check_has_primary_endpoint(
     return ["endpoints contain no PRIMARY endpoint"]
 
 
+def sort_visits(schedule: ScheduleOfActivities) -> ScheduleOfActivities:
+    """Order scheduled visits by study_day, keeping unknown days last."""
+    ordered = sorted(
+        schedule.visits,
+        key=lambda visit: (visit.study_day is None, visit.study_day or 0),
+    )
+    return schedule.model_copy(update={"visits": ordered})
+
+
+def _check_has_visits(
+    schedule: ScheduleOfActivities, _page_count: int
+) -> list[str]:
+    if schedule.visits:
+        return []
+    return ["schedule of activities contains no visits"]
+
+
+def _check_visits_have_procedures(
+    schedule: ScheduleOfActivities, _page_count: int
+) -> list[str]:
+    return [
+        f"visit '{visit.visit_name}' has no procedures"
+        for visit in schedule.visits
+        if not visit.procedures
+    ]
+
+
+def _check_sample_size(
+    statistics: StatisticalAssumptions, _page_count: int
+) -> list[str]:
+    if statistics.sample_size is None:
+        return []
+    sample_size = statistics.sample_size.value
+    if sample_size <= 0:
+        return [f"sample_size ({sample_size}) must be positive"]
+    return []
+
+
+def _check_power(
+    statistics: StatisticalAssumptions, _page_count: int
+) -> list[str]:
+    if statistics.power is None:
+        return []
+    power = statistics.power.value
+    if not (0.0 < power < 1.0):
+        return [f"power ({power}) must be in (0, 1)"]
+    return []
+
+
+def _check_alpha(
+    statistics: StatisticalAssumptions, _page_count: int
+) -> list[str]:
+    if statistics.alpha is None:
+        return []
+    alpha = statistics.alpha.value
+    if not (0.0 < alpha < 1.0):
+        return [f"alpha ({alpha}) must be in (0, 1)"]
+    return []
+
+
+def _check_dropout_rate(
+    statistics: StatisticalAssumptions, _page_count: int
+) -> list[str]:
+    if statistics.dropout_rate is None:
+        return []
+    dropout_rate = statistics.dropout_rate.value
+    if not (0.0 <= dropout_rate < 1.0):
+        return [f"dropout_rate ({dropout_rate}) must be in [0, 1)"]
+    return []
+
+
 ELIGIBILITY_FACET: Facet[EligibilityExtraction] = Facet(
     name=FacetName.ELIGIBILITY,
     instructions=ELIGIBILITY_INSTRUCTIONS,
@@ -390,11 +463,35 @@ ENDPOINTS_FACET: Facet[EndpointList] = Facet(
     sanity_rules=(_check_has_primary_endpoint,),
 )
 
+SCHEDULE_FACET: Facet[ScheduleOfActivities] = Facet(
+    name=FacetName.SCHEDULE,
+    instructions=SCHEDULE_INSTRUCTIONS,
+    result_model=ScheduleOfActivities,
+    thinking_level=ThinkingLevel.HIGH,
+    sanity_rules=(_check_has_visits, _check_visits_have_procedures),
+    normalize=sort_visits,
+)
+
+STATISTICS_FACET: Facet[StatisticalAssumptions] = Facet(
+    name=FacetName.STATISTICS,
+    instructions=STATISTICS_INSTRUCTIONS,
+    result_model=StatisticalAssumptions,
+    thinking_level=ThinkingLevel.MEDIUM,
+    sanity_rules=(
+        _check_sample_size,
+        _check_power,
+        _check_alpha,
+        _check_dropout_rate,
+    ),
+)
+
 type AnyFacet = (
     Facet[EligibilityExtraction]
     | Facet[TrialDesignFacts]
     | Facet[SectionMap]
     | Facet[EndpointList]
+    | Facet[ScheduleOfActivities]
+    | Facet[StatisticalAssumptions]
 )
 
 FACETS: tuple[AnyFacet, ...] = (
@@ -402,6 +499,8 @@ FACETS: tuple[AnyFacet, ...] = (
     DESIGN_FACET,
     SECTIONS_FACET,
     ENDPOINTS_FACET,
+    SCHEDULE_FACET,
+    STATISTICS_FACET,
 )
 
 

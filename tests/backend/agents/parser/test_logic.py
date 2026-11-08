@@ -9,7 +9,9 @@ from backend.agents.parser.logic import (
     ELIGIBILITY_FACET,
     ENDPOINTS_FACET,
     FACETS,
+    SCHEDULE_FACET,
     SECTIONS_FACET,
+    STATISTICS_FACET,
     Facet,
     FacetOutcome,
     assemble_document,
@@ -22,6 +24,7 @@ from backend.agents.parser.logic import (
     format_pages_for_prompt,
     normalize_design_facts,
     sort_sections,
+    sort_visits,
     verify_result,
 )
 from backend.shared.messages import (
@@ -37,7 +40,10 @@ from backend.shared.messages import (
     M11Heading,
     PageText,
     ProtocolSection,
+    ScheduledVisit,
+    ScheduleOfActivities,
     SectionMap,
+    StatisticalAssumptions,
     TrialDesignFacts,
 )
 
@@ -490,18 +496,193 @@ def test_endpoints_require_at_least_one_primary_or_warn() -> None:
     assert _run_sanity_rules(ENDPOINTS_FACET, with_primary) == []
 
 
-def test_registry_contains_all_four_facets() -> None:
+def _visit(
+    visit_name: str,
+    study_day: int | None,
+    procedures: list[str] | None = None,
+) -> ScheduledVisit:
+    return ScheduledVisit(
+        visit_name=visit_name,
+        study_day=study_day,
+        procedures=["HbA1c blood draw"] if procedures is None else procedures,
+        citation=_citation(VERIFIABLE_QUOTE),
+    )
+
+
+def test_visits_sorted_by_study_day_with_unknown_days_last() -> None:
+    raw = ScheduleOfActivities(
+        visits=[
+            _visit("Follow-up phone call", study_day=None),
+            _visit("Week 26 Visit", study_day=182),
+            _visit("Early Withdrawal", study_day=None),
+            _visit("Screening Visit", study_day=-14),
+            _visit("Baseline Visit B", study_day=1),
+            _visit("Baseline Visit A", study_day=1),
+        ]
+    )
+
+    sorted_schedule = sort_visits(raw)
+
+    assert [v.visit_name for v in sorted_schedule.visits] == [
+        "Screening Visit",
+        "Baseline Visit B",
+        "Baseline Visit A",
+        "Week 26 Visit",
+        "Follow-up phone call",
+        "Early Withdrawal",
+    ]
+    assert [v.visit_name for v in raw.visits] == [
+        "Follow-up phone call",
+        "Week 26 Visit",
+        "Early Withdrawal",
+        "Screening Visit",
+        "Baseline Visit B",
+        "Baseline Visit A",
+    ]
+
+
+def test_schedule_without_visits_produces_warning() -> None:
+    warnings = _run_sanity_rules(
+        SCHEDULE_FACET, ScheduleOfActivities(visits=[])
+    )
+
+    assert len(warnings) == 1
+    assert "visit" in warnings[0].lower()
+
+
+def test_visit_without_procedures_produces_warning() -> None:
+    schedule = ScheduleOfActivities(
+        visits=[
+            _visit("Screening Visit", study_day=-14, procedures=["Consent"]),
+            _visit("Empty Week 12 Visit", study_day=84, procedures=[]),
+            _visit("Empty Unscheduled Visit", study_day=None, procedures=[]),
+        ]
+    )
+
+    warnings = _run_sanity_rules(SCHEDULE_FACET, schedule)
+
+    assert len(warnings) == 2
+    assert "Empty Week 12 Visit" in warnings[0]
+    assert "Empty Unscheduled Visit" in warnings[1]
+
+
+def test_statistics_facet_tolerates_all_fields_null() -> None:
+    empty_stats = StatisticalAssumptions()
+
+    assert len(STATISTICS_FACET.sanity_rules) == 4
+    assert _run_sanity_rules(STATISTICS_FACET, empty_stats) == []
+
+
+def test_power_outside_unit_interval_produces_warning() -> None:
+    zero_power = StatisticalAssumptions(
+        power=CitedValue[float](
+            value=0.0, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+    one_power = StatisticalAssumptions(
+        power=CitedValue[float](
+            value=1.0, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+    valid_power = StatisticalAssumptions(
+        power=CitedValue[float](
+            value=0.8, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+
+    assert len(_run_sanity_rules(STATISTICS_FACET, zero_power)) == 1
+    assert len(_run_sanity_rules(STATISTICS_FACET, one_power)) == 1
+    assert _run_sanity_rules(STATISTICS_FACET, valid_power) == []
+
+
+def test_alpha_outside_unit_interval_produces_warning() -> None:
+    zero_alpha = StatisticalAssumptions(
+        alpha=CitedValue[float](
+            value=0.0, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+    one_alpha = StatisticalAssumptions(
+        alpha=CitedValue[float](
+            value=1.0, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+    valid_alpha = StatisticalAssumptions(
+        alpha=CitedValue[float](
+            value=0.05, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+
+    assert len(_run_sanity_rules(STATISTICS_FACET, zero_alpha)) == 1
+    assert len(_run_sanity_rules(STATISTICS_FACET, one_alpha)) == 1
+    assert _run_sanity_rules(STATISTICS_FACET, valid_alpha) == []
+
+
+def test_dropout_rate_of_one_or_more_produces_warning() -> None:
+    zero_dropout = StatisticalAssumptions(
+        dropout_rate=CitedValue[float](
+            value=0.0, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+    negative_dropout = StatisticalAssumptions(
+        dropout_rate=CitedValue[float](
+            value=-0.05, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+    one_dropout = StatisticalAssumptions(
+        dropout_rate=CitedValue[float](
+            value=1.0, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+    over_one_dropout = StatisticalAssumptions(
+        dropout_rate=CitedValue[float](
+            value=10.0, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+
+    assert _run_sanity_rules(STATISTICS_FACET, zero_dropout) == []
+    assert len(_run_sanity_rules(STATISTICS_FACET, negative_dropout)) == 1
+    assert len(_run_sanity_rules(STATISTICS_FACET, one_dropout)) == 1
+    assert len(_run_sanity_rules(STATISTICS_FACET, over_one_dropout)) == 1
+
+
+def test_non_positive_sample_size_produces_warning() -> None:
+    zero_sample = StatisticalAssumptions(
+        sample_size=CitedValue[int](
+            value=0, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+    negative_sample = StatisticalAssumptions(
+        sample_size=CitedValue[int](
+            value=-200, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+    valid_sample = StatisticalAssumptions(
+        sample_size=CitedValue[int](
+            value=200, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+
+    assert len(_run_sanity_rules(STATISTICS_FACET, zero_sample)) == 1
+    assert len(_run_sanity_rules(STATISTICS_FACET, negative_sample)) == 1
+    assert _run_sanity_rules(STATISTICS_FACET, valid_sample) == []
+
+
+def test_registry_contains_all_six_facets() -> None:
     assert FACETS == (
         ELIGIBILITY_FACET,
         DESIGN_FACET,
         SECTIONS_FACET,
         ENDPOINTS_FACET,
+        SCHEDULE_FACET,
+        STATISTICS_FACET,
     )
     assert [facet.name for facet in FACETS] == [
         FacetName.ELIGIBILITY,
         FacetName.DESIGN,
         FacetName.SECTIONS,
         FacetName.ENDPOINTS,
+        FacetName.SCHEDULE,
+        FacetName.STATISTICS,
     ]
 
 

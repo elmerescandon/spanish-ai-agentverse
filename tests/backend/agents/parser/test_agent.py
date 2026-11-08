@@ -1,10 +1,12 @@
 """Unit tests for the generic facet extraction engine (LLM mocked)."""
 
+import sys
 from pathlib import Path
 
 import pytest
 from pydantic import BaseModel
 
+from backend.agents.parser.__main__ import main as parser_cli_main
 from backend.agents.parser.agent import (
     AllFacetsFailedError,
     extract_eligibility_criteria,
@@ -13,11 +15,13 @@ from backend.agents.parser.agent import (
 )
 from backend.agents.parser.logic import (
     ELIGIBILITY_FACET,
+    FACETS,
     SECTIONS_FACET,
     Facet,
 )
 from backend.clients.gemini import LlmCallFailedError, ThinkingLevel
 from backend.clients.pdf_reader import UnreadablePdfError
+from backend.shared.config import Settings
 from backend.shared.messages import (
     Citation,
     CitedValue,
@@ -31,7 +35,10 @@ from backend.shared.messages import (
     M11Heading,
     PageText,
     ProtocolSection,
+    ScheduledVisit,
+    ScheduleOfActivities,
     SectionMap,
+    StatisticalAssumptions,
     TrialDesignFacts,
 )
 from tests.conftest import FakeJsonGenerator, make_pdf
@@ -326,60 +333,83 @@ PDF_PAGE_TWO = (
 )
 PDF_TITLE_QUOTE = "Official Title: Food As Medicine for Diabetes"
 PDF_NCT_QUOTE = "National Clinical Trial Identified Number: NCT 04828785"
+PDF_SAMPLE_SIZE_QUOTE = (
+    "We will enroll N=200 participants into 2 arms in this clinical trial"
+)
 PDF_CRITERION_QUOTE = "Participants must have HbA1c >= 8.0% at screening"
 PDF_SECTION_QUOTE = "1 PROTOCOL SUMMARY Official Title: Food As Medicine"
 PDF_ENDPOINT_QUOTE = "Primary Outcome: Change in Hemoglobin A1c at 6 months"
 
 
-def _scripted_four_facet_responses() -> list[BaseModel | Exception]:
-    eligibility = EligibilityExtraction(
-        criteria=[
-            EligibilityCriterion(
-                criterion_id="raw-1",
-                kind=CriterionKind.INCLUSION,
-                text="HbA1c >= 8.0% at screening",
-                citation=Citation(page_number=2, quote=PDF_CRITERION_QUOTE),
-            )
-        ]
-    )
-    design = TrialDesignFacts(
-        official_title=CitedValue[str](
-            value="Food As Medicine for Diabetes Study Protocol",
-            citation=Citation(page_number=1, quote=PDF_TITLE_QUOTE),
+def _scripted_facet_responses() -> list[BaseModel | Exception]:
+    by_facet: dict[FacetName, BaseModel] = {
+        FacetName.ELIGIBILITY: EligibilityExtraction(
+            criteria=[
+                EligibilityCriterion(
+                    criterion_id="raw-1",
+                    kind=CriterionKind.INCLUSION,
+                    text="HbA1c >= 8.0% at screening",
+                    citation=Citation(
+                        page_number=2, quote=PDF_CRITERION_QUOTE
+                    ),
+                )
+            ]
         ),
-        nct_id=CitedValue[str](
-            value="NCT 04828785",
-            citation=Citation(page_number=1, quote=PDF_NCT_QUOTE),
+        FacetName.DESIGN: TrialDesignFacts(
+            official_title=CitedValue[str](
+                value="Food As Medicine for Diabetes Study Protocol",
+                citation=Citation(page_number=1, quote=PDF_TITLE_QUOTE),
+            ),
+            nct_id=CitedValue[str](
+                value="NCT 04828785",
+                citation=Citation(page_number=1, quote=PDF_NCT_QUOTE),
+            ),
         ),
-    )
-    sections = SectionMap(
-        sections=[
-            ProtocolSection(
-                heading=M11Heading.PROTOCOL_SUMMARY,
-                title="1 PROTOCOL SUMMARY",
-                start_page=1,
-                end_page=1,
-                summary="Summarizes the FAME-D trial.",
-                citation=Citation(page_number=1, quote=PDF_SECTION_QUOTE),
+        FacetName.SECTIONS: SectionMap(
+            sections=[
+                ProtocolSection(
+                    heading=M11Heading.PROTOCOL_SUMMARY,
+                    title="1 PROTOCOL SUMMARY",
+                    start_page=1,
+                    end_page=1,
+                    summary="Summarizes the FAME-D trial.",
+                    citation=Citation(page_number=1, quote=PDF_SECTION_QUOTE),
+                )
+            ]
+        ),
+        FacetName.ENDPOINTS: EndpointList(
+            endpoints=[
+                Endpoint(
+                    kind=EndpointKind.PRIMARY,
+                    description="Change in Hemoglobin A1c",
+                    time_frame="6 months",
+                    citation=Citation(page_number=2, quote=PDF_ENDPOINT_QUOTE),
+                )
+            ]
+        ),
+        FacetName.SCHEDULE: ScheduleOfActivities(
+            visits=[
+                ScheduledVisit(
+                    visit_name="6-month assessment",
+                    study_day=180,
+                    procedures=["Hemoglobin A1c blood draw"],
+                    citation=Citation(page_number=2, quote=PDF_ENDPOINT_QUOTE),
+                )
+            ]
+        ),
+        FacetName.STATISTICS: StatisticalAssumptions(
+            sample_size=CitedValue[int](
+                value=200,
+                citation=Citation(page_number=1, quote=PDF_SAMPLE_SIZE_QUOTE),
             )
-        ]
-    )
-    endpoints = EndpointList(
-        endpoints=[
-            Endpoint(
-                kind=EndpointKind.PRIMARY,
-                description="Change in Hemoglobin A1c",
-                time_frame="6 months",
-                citation=Citation(page_number=2, quote=PDF_ENDPOINT_QUOTE),
-            )
-        ]
-    )
-    return [eligibility, design, sections, endpoints]
+        ),
+    }
+    return [by_facet[facet.name] for facet in FACETS]
 
 
 async def test_parse_protocol_assembles_all_facets(tmp_path: Path) -> None:
     pdf_path = make_pdf(tmp_path, [PDF_PAGE_ONE, PDF_PAGE_TWO])
-    llm = FakeJsonGenerator(_scripted_four_facet_responses())
+    llm = FakeJsonGenerator(_scripted_facet_responses())
 
     document = await parse_protocol(pdf_path, llm)
 
@@ -391,6 +421,8 @@ async def test_parse_protocol_assembles_all_facets(tmp_path: Path) -> None:
     assert document.design is not None
     assert document.sections is not None
     assert document.endpoints is not None
+    assert document.schedule is not None
+    assert document.statistics is not None
     assert document.extraction_warnings == []
 
 
@@ -398,8 +430,11 @@ async def test_one_failed_facet_still_returns_document(
     tmp_path: Path,
 ) -> None:
     pdf_path = make_pdf(tmp_path, [PDF_PAGE_ONE, PDF_PAGE_TWO])
-    responses = _scripted_four_facet_responses()
-    responses[3] = LlmCallFailedError("ENDPOINTS timed out")
+    responses = _scripted_facet_responses()
+    endpoints_index = [facet.name for facet in FACETS].index(
+        FacetName.ENDPOINTS
+    )
+    responses[endpoints_index] = LlmCallFailedError("ENDPOINTS timed out")
     llm = FakeJsonGenerator(responses)
 
     document = await parse_protocol(pdf_path, llm)
@@ -408,6 +443,8 @@ async def test_one_failed_facet_still_returns_document(
     assert document.design is not None
     assert document.sections is not None
     assert document.endpoints is None
+    assert document.schedule is not None
+    assert document.statistics is not None
     assert any(
         w.facet == FacetName.ENDPOINTS for w in document.extraction_warnings
     )
@@ -415,7 +452,7 @@ async def test_one_failed_facet_still_returns_document(
 
 async def test_all_facets_failed_raises(tmp_path: Path) -> None:
     pdf_path = make_pdf(tmp_path, [PDF_PAGE_ONE, PDF_PAGE_TWO])
-    llm = FakeJsonGenerator([LlmCallFailedError("LLM down") for _ in range(4)])
+    llm = FakeJsonGenerator([LlmCallFailedError("LLM down") for _ in FACETS])
 
     with pytest.raises(AllFacetsFailedError):
         await parse_protocol(pdf_path, llm)
@@ -469,3 +506,61 @@ async def test_extract_eligibility_criteria_raises_when_facet_fails() -> None:
 
     with pytest.raises(AllFacetsFailedError):
         await extract_eligibility_criteria("Inclusion Criteria: adults.", llm)
+
+
+def test_cli_missing_pdf_prints_one_line_error_without_calling_gemini(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    missing_pdf = tmp_path / "missing_protocol.pdf"
+    gemini_called = False
+
+    def fail_if_called(*_args: object, **_kwargs: object) -> None:
+        nonlocal gemini_called
+        gemini_called = True
+        raise AssertionError("GeminiClient or load_settings should not run")
+
+    monkeypatch.setattr(
+        "backend.agents.parser.__main__.load_settings", fail_if_called
+    )
+    monkeypatch.setattr(
+        "backend.agents.parser.__main__.GeminiClient", fail_if_called
+    )
+    monkeypatch.setattr(
+        sys, "argv", ["backend.agents.parser", str(missing_pdf)]
+    )
+
+    with pytest.raises(SystemExit) as exit_info:
+        parser_cli_main()
+
+    stderr_lines = capsys.readouterr().err.strip().splitlines()
+    assert exit_info.value.code == 1
+    assert not gemini_called
+    assert len(stderr_lines) == 1
+    assert stderr_lines[0].startswith("error:")
+    assert "Traceback" not in stderr_lines[0]
+
+
+def test_cli_missing_api_key_prints_one_line_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    pdf_path = make_pdf(tmp_path, [PDF_PAGE_ONE])
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setattr(
+        "backend.agents.parser.__main__.load_settings",
+        lambda: Settings(_env_file=None),  # type: ignore[call-arg]
+    )
+    monkeypatch.setattr(sys, "argv", ["backend.agents.parser", str(pdf_path)])
+
+    with pytest.raises(SystemExit) as exit_info:
+        parser_cli_main()
+
+    stderr_lines = capsys.readouterr().err.strip().splitlines()
+    assert exit_info.value.code == 1
+    assert len(stderr_lines) == 1
+    assert stderr_lines[0].startswith("error:")
+    assert "GEMINI_API_KEY" in stderr_lines[0]
+    assert "Traceback" not in stderr_lines[0]

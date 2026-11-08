@@ -36,7 +36,9 @@ from backend.shared.messages import (
     FacetName,
     PageText,
     ProtocolDocument,
+    ScheduleOfActivities,
     SectionMap,
+    StatisticalAssumptions,
     TrialDesignFacts,
 )
 
@@ -77,6 +79,22 @@ async def extract_facet(
 @overload
 async def extract_facet(
     facet: Facet[EndpointList],
+    pages: list[PageText],
+    llm: JsonGenerator,
+) -> FacetOutcome: ...
+
+
+@overload
+async def extract_facet(
+    facet: Facet[ScheduleOfActivities],
+    pages: list[PageText],
+    llm: JsonGenerator,
+) -> FacetOutcome: ...
+
+
+@overload
+async def extract_facet(
+    facet: Facet[StatisticalAssumptions],
     pages: list[PageText],
     llm: JsonGenerator,
 ) -> FacetOutcome: ...

@@ -31,6 +31,8 @@ export interface DemoPipelineProps {
   // What the sample protocol button plays back: endpoint-shaped mocks.
   sampleUpload?: UploadFileResponse;
   sampleFetchers?: Record<RecommendationStepId, RecommendationFetcher>;
+  // Called once the last step is opened, so the page can offer the report.
+  onReachEnd?: () => void;
 }
 
 // Results of a real upload; each step fills in as its own call settles.
@@ -68,6 +70,7 @@ export default function DemoPipeline({
   recommendationFetchers = RECOMMENDATION_ENDPOINTS,
   sampleUpload = MOCK_UPLOAD_RESPONSE,
   sampleFetchers = MOCK_RECOMMENDATION_FETCHERS,
+  onReachEnd,
 }: DemoPipelineProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [liveRun, setLiveRun] = useState<LiveRun | null>(null);
@@ -171,6 +174,11 @@ export default function DemoPipeline({
     activeIndex >= 0 && activeIndex < barItems.length - 1
       ? barItems[activeIndex + 1]
       : null;
+  const isOnLastStep = isLoaded && nextItem === null;
+
+  useEffect(() => {
+    if (isOnLastStep) onReachEnd?.();
+  }, [isOnLastStep, onReachEnd]);
 
   // Only a change of step animates the content; first render and opening a
   // finding within the same step do not.

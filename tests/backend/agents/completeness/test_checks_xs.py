@@ -179,7 +179,12 @@ def test_xs_07_passes_and_fires_on_synopsis_vs_body_mismatch() -> None:
             body_treatment_duration_weeks=cited(26.0, "26 weeks", 4),
         ),
     )
-    assert check_xs_07(clean_doc, make_profile()).status == RuleStatus.PASSED
+    clean_outcome = check_xs_07(clean_doc, make_profile())
+    assert clean_outcome.status == RuleStatus.PASSED
+    assert {c.quote for c in clean_outcome.evidence} >= {
+        "Synopsis N = 200",
+        "Target N = 200",
+    }
 
     bad_doc = make_document(
         design=TrialDesignFacts(

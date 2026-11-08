@@ -391,7 +391,7 @@ def _with_default_searched_locations(
     rule: RuleDefinition, document: ProtocolDocument, outcome: CheckOutcome
 ) -> CheckOutcome:
     if (
-        outcome.status == RuleStatus.FIRED
+        outcome.status in SCORED_STATUSES
         and not outcome.evidence
         and not outcome.searched_locations
     ):

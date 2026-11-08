@@ -329,7 +329,7 @@ def check_xs_07(
     syn = document.synopsis_check
     discrepancies: list[str] = []
     evidence: list[Citation] = []
-    compared_any = False
+    compared: list[Citation] = []
 
     body_n = (
         document.design.target_enrollment
@@ -342,7 +342,7 @@ def check_xs_07(
         )
     )
     if syn.synopsis_enrollment is not None and body_n is not None:
-        compared_any = True
+        compared.extend([syn.synopsis_enrollment.citation, body_n.citation])
         if syn.synopsis_enrollment.value != body_n.value:
             discrepancies.append(
                 f"sample size (synopsis N={syn.synopsis_enrollment.value} "
@@ -359,7 +359,7 @@ def check_xs_07(
         else None
     )
     if syn.synopsis_arm_count is not None and body_arms is not None:
-        compared_any = True
+        compared.extend([syn.synopsis_arm_count.citation, body_arms.citation])
         if syn.synopsis_arm_count.value != body_arms.value:
             discrepancies.append(
                 f"arm count (synopsis={syn.synopsis_arm_count.value} "
@@ -373,7 +373,12 @@ def check_xs_07(
         syn.synopsis_treatment_duration_weeks is not None
         and syn.body_treatment_duration_weeks is not None
     ):
-        compared_any = True
+        compared.extend(
+            [
+                syn.synopsis_treatment_duration_weeks.citation,
+                syn.body_treatment_duration_weeks.citation,
+            ]
+        )
         if not weeks_match(
             syn.synopsis_treatment_duration_weeks.value,
             syn.body_treatment_duration_weeks.value,
@@ -391,7 +396,7 @@ def check_xs_07(
                 ]
             )
 
-    if not compared_any:
+    if not compared:
         return cannot_assess_outcome(
             "Insufficient synopsis and body fields to compare enrollment, "
             "arm count, or treatment duration."
@@ -404,7 +409,8 @@ def check_xs_07(
         )
     return passed_outcome(
         "Synopsis enrollment, arm count, and treatment duration match the "
-        "protocol body."
+        "protocol body.",
+        evidence=compared,
     )
 
 

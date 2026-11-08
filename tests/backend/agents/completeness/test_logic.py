@@ -480,6 +480,35 @@ def test_absence_fire_sets_second_opinion_and_fills_searched_locations() -> (
     ] == [(M11Heading.TRIAL_DESIGN, "TRIAL_DESIGN", 3, 6)]
 
 
+def test_pass_without_evidence_gets_searched_locations() -> None:
+    def passes_without_citing(
+        document: ProtocolDocument, profile: TrialProfile
+    ) -> CheckOutcome:
+        return CheckOutcome(
+            status=RuleStatus.PASSED, finding="Nothing inconsistent found."
+        )
+
+    document = ProtocolDocument(
+        protocol_id="NCT00000000",
+        title="Example protocol",
+        page_count=10,
+        pages=[PageText(page_number=1, text=QUOTE)],
+        sections=[_section(M11Heading.TRIAL_DESIGN, 3, 6)],
+    )
+    evaluated = evaluate_rule(
+        _rule(),
+        document,
+        TrialProfile(),
+        frozenset(),
+        {"XS-05": passes_without_citing},
+    )
+
+    assert evaluated.finding.status == RuleStatus.PASSED
+    assert [loc.heading for loc in evaluated.finding.searched_locations] == [
+        M11Heading.TRIAL_DESIGN
+    ]
+
+
 def test_pre_decided_rule_never_runs_its_check() -> None:
     def must_not_run(
         document: ProtocolDocument, profile: TrialProfile

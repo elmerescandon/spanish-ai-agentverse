@@ -64,7 +64,7 @@ def _position(card: SuggestionCard) -> RangePosition | None:
     return None
 
 
-def _formatted_value(result: DimensionComparison, value: float) -> str:
+def formatted_value(result: DimensionComparison, value: float) -> str:
     unit = result.dimension.unit
     return f"{value:g}{unit}" if unit == "%" else f"{value:g} {unit}"
 
@@ -81,7 +81,7 @@ def _title(card: SuggestionCard) -> str:
     )
     return (
         f"{result.dimension.label}: "
-        f"{_formatted_value(result, result.draft_value.value)} is "
+        f"{formatted_value(result, result.draft_value.value)} is "
         f"{direction} than {compared_with}"
     )
 
@@ -94,7 +94,7 @@ def _fallback_description(card: SuggestionCard) -> str:
     for suggestion in card.suggestions:
         sentences.append(
             "Suggested: "
-            f"{_formatted_value(result, suggestion.suggested_value)}, in line "
+            f"{formatted_value(result, suggestion.suggested_value)}, in line "
             f"with {suggestion.category.value.lower().replace('_', ' ')} "
             f"peers ({len(suggestion.peer_ids)} trials)."
         )
@@ -173,7 +173,7 @@ def _unflagged_title(result: DimensionComparison, finding: Finding) -> str:
     if finding == Finding.NOT_STATED:
         return f"{label}: not stated in the draft"
     assert result.draft_value is not None
-    value = _formatted_value(result, result.draft_value.value)
+    value = formatted_value(result, result.draft_value.value)
     if finding == Finding.INSUFFICIENT_PEERS:
         return f"{label}: too few comparable trials to judge {value}"
     return f"{label}: {value} is in line with comparable trials"

@@ -9,9 +9,11 @@ Run `make demo-peers` to refresh the committed peer snapshot.
 
 import asyncio
 import logging
+from dataclasses import dataclass
 from datetime import date
 
 from backend.agents.protocol_comparison.agent import compare_registry_draft
+from backend.agents.protocol_comparison.comparison import DimensionComparison
 from backend.agents.protocol_comparison.peer_store import (
     PeerStore,
     PeerStoreError,
@@ -20,6 +22,7 @@ from backend.agents.protocol_comparison.peer_store import (
 from backend.agents.protocol_comparison.recommendations import (
     to_recommendations,
 )
+from backend.agents.protocol_comparison.review import SuggestionCard
 from backend.api.schemas import Recommendation
 from backend.clients.clinicaltrials_gov import (
     ClinicalTrialsGovClient,
@@ -54,12 +57,20 @@ async def refresh_demo_peers() -> None:
     store.save_study(draft)
 
 
-async def demo_recommendations(
-    protocol_id: str,
-    store: PeerStore | None = None,
-    llm: JsonGenerator | None = None,
-) -> list[Recommendation]:
-    """Compare the demo draft with its cached peers, as recommendations.
+@dataclass(frozen=True)
+class DemoComparison:
+    """The demo draft compared with its cached peers."""
+
+    draft_trial_id: str
+    protocol_date: date
+    results: tuple[DimensionComparison, ...]
+    cards: tuple[SuggestionCard, ...]
+
+
+async def compare_demo_draft(
+    store: PeerStore | None = None, llm: JsonGenerator | None = None
+) -> DemoComparison:
+    """Compare the demo draft with its cached peers.
 
     Uses only the committed cache (data/peers) unless an LLM is given,
     so it is fast and repeatable.
@@ -81,7 +92,29 @@ async def demo_recommendations(
     results, cards = await compare_registry_draft(
         draft_study, DEMO_PROTOCOL_DATE, peer_studies, store, llm
     )
-    return to_recommendations(protocol_id, results, cards)
+    return DemoComparison(
+        draft_trial_id=DEMO_DRAFT_NCT_ID,
+        protocol_date=DEMO_PROTOCOL_DATE,
+        results=results,
+        cards=cards,
+    )
+
+
+async def demo_recommendations(
+    protocol_id: str,
+    store: PeerStore | None = None,
+    llm: JsonGenerator | None = None,
+) -> list[Recommendation]:
+    """Compare the demo draft with its cached peers, as recommendations.
+
+    Raises:
+        PeerStoreError: the demo peers or draft are not cached; run
+            `make demo-peers`.
+    """
+    comparison = await compare_demo_draft(store, llm)
+    return to_recommendations(
+        protocol_id, comparison.results, comparison.cards
+    )
 
 
 if __name__ == "__main__":

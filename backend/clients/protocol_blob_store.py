@@ -387,6 +387,30 @@ class BlobProtocolStore:
         )
         return change
 
+    async def latest_protocol_id(self) -> str | None:
+        """The most recently uploaded protocol's id; None if none yet.
+
+        Raises:
+            DocumentStoreError: Blob failed after all retries.
+        """
+
+        async def latest() -> str | None:
+            newest_path: str | None = None
+            newest_at: datetime | None = None
+            async for listed in blob.query_blobs(
+                prefix=f"{REVIEW_PATH_PREFIX}/"
+            ):
+                if not listed.pathname.endswith(f"/{PROTOCOL_FILENAME}"):
+                    continue
+                if newest_at is None or listed.uploaded_at > newest_at:
+                    newest_path, newest_at = (
+                        listed.pathname,
+                        listed.uploaded_at,
+                    )
+            return None if newest_path is None else newest_path.split("/")[1]
+
+        return await with_blob_retries("find latest", "*", latest)
+
     async def load_review(self, protocol_id: str) -> ProtocolReview | None:
         """A protocol's fields and accepted changes; None if unknown.
 

@@ -452,6 +452,8 @@ class ReviewStore(Protocol):
 
     async def load_review(self, protocol_id: str) -> ProtocolReview | None: ...
 
+    async def latest_protocol_id(self) -> str | None: ...
+
 
 _protocol_db: ReviewStore | None = None
 

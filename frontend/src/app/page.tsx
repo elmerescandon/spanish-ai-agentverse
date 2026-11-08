@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   checkHealth,
   getProtocols,
@@ -217,7 +218,14 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/demo"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors shadow-sm"
+            >
+              Open Demo Pipeline (/demo) &rarr;
+            </Link>
+
             <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
               Backend Status:
             </span>

@@ -91,13 +91,17 @@ class Settings(BaseSettings):
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         """Inject comma-separated list parsers for environment sources."""
+        dotenv_file = getattr(dotenv_settings, "env_file", ENV_FILE_PATH)
+        dotenv_encoding = getattr(
+            dotenv_settings, "env_file_encoding", ENV_FILE_ENCODING
+        )
         return (
             init_settings,
             _CommaSeparatedEnvSource(settings_cls),
             _CommaSeparatedDotEnvSource(
                 settings_cls,
-                env_file=ENV_FILE_PATH,
-                env_file_encoding=ENV_FILE_ENCODING,
+                env_file=dotenv_file,
+                env_file_encoding=dotenv_encoding,
             ),
             file_secret_settings,
         )

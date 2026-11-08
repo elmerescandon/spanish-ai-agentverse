@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import {
   checkHealth,
+  createProtocol,
   getProtocols,
   getRecommendations,
   updateRecommendation,
@@ -68,6 +69,39 @@ describe("Frontend API client", () => {
       expect.objectContaining({
         method: "PATCH",
         body: JSON.stringify({ status: "accepted" }),
+      })
+    );
+  });
+
+  it("sends POST request to create a new protocol", async () => {
+    const newProtocol = {
+      protocol_id: "proto-new-123",
+      title: "New Diabetes Phase 3 Trial",
+      status: "uploaded" as const,
+      data: { phase: "Phase 3" },
+    };
+
+    const fetchSpy = spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => newProtocol,
+    } as unknown as Response);
+
+    const result = await createProtocol({
+      title: "New Diabetes Phase 3 Trial",
+      data: { phase: "Phase 3" },
+    });
+
+    expect(result.protocol_id).toBe("proto-new-123");
+    expect(result.title).toBe("New Diabetes Phase 3 Trial");
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/protocols",
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "New Diabetes Phase 3 Trial",
+          data: { phase: "Phase 3" },
+        }),
       })
     );
   });

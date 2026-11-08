@@ -64,6 +64,23 @@ export interface UpdateRecommendationPayload {
   comment?: string | null;
 }
 
+export interface CreateProtocolPayload {
+  title: string;
+  data?: Record<string, unknown>;
+}
+
+export const PRESELECTED_PROTOCOL: ProtocolSummary = {
+  protocol_id: "prot-t2d-001",
+  title: "Phase III Evaluation of SGLT2 Inhibitor in High-Risk T2D Cohort",
+  status: "ready",
+  data: {
+    indication: "Type 2 Diabetes Mellitus",
+    phase: "Phase 3",
+    target_enrollment: 1200,
+    primary_endpoint: "Mean HbA1c reduction from baseline at Week 24",
+  },
+};
+
 export async function checkHealth(): Promise<HealthCheckResponse> {
   const res = await fetch("/api/health");
   if (!res.ok) {
@@ -89,6 +106,25 @@ export async function getProtocol(id: string): Promise<ProtocolSummary> {
   const res = await fetch(`/api/protocols/${id}`);
   if (!res.ok) {
     throw new Error(`Failed to fetch protocol ${id}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function createProtocol(
+  payload: CreateProtocolPayload
+): Promise<ProtocolSummary> {
+  const res = await fetch("/api/protocols", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      title: payload.title,
+      data: payload.data ?? {},
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to create protocol: ${res.statusText}`);
   }
   return res.json();
 }

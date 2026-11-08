@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 import {
   AlertCircle,
   Check,
@@ -21,8 +21,6 @@ export interface StepBarProps {
   items: StepBarItem[];
   activeId: string;
   onSelect: (id: string) => void;
-  // Shown at the right end of the bar, e.g. the report download.
-  trailing?: ReactNode;
 }
 
 const STATE_LABELS: Record<StepBarState, string> = {
@@ -81,7 +79,6 @@ export default function StepBar({
   items,
   activeId,
   onSelect,
-  trailing,
 }: StepBarProps) {
   const activeIndex = items.findIndex((item) => item.id === activeId);
   const previousIndex = neighbourIndex(items, activeIndex, -1);
@@ -200,7 +197,6 @@ export default function StepBar({
         >
           <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
         </button>
-        {trailing}
       </div>
     </nav>
   );

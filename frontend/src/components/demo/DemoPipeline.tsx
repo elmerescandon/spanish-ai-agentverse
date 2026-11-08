@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Download } from "lucide-react";
 import ProtocolIngestion from "@/components/ProtocolIngestion";
 import DecisionView from "./DecisionView";
 import StepBar, { type StepBarState } from "./StepBar";
@@ -262,18 +261,6 @@ export default function DemoPipeline({
         items={barItems}
         activeId={activeStepId}
         onSelect={openStep}
-        trailing={
-          nextItem === null && (
-            <a
-              href={LATEST_REPORT_PDF_URL}
-              download
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-900 bg-zinc-900 px-3 py-1.5 font-sans text-xs text-white transition-colors hover:bg-zinc-700"
-            >
-              <Download className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-              Download report (PDF)
-            </a>
-          )
-        }
       />
 
       <div

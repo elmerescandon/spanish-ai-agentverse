@@ -34,6 +34,8 @@ import { MOCK_STEPS, MOCK_UPLOAD_RESPONSE } from "@/lib/demo/mock";
 import {
   MOCK_PROTOCOL,
   MOCK_SAVED_REVIEW,
+  MOCK_SAMPLE_REQUEST,
+  MOCK_STORED_PROTOCOL,
   MOCK_PROTOCOL_FIELDS,
   MOCK_RECOMMENDATIONS,
 } from "./fixtures";
@@ -211,6 +213,15 @@ describe("Frontend <-> Backend API Schema & Component Contract Alignment", () =>
     ).toContain("get");
     expect(keysOf("SavedDecisionReview")).toEqual(
       Object.keys(MOCK_SAVED_REVIEW).sort()
+    );
+    expect(
+      Object.keys(openApi.paths["/api/protocols/sample"] ?? {})
+    ).toContain("post");
+    expect(keysOf("SampleProtocolRequest")).toEqual(
+      Object.keys(MOCK_SAMPLE_REQUEST).sort()
+    );
+    expect(keysOf("StoredProtocolResponse")).toEqual(
+      Object.keys(MOCK_STORED_PROTOCOL).sort()
     );
     expect(keysOf("FieldChangeRequest")).toEqual(
       [...FIELD_CHANGE_REQUEST_KEYS].sort()

@@ -53,6 +53,14 @@ export const MOCK_SAVED_REVIEW: import("@/lib/api").SavedDecisionReview = {
   },
 };
 
+export const MOCK_SAMPLE_REQUEST: import("@/lib/api").SampleProtocolRequest = {
+  title: "SGLT2_T2D_Phase3_Protocol_v0.3",
+  page_count: 86,
+};
+
+export const MOCK_STORED_PROTOCOL: import("@/lib/api").StoredProtocolResponse =
+  { protocol_id: "proto-stored1", ...MOCK_SAMPLE_REQUEST };
+
 export const MOCK_PROTOCOL_FIELDS: ProtocolFieldsResponse = {
   protocol_id: "proto-001",
   title: "Test Protocol",

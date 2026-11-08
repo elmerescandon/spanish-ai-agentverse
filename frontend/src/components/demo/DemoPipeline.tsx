@@ -11,6 +11,7 @@ import {
   RECOMMENDATION_ENDPOINTS,
   uploadProtocolFile,
   saveDecisionReview,
+  storeSampleProtocol,
   type RecommendationFetcher,
 } from "@/lib/api";
 import {
@@ -37,6 +38,8 @@ export interface DemoPipelineProps {
   // Called once the last step is opened, so the page can offer the report.
   onReachEnd?: () => void;
   saveReview?: typeof saveDecisionReview;
+  // Stores the sample so its reviews are saved and reach the report.
+  storeSample?: typeof storeSampleProtocol;
 }
 
 // Results of a real upload; each step fills in as its own call settles.
@@ -84,10 +87,14 @@ export default function DemoPipeline({
   sampleFetchers = MOCK_RECOMMENDATION_FETCHERS,
   onReachEnd,
   saveReview = saveDecisionReview,
+  storeSample = storeSampleProtocol,
 }: DemoPipelineProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [protocolTitle, setProtocolTitle] = useState("");
+  // The stored protocol reviews are saved against; empty until stored.
   const [protocolId, setProtocolId] = useState("");
+  // Bumped on every run, so a late sample store can't rebind a newer run.
+  const runCount = useRef(0);
   const [reviewMessage, setReviewMessage] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [isSavingReview, setIsSavingReview] = useState(false);
@@ -150,11 +157,13 @@ export default function DemoPipeline({
   // each settles on its own.
   const runPipeline = (
     upload: UploadFileResponse,
-    fetchers: Record<RecommendationStepId, RecommendationFetcher>
-  ) => {
+    fetchers: Record<RecommendationStepId, RecommendationFetcher>,
+    storedProtocolId: string
+  ): number => {
+    runCount.current += 1;
     setLiveRun({ results: { ingest: upload.step }, errors: {} });
     setProtocolTitle(upload.title);
-    setProtocolId(upload.protocol_id);
+    setProtocolId(storedProtocolId);
     setReviewMessage("");
     setReviewError("");
     setReviews({});
@@ -180,12 +189,29 @@ export default function DemoPipeline({
           )
       );
     }
+    return runCount.current;
   };
 
+  // The sample plays mock steps at once; storing it runs alongside, so
+  // reviews are saved once it is stored (well before the loading ends).
   const loadSample = () => {
     setIsSample(true);
     setIsInitialSampleLoad(true);
-    runPipeline(sampleUpload, sampleFetchers);
+    const run = runPipeline(sampleUpload, sampleFetchers, "");
+    storeSample({
+      title: sampleUpload.title,
+      page_count: sampleUpload.page_count,
+    }).then(
+      (stored) => {
+        if (runCount.current === run) setProtocolId(stored.protocol_id);
+      },
+      (error: unknown) => {
+        if (runCount.current !== run) return;
+        setReviewMessage(
+          `${toErrorMessage(error)}. Sample reviews stay in this session.`
+        );
+      }
+    );
   };
 
   const startLiveRun = async (file: File) => {
@@ -201,7 +227,7 @@ export default function DemoPipeline({
       return;
     }
     setUploadState({ status: "idle" });
-    runPipeline(upload, recommendationFetchers);
+    runPipeline(upload, recommendationFetchers, upload.protocol_id);
   };
 
   const decisionsById = useMemo(() => {
@@ -357,7 +383,7 @@ export default function DemoPipeline({
       : decision?.proposed_change;
     if (!change) return;
     setReviewError("");
-    if (!isSample) {
+    if (protocolId) {
       savingReview.current = true;
       setIsSavingReview(true);
       setReviewMessage("Saving review…");

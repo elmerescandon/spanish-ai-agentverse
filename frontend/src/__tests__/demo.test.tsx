@@ -698,6 +698,70 @@ describe("sample protocol plays endpoint-shaped mocks", () => {
     ).toBeDisabled();
   });
 
+  function sampleWithRecruitmentDecision() {
+    const ingest = makeStep("ingest", "Data Ingestion");
+    ingest.decisions = [{
+      decision_id: "review-1", step_id: "ingest", severity: "warning",
+      title: "Review recruitment", claim: "Add a target", evidence: [], trace: [],
+      proposed_change: { path: "Recruitment", before: "None", after: "45% target" },
+    }];
+    return { ...MOCK_UPLOAD_RESPONSE, step: ingest };
+  }
+
+  async function acceptRecruitment(user: User) {
+    await loadPreset(user);
+    await user.click(
+      await screen.findByRole("button", { name: /Review recruitment/ })
+    );
+    const accept = screen.getByRole("button", { name: "Accept recommendation" });
+    await user.click(accept);
+    await waitFor(() => expect(accept).toHaveAttribute("aria-pressed", "true"));
+  }
+
+  it("stores the sample and saves its reviews for the report", async () => {
+    const sampleUpload = sampleWithRecruitmentDecision();
+    const storeSample = mock(async () => ({
+      protocol_id: "proto-stored1",
+      title: sampleUpload.title,
+      page_count: sampleUpload.page_count,
+    }));
+    const saveReview = mock(
+      async (_id: string, review: api.SavedDecisionReview) => review
+    );
+    const user = userEvent.setup();
+    render(<DemoPipeline sampleUpload={sampleUpload}
+      storeSample={storeSample} saveReview={saveReview} />);
+
+    await acceptRecruitment(user);
+
+    expect(storeSample).toHaveBeenCalledWith({
+      title: sampleUpload.title,
+      page_count: sampleUpload.page_count,
+    });
+    expect(saveReview.mock.calls[0][0]).toBe("proto-stored1");
+    expect(saveReview.mock.calls[0][1].status).toBe("accepted");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "saved to protocol storage"
+    );
+  });
+
+  it("keeps sample reviews in the session when storing fails", async () => {
+    const storeSample = mock(async (): Promise<api.StoredProtocolResponse> => {
+      throw new Error("Sample not saved: storage offline");
+    });
+    const saveReview = mock(
+      async (_id: string, review: api.SavedDecisionReview) => review
+    );
+    const user = userEvent.setup();
+    render(<DemoPipeline sampleUpload={sampleWithRecruitmentDecision()}
+      storeSample={storeSample} saveReview={saveReview} />);
+
+    await acceptRecruitment(user);
+
+    expect(saveReview).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("session only");
+  });
+
   it("resolves each mock endpoint with its own step", async () => {
     const protocolId = MOCK_UPLOAD_RESPONSE.protocol_id;
     const [check, peers, cohort] = await Promise.all([

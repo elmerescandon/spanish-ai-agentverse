@@ -45,10 +45,12 @@ from backend.api.schemas import (
     ProtocolSummary,
     Recommendation,
     RecommendationDecisionRequest,
+    SampleProtocolRequest,
     SavedDecisionReview,
     Severity,
     StepData,
     StepRecommendationRequest,
+    StoredProtocolResponse,
     UploadFileResponse,
 )
 from backend.clients.document_store import get_document_store
@@ -352,6 +354,38 @@ async def upload_file(file: UploadFile) -> UploadFileResponse:
         step=build_ingest_step(document),
         filename=filename,
         file_size_bytes=len(content),
+    )
+
+
+@router.post("/protocols/sample", response_model=StoredProtocolResponse)
+async def store_sample_protocol(
+    request: SampleProtocolRequest,
+) -> StoredProtocolResponse:
+    """Store the sample protocol so reviews of it reach the report.
+
+    Each call stores a fresh protocol, so one sample session's decisions
+    never mix with another's, and the sample becomes the latest upload
+    that the report shows. No fields are stored: the sample's content is
+    frontend mock data, and only reviewer decisions are saved against it.
+
+    Raises:
+        ProtocolStoreError: the database failed (answered with 503).
+    """
+    protocol_id = f"proto-{uuid4().hex[:8]}"
+    await get_protocol_db().save_protocol(
+        ProtocolRecord(
+            protocol_id=protocol_id,
+            title=request.title,
+            page_count=request.page_count,
+            uploaded_at=datetime.now(UTC),
+        ),
+        [],
+    )
+    logger.info("sample stored: protocol_id=%s", protocol_id)
+    return StoredProtocolResponse(
+        protocol_id=protocol_id,
+        title=request.title,
+        page_count=request.page_count,
     )
 
 

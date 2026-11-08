@@ -397,6 +397,25 @@ class UploadFileResponse(BaseModel):
     file_size_bytes: int | None = Field(default=None, ge=0)
 
 
+class SampleProtocolRequest(BaseModel):
+    """The frontend's built-in sample protocol, stored so it can be reviewed.
+
+    The sample's content lives in the frontend mocks; only its identity is
+    stored, so reviewer decisions on it reach the report.
+    """
+
+    title: str = Field(min_length=1, max_length=200)
+    page_count: int = Field(ge=1)
+
+
+class StoredProtocolResponse(BaseModel):
+    """A protocol stored for review; protocol_id keys its saved reviews."""
+
+    protocol_id: str
+    title: str
+    page_count: int
+
+
 class StepRecommendationRequest(BaseModel):
     """Body of every recommendation endpoint."""
 

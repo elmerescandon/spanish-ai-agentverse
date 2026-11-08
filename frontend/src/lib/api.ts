@@ -126,6 +126,33 @@ export async function saveDecisionReview(
   return response.json();
 }
 
+export interface SampleProtocolRequest {
+  title: string;
+  page_count: number;
+}
+
+export interface StoredProtocolResponse {
+  protocol_id: string;
+  title: string;
+  page_count: number;
+}
+
+// Stores a fresh copy of the sample protocol, so reviews of it are saved
+// and show up in the report like a real upload's.
+export async function storeSampleProtocol(
+  sample: SampleProtocolRequest
+): Promise<StoredProtocolResponse> {
+  const response = await fetch("/api/protocols/sample", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(sample),
+  });
+  if (!response.ok) {
+    throw new Error(`Sample not saved: ${await readErrorDetail(response)}`);
+  }
+  return response.json();
+}
+
 export interface ProtocolField {
   field: string;
   value: string;

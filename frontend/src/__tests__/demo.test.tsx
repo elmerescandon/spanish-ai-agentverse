@@ -278,16 +278,16 @@ describe("demo pipeline step bar flow", () => {
     ).toBeInTheDocument();
   });
 
-  it("offers the PDF report download only on the last step", async () => {
+  it("offers the PDF report download in both bars only on the last step", async () => {
     const user = userEvent.setup();
     render(<DemoPage />);
     await loadPreset(user);
 
     const stepNavigation = () =>
       within(screen.getByRole("navigation", { name: "Step navigation" }));
-    const reportLink = () =>
-      stepNavigation().queryByRole("link", { name: "Download report (PDF)" });
-    expect(reportLink()).not.toBeInTheDocument();
+    const reportLinks = () =>
+      screen.queryAllByRole("link", { name: "Download report (PDF)" });
+    expect(reportLinks()).toHaveLength(0);
 
     while (stepNavigation().queryByRole("button", { name: /^Next:/ })) {
       const nextButton = stepNavigation().getByRole("button", {
@@ -299,7 +299,14 @@ describe("demo pipeline step bar flow", () => {
       await user.click(nextButton);
     }
 
-    expect(reportLink()).toHaveAttribute("href", api.LATEST_REPORT_PDF_URL);
+    for (const navigationName of ["Pipeline steps", "Step navigation"]) {
+      const navigation = within(
+        screen.getByRole("navigation", { name: navigationName })
+      );
+      expect(
+        navigation.getByRole("link", { name: "Download report (PDF)" })
+      ).toHaveAttribute("href", api.LATEST_REPORT_PDF_URL);
+    }
   });
 
   it("opens a finding in place and folds it by click or Esc", async () => {

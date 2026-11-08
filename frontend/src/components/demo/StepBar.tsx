@@ -115,7 +115,7 @@ export default function StepBar({
                 {index > 0 && (
                   <span
                     aria-hidden
-                    className={`absolute right-1/2 top-3.5 h-px w-full transition-colors duration-500 ${
+                    className={`absolute right-1/2 top-3.5 z-0 h-px w-full transition-colors duration-500 ${
                       isReached ? "bg-emerald-500" : "bg-zinc-200"
                     }`}
                   />
@@ -126,7 +126,7 @@ export default function StepBar({
                   aria-current={isActive ? "step" : undefined}
                   disabled={item.state !== "done"}
                   onClick={() => onSelect(item.id)}
-                  className="group relative flex w-full cursor-pointer flex-col items-center gap-1.5 font-sans disabled:cursor-default"
+                  className="group relative z-10 flex w-full cursor-pointer flex-col items-center gap-1.5 font-sans disabled:cursor-default"
                 >
                   <span
                     className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs transition-all duration-300 ${circleClass(

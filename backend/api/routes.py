@@ -3,10 +3,11 @@
 import logging
 import tempfile
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, UploadFile, status
+from fastapi import APIRouter, HTTPException, Response, UploadFile, status
 
 from backend.agents.protocol_comparison.demo import demo_recommendations
 from backend.agents.protocol_comparison.peer_store import PeerStoreError
@@ -16,11 +17,25 @@ from backend.api.agent_runners import (
     run_cohort_agent,
     run_protocol_comparison_agent,
 )
+from backend.api.protocol_fields import (
+    ChangeRejectedError,
+    document_fields,
+    format_number,
+    match_offer,
+    offered_values,
+    starting_comparison_fields,
+)
 from backend.api.protocol_pipeline import get_protocol_pipeline
+from backend.api.report_pdf import render_review_pdf
 from backend.api.schemas import (
+    FieldChange,
+    FieldChangeRequest,
+    FieldChangeResponse,
     HealthResponse,
     PipelineStep,
     ProtocolCreateRequest,
+    ProtocolField,
+    ProtocolFieldsResponse,
     ProtocolStatus,
     ProtocolSummary,
     Recommendation,
@@ -30,7 +45,14 @@ from backend.api.schemas import (
     StepRecommendationRequest,
     UploadFileResponse,
 )
+from backend.clients.document_store import get_document_store
 from backend.clients.pdf_reader import UnreadablePdfError
+from backend.clients.protocol_db import (
+    ProtocolRecord,
+    ProtocolReview,
+    StoredField,
+    get_protocol_db,
+)
 from backend.shared.messages import ProtocolDocument
 
 logger = logging.getLogger(__name__)
@@ -46,7 +68,6 @@ router = APIRouter(prefix="/api")
 
 _protocols: dict[str, ProtocolSummary] = {}
 _recommendations: dict[str, dict[str, Recommendation]] = {}
-_documents: dict[str, ProtocolDocument] = {}
 # Protocols whose comparison-agent recommendations are already loaded.
 _comparison_loaded: set[str] = set()
 
@@ -90,7 +111,6 @@ def reset_mock_state() -> None:
     """Reset in-memory protocols and recommendations to default demo state."""
     _protocols.clear()
     _recommendations.clear()
-    _documents.clear()
     _comparison_loaded.clear()
 
     demo_proto = ProtocolSummary(
@@ -302,7 +322,16 @@ async def upload_file(file: UploadFile) -> UploadFileResponse:
             "title": Path(filename).stem,
         }
     )
-    _documents[document.protocol_id] = document
+    await get_document_store().save(document)
+    await get_protocol_db().save_protocol(
+        ProtocolRecord(
+            protocol_id=document.protocol_id,
+            title=document.title,
+            page_count=document.page_count,
+            uploaded_at=datetime.now(UTC),
+        ),
+        document_fields(document),
+    )
     pipeline.start_check(document)
     logger.info(
         "upload stored: protocol_id=%s page_count=%d",
@@ -319,9 +348,16 @@ async def upload_file(file: UploadFile) -> UploadFileResponse:
     )
 
 
-def _get_document(protocol_id: str) -> ProtocolDocument:
-    """Return the uploaded document or raise a 404 naming the id."""
-    document = _documents.get(protocol_id)
+async def _get_document(protocol_id: str) -> ProtocolDocument:
+    """Return the uploaded document or raise a 404 naming the id.
+
+    The document is read from the shared store, not process memory:
+    another server instance may have handled the upload.
+
+    Raises:
+        DocumentStoreError: the store failed (answered with 503).
+    """
+    document = await get_document_store().load(protocol_id)
     if document is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -335,7 +371,7 @@ async def _run_step(
     runner: Callable[[ProtocolDocument], Awaitable[StepData]],
 ) -> StepData:
     """Look up the document and run one step's adapter."""
-    return await runner(_get_document(request.protocol_id))
+    return await runner(await _get_document(request.protocol_id))
 
 
 @router.post("/checklist-recommendation", response_model=StepData)
@@ -350,8 +386,23 @@ async def checklist_recommendation(
 async def protocol_recommendation(
     request: StepRecommendationRequest,
 ) -> StepData:
-    """Return the PEERS step (owner: theo)."""
-    return await _run_step(request, run_protocol_comparison_agent)
+    """Return the PEERS step (owner: theo) and store what it offers.
+
+    The seven comparison fields start at the draft's values (never
+    overwriting an accepted change), and the values Theo's options offer
+    become the only values POST /protocols/{id}/changes accepts.
+
+    Raises:
+        ProtocolStoreError: the database failed (answered with 503).
+    """
+    document = await _get_document(request.protocol_id)
+    run = await run_protocol_comparison_agent(document)
+    await get_protocol_db().save_offers(
+        document.protocol_id,
+        starting_comparison_fields(run.comparison.results),
+        offered_values(run.comparison.cards, run.step),
+    )
+    return run.step
 
 
 @router.post("/cohort-recommendation", response_model=StepData)
@@ -360,3 +411,151 @@ async def cohort_recommendation(
 ) -> StepData:
     """Return the COHORT step (owner: alvaro)."""
     return await _run_step(request, run_cohort_agent)
+
+
+def _protocol_not_found(protocol_id: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Stored protocol '{protocol_id}' not found",
+    )
+
+
+@router.post(
+    "/protocols/{protocol_id}/changes", response_model=FieldChangeResponse
+)
+async def accept_change(
+    protocol_id: str, request: FieldChangeRequest
+) -> FieldChangeResponse:
+    """Apply one change the reviewer accepted to a stored field.
+
+    Only a value the PEERS step offered for that field is accepted, so a
+    stored value always comes from real data. Sending the same change
+    again returns the field without logging it twice.
+
+    Raises:
+        HTTPException: 404 for an unknown protocol, 422 for a field that
+            cannot change or a value that was not offered.
+        ProtocolStoreError: the database failed (answered with 503).
+    """
+    protocol_db = get_protocol_db()
+    if not await protocol_db.has_protocol(protocol_id):
+        raise _protocol_not_found(protocol_id)
+    offers = await protocol_db.offers_for(protocol_id, request.field)
+    try:
+        offer = match_offer(request.field, request.value, offers)
+    except ChangeRejectedError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(error),
+        ) from error
+    new_field = StoredField(
+        field=offer.field, value=format_number(offer.value), unit=offer.unit
+    )
+    change = await protocol_db.apply_change(
+        protocol_id, new_field, offer, datetime.now(UTC)
+    )
+    return FieldChangeResponse(
+        field=ProtocolField.model_validate(new_field, from_attributes=True),
+        change=(
+            None
+            if change is None
+            else FieldChange.model_validate(change, from_attributes=True)
+        ),
+    )
+
+
+@router.get(
+    "/protocols/{protocol_id}/fields", response_model=ProtocolFieldsResponse
+)
+async def get_protocol_fields(protocol_id: str) -> ProtocolFieldsResponse:
+    """Return a protocol's current fields and its accepted changes.
+
+    Raises:
+        HTTPException: 404 for an unknown protocol.
+        ProtocolStoreError: the database failed (answered with 503).
+    """
+    review = await get_protocol_db().load_review(protocol_id)
+    if review is None:
+        raise _protocol_not_found(protocol_id)
+    return _fields_response(review)
+
+
+def _fields_response(review: ProtocolReview) -> ProtocolFieldsResponse:
+    return ProtocolFieldsResponse(
+        protocol_id=review.protocol.protocol_id,
+        title=review.protocol.title,
+        page_count=review.protocol.page_count,
+        uploaded_at=review.protocol.uploaded_at,
+        fields=[
+            ProtocolField.model_validate(item, from_attributes=True)
+            for item in review.fields
+        ],
+        changes=[
+            FieldChange.model_validate(item, from_attributes=True)
+            for item in review.changes
+        ],
+    )
+
+
+async def _load_latest_review() -> ProtocolReview:
+    """The most recent upload's review.
+
+    Raises:
+        HTTPException: 404 when no protocol has been uploaded yet.
+        ProtocolStoreError: the database failed (answered with 503).
+    """
+    protocol_db = get_protocol_db()
+    protocol_id = await protocol_db.latest_protocol_id()
+    review = (
+        None
+        if protocol_id is None
+        else await protocol_db.load_review(protocol_id)
+    )
+    if review is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No uploaded protocol to report on yet",
+        )
+    return review
+
+
+@router.get("/protocols/latest/review", response_model=ProtocolFieldsResponse)
+async def get_latest_review() -> ProtocolFieldsResponse:
+    """Return the most recent upload's fields and accepted changes.
+
+    Raises:
+        HTTPException: 404 when no protocol has been uploaded yet.
+        ProtocolStoreError: the database failed (answered with 503).
+    """
+    return _fields_response(await _load_latest_review())
+
+
+@router.get(
+    "/protocols/latest/report.pdf",
+    response_class=Response,
+    responses={200: {"content": {"application/pdf": {}}}},
+)
+async def download_latest_report() -> Response:
+    """Download the most recent upload's fields and changes as a PDF.
+
+    Raises:
+        HTTPException: 404 when no protocol has been uploaded yet.
+        ProtocolStoreError: the database failed (answered with 503).
+    """
+    review = await _load_latest_review()
+    pdf_bytes = render_review_pdf(review, datetime.now(UTC))
+    logger.info(
+        "report pdf built: protocol_id=%s bytes=%d",
+        review.protocol.protocol_id,
+        len(pdf_bytes),
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{review.protocol.protocol_id}'
+                '-report.pdf"'
+            )
+        },
+    )

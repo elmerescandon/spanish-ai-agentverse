@@ -52,3 +52,4 @@ htmlcov/
 scratch/
 data/uploads/
 data/cache/
+data/protocols.db*

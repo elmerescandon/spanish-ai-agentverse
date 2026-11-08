@@ -41,6 +41,34 @@ export const RECOMMENDATION_KEYS = [
 
 export const UPDATE_RECOMMENDATION_KEYS = ["status", "comment"] as const;
 
+// Protocol review: accept one of Theo's offered values, then pull the
+// protocol's fields and the changes accepted so far.
+export const FIELD_CHANGE_REQUEST_KEYS = ["field", "value"] as const;
+
+export const PROTOCOL_FIELD_KEYS = ["field", "value", "unit", "page"] as const;
+
+export const FIELD_CHANGE_KEYS = [
+  "change_id",
+  "field",
+  "old_value",
+  "new_value",
+  "decision_id",
+  "option_id",
+  "rationale",
+  "changed_at",
+] as const;
+
+export const FIELD_CHANGE_RESPONSE_KEYS = ["field", "change"] as const;
+
+export const PROTOCOL_FIELDS_RESPONSE_KEYS = [
+  "protocol_id",
+  "title",
+  "page_count",
+  "uploaded_at",
+  "fields",
+  "changes",
+] as const;
+
 export interface ProtocolSummary {
   protocol_id: string;
   title: string;
@@ -68,6 +96,44 @@ export interface HealthCheckResponse {
 export interface UpdateRecommendationPayload {
   status: RecommendationStatus;
   comment?: string | null;
+}
+
+export interface FieldChangeRequest {
+  field: string;
+  value: number;
+}
+
+export interface ProtocolField {
+  field: string;
+  value: string;
+  unit: string | null;
+  page: number | null;
+}
+
+export interface FieldChange {
+  change_id: number;
+  field: string;
+  old_value: string | null;
+  new_value: string;
+  decision_id: string;
+  option_id: string;
+  rationale: string;
+  changed_at: string;
+}
+
+export interface FieldChangeResponse {
+  field: ProtocolField;
+  // null when the field already held the value (a retried request).
+  change: FieldChange | null;
+}
+
+export interface ProtocolFieldsResponse {
+  protocol_id: string;
+  title: string;
+  page_count: number;
+  uploaded_at: string;
+  fields: ProtocolField[];
+  changes: FieldChange[];
 }
 
 export interface CreateProtocolPayload {
@@ -247,3 +313,50 @@ export const RECOMMENDATION_ENDPOINTS: Record<
   peers: fetchProtocolRecommendation,
   cohort: fetchCohortRecommendation,
 };
+
+// Only a value the PEERS step offered for the field is accepted; anything
+// else comes back as a 422 whose detail says what is allowed.
+export async function acceptFieldChange(
+  protocolId: string,
+  change: FieldChangeRequest
+): Promise<FieldChangeResponse> {
+  const res = await fetch(`/api/protocols/${protocolId}/changes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(change),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to accept change: ${await readErrorDetail(res)}`);
+  }
+  return res.json();
+}
+
+export async function getProtocolFields(
+  protocolId: string
+): Promise<ProtocolFieldsResponse> {
+  const res = await fetch(`/api/protocols/${protocolId}/fields`);
+  if (!res.ok) {
+    throw new Error(
+      `Failed to fetch protocol fields: ${await readErrorDetail(res)}`
+    );
+  }
+  return res.json();
+}
+
+// The most recent upload's fields and accepted changes, as a PDF download.
+export const LATEST_REPORT_PDF_URL = "/api/protocols/latest/report.pdf";
+
+// The page that shows the same review as the PDF.
+export const REPORT_PAGE_PATH = "/report";
+
+export async function getLatestReview(): Promise<ProtocolFieldsResponse> {
+  const res = await fetch("/api/protocols/latest/review");
+  if (!res.ok) {
+    throw new Error(
+      `Failed to fetch the latest review: ${await readErrorDetail(res)}`
+    );
+  }
+  return res.json();
+}

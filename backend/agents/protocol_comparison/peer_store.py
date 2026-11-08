@@ -14,6 +14,7 @@ record a value came from.
 import hashlib
 import json
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Protocol
@@ -22,6 +23,7 @@ from pydantic import BaseModel, ValidationError
 
 from backend.agents.protocol_comparison.eligibility import StoredLabReading
 from backend.clients.clinicaltrials_gov import (
+    ClinicalTrialsGovClient,
     PeerSearchQuery,
     Phase,
     Population,
@@ -38,6 +40,11 @@ QUERIES_DIRNAME = "queries"
 LAB_LIMITS_DIRNAME = "lab_limits"
 QUERY_ID_LENGTH = 16  # hex characters of a SHA-256; collisions negligible
 JSON_INDENT = 2
+# Caps a live search: each new peer costs one Gemini lab-limit reading,
+# and adult type 2 diabetes searches return hundreds of trials.
+PEER_SEARCH_MAX_STUDIES = 50
+
+type RegistrySearch = Callable[[PeerSearchQuery], Awaitable[list[StudyRecord]]]
 
 
 class PeerStoreError(RuntimeError):
@@ -236,3 +243,53 @@ async def load_or_fetch_peers(
         len(studies),
     )
     return studies
+
+
+async def search_registry(query: PeerSearchQuery) -> list[StudyRecord]:
+    """Search ClinicalTrials.gov live, keeping the first results.
+
+    Raises:
+        ClinicalTrialsGovError: the registry failed after its retries.
+    """
+    async with ClinicalTrialsGovClient() as client:
+        return await client.search_studies(
+            query, max_studies=PEER_SEARCH_MAX_STUDIES
+        )
+
+
+class PeerSource:
+    """Finds the peers for a search without writing to disk.
+
+    Looks in memory, then in the committed snapshot (data/peers), and
+    only then searches the registry live; a live result is kept in
+    memory for the rest of the process, since the deployed filesystem is
+    read-only.
+    """
+
+    def __init__(
+        self, store: PeerStore, search: RegistrySearch = search_registry
+    ) -> None:
+        self._store = store
+        self._search = search
+        self._searches: dict[str, list[StudyRecord]] = {}
+
+    async def studies_for(self, query: PeerSearchQuery) -> list[StudyRecord]:
+        """Return the studies the search finds.
+
+        Raises:
+            ClinicalTrialsGovError: a live search failed.
+            PeerStoreError: the committed snapshot is unreadable.
+        """
+        query_id = query_id_for(query)
+        studies = self._searches.get(query_id)
+        if studies is None:
+            studies = self._store.load_studies(query)
+        if studies is None:
+            studies = await self._search(query)
+            logger.info(
+                "peer search run live: query_id=%s studies=%d",
+                query_id,
+                len(studies),
+            )
+        self._searches[query_id] = studies
+        return studies

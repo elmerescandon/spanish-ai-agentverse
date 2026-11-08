@@ -392,3 +392,53 @@ class StepRecommendationRequest(BaseModel):
     """Body of every recommendation endpoint."""
 
     protocol_id: str = Field(min_length=1)
+
+
+class FieldChangeRequest(BaseModel):
+    """One accepted change: a field and one of the values offered for it."""
+
+    field: str = Field(min_length=1)
+    value: float
+
+
+class ProtocolField(BaseModel):
+    """One stored field of a protocol, as short text."""
+
+    field: str
+    value: str
+    unit: str | None = None
+    page: int | None = None
+
+
+class FieldChange(BaseModel):
+    """A change the reviewer accepted, and the suggestion it came from."""
+
+    change_id: int
+    field: str
+    old_value: str | None
+    new_value: str
+    decision_id: str
+    option_id: str
+    rationale: str
+    changed_at: datetime
+
+
+class FieldChangeResponse(BaseModel):
+    """The field after an accepted change.
+
+    change is None when the field already held the value (a retry).
+    """
+
+    field: ProtocolField
+    change: FieldChange | None = None
+
+
+class ProtocolFieldsResponse(BaseModel):
+    """A protocol's current fields and the changes accepted so far."""
+
+    protocol_id: str
+    title: str
+    page_count: int
+    uploaded_at: datetime
+    fields: list[ProtocolField]
+    changes: list[FieldChange]

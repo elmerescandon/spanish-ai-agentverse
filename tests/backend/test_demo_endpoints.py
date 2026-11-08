@@ -8,8 +8,12 @@ from fastapi.testclient import TestClient
 
 from backend.agents.cohort.models import CohortComparisonReport
 from backend.agents.completeness.rules import load_rule_catalogue
-from backend.agents.protocol_comparison.demo import DemoComparison
-from backend.agents.protocol_comparison.peer_store import PeerStoreError
+from backend.agents.protocol_comparison.agent import ProtocolComparison
+from backend.agents.protocol_comparison.peer_store import (
+    PeerSource,
+    PeerStore,
+    PeerStoreError,
+)
 from backend.api import agent_runners, routes
 from backend.api.protocol_pipeline import (
     AnalysisFailedError,
@@ -17,6 +21,11 @@ from backend.api.protocol_pipeline import (
     set_protocol_pipeline,
 )
 from backend.api.routes import reset_mock_state
+from backend.clients.clinicaltrials_gov import (
+    ClinicalTrialsGovError,
+    PeerSearchQuery,
+    StudyRecord,
+)
 from backend.clients.cohort_data import CohortDataError
 from backend.main import app
 from backend.shared.messages import ProtocolDocument
@@ -95,12 +104,8 @@ def test_check_step_reports_rules_with_evidence_and_review_fields(
     assert step["duration_ms"] is not None
     for decision in step["decisions"]:
         assert decision["review_status"] == "pending"
-        assert [
-            option["is_recommended"] for option in decision["options"]
-        ] == [
-            True,
-            False,
-        ]
+        assert decision["options"] == []
+        assert decision["proposed_change"] is None
         evidence_ids = {item["evidence_id"] for item in decision["evidence"]}
         for entry in decision["trace"]:
             assert set(entry["evidence_ids"]) <= evidence_ids
@@ -300,10 +305,31 @@ def test_protocol_recommendation_serves_the_comparison_agent(
 def test_protocol_recommendation_returns_500_when_peer_cache_missing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    async def missing_peers() -> DemoComparison:
+    async def missing_peers(*_: object) -> ProtocolComparison:
         raise PeerStoreError("expected cached demo peers, found none")
 
-    monkeypatch.setattr(agent_runners, "compare_demo_draft", missing_peers)
+    monkeypatch.setattr(
+        agent_runners, "compare_with_registry_peers", missing_peers
+    )
+    client = TestClient(app, raise_server_exceptions=False)
+    protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
+    response = client.post(
+        "/api/protocol-recommendation", json={"protocol_id": protocol_id}
+    )
+    assert response.status_code == 500
+
+
+def test_protocol_recommendation_returns_500_when_registry_is_down(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def registry_down(_query: PeerSearchQuery) -> list[StudyRecord]:
+        raise ClinicalTrialsGovError("search failed after 3 attempts")
+
+    monkeypatch.setattr(
+        agent_runners,
+        "_peer_source",
+        PeerSource(PeerStore(tmp_path), search=registry_down),
+    )
     client = TestClient(app, raise_server_exceptions=False)
     protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
     response = client.post(

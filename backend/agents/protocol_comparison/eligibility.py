@@ -24,6 +24,7 @@ from backend.agents.protocol_comparison.dimensions import (
     StricterWhen,
 )
 from backend.agents.protocol_comparison.prompts import LAB_LIMIT_INSTRUCTIONS
+from backend.shared.messages import CriterionKind, EligibilityCriterion
 
 # The registry escapes markdown characters, e.g. "\>=" for ">=".
 REGISTRY_ESCAPE_PATTERN = re.compile(r"\\([<>=*~\[\]()_#.+\-])")
@@ -34,6 +35,12 @@ CACHE_KEY_LENGTH = 16  # hex characters of a SHA-256; collisions negligible
 HBA1C_MMOL_PER_PERCENT = 10.929
 HBA1C_PERCENT_OFFSET = 2.15
 PERCENT_DECIMALS = 2
+# Headings that tell the LLM each parsed criterion's scope, written the
+# way registry texts head their lists.
+CRITERIA_HEADINGS = {
+    CriterionKind.INCLUSION: "Inclusion Criteria:",
+    CriterionKind.EXCLUSION: "Exclusion Criteria:",
+}
 
 
 class LabVariable(StrEnum):
@@ -107,7 +114,7 @@ class ReadingStatus(StrEnum):
     """Whether a trial's lab limits could be read."""
 
     READ = "READ"
-    NO_TEXT = "NO_TEXT"  # the registry has no eligibility text
+    NO_TEXT = "NO_TEXT"  # no eligibility text to read
     FAILED = "FAILED"  # the LLM call failed after its retries
     NOT_READ = "NOT_READ"  # nothing cached and no LLM to read it
 
@@ -132,6 +139,26 @@ class _MappedLimit:
 def clean_registry_text(text: str) -> str:
     """Undo the registry's markdown escapes so quotes match the text."""
     return REGISTRY_ESCAPE_PATTERN.sub(r"\1", text)
+
+
+def protocol_eligibility_text(
+    criteria: Sequence[EligibilityCriterion],
+) -> str | None:
+    """The parsed criteria as one text, inclusion first, or None.
+
+    Each list gets the heading registry texts use, so the LLM reads the
+    draft's criteria exactly as it reads peers'.
+    """
+    blocks = []
+    for kind, heading in CRITERIA_HEADINGS.items():
+        lines = [
+            f"- {criterion.text.strip()}"
+            for criterion in criteria
+            if criterion.kind == kind and criterion.text.strip()
+        ]
+        if lines:
+            blocks.append("\n".join([heading, *lines]))
+    return "\n\n".join(blocks) if blocks else None
 
 
 def _normalised(text: str) -> str:

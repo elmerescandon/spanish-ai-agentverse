@@ -174,18 +174,21 @@ class GeminiClient:
             try:
                 async with self._call_slots:
                     interactions = self._sdk_client.aio.interactions
-                    interaction = await interactions.create(
-                        model=self._model,
-                        input=full_prompt,
-                        generation_config={
-                            "thinking_level": thinking_level.value
-                        },
-                        timeout=float(LLM_TIMEOUT_SECONDS),
-                    )
+                    # The SDK timeout bounds each continuation hop, not the
+                    # call: this deadline bounds the whole call.
+                    async with asyncio.timeout(LLM_TIMEOUT_SECONDS):
+                        interaction = await interactions.create(
+                            model=self._model,
+                            input=full_prompt,
+                            generation_config={
+                                "thinking_level": thinking_level.value
+                            },
+                            timeout=float(LLM_TIMEOUT_SECONDS),
+                        )
                 raw_text: str = getattr(interaction, "output_text", None) or ""
                 cleaned_text = strip_markdown_code_fences(raw_text)
                 return response_model.model_validate_json(cleaned_text)
-            except ContinuationInterruptedError as error:
+            except (ContinuationInterruptedError, TimeoutError) as error:
                 raise LlmCallFailedError(
                     "LLM call time budget exhausted: "
                     f"model={self._model} "

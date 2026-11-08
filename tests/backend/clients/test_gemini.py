@@ -395,3 +395,36 @@ def test_cap_below_one_is_rejected() -> None:
         GeminiClient(
             api_key=TEST_API_KEY, model=TEST_MODEL, max_concurrent_calls=0
         )
+
+
+class _NeverAnsweringInteractions:
+    """Test double whose create() hangs, like an endless continuation."""
+
+    def __init__(self) -> None:
+        self.call_count = 0
+
+    async def create(self, **_kwargs: Any) -> _FakeInteraction:
+        self.call_count += 1
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable: the event is never set")
+
+
+async def test_hung_call_hits_the_deadline_and_is_not_retried(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("backend.clients.gemini.LLM_TIMEOUT_SECONDS", 0.01)
+    interactions = _NeverAnsweringInteractions()
+    sdk = _FakeSdkClient([])
+    sdk.aio.interactions = interactions  # type: ignore[assignment]
+    client = GeminiClient(
+        api_key=TEST_API_KEY,
+        model=TEST_MODEL,
+        sdk_client=sdk,  # type: ignore[arg-type]
+    )
+
+    with pytest.raises(LlmCallFailedError, match="time budget"):
+        await client.generate_json(
+            prompt="Never answered", response_model=SampleOutput
+        )
+
+    assert interactions.call_count == 1

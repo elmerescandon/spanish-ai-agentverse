@@ -4,6 +4,7 @@ from backend.agents.cohort.agent import (
     analyze_protocol_cohort,
     compile_rules_with_llm_fallback,
     record_doctor_cohort_decision,
+    to_api_recommendations,
 )
 from backend.agents.cohort.logic import (
     apply_doctor_decision,
@@ -40,6 +41,7 @@ from backend.agents.cohort.models import (
     SubgroupDropImpact,
     WhatIfRelaxationResult,
 )
+from backend.clients.cohort_data import save_cohort_recommendations_json
 
 __all__ = [
     "AtomicPredicate",
@@ -75,5 +77,7 @@ __all__ = [
     "filter_cohort",
     "record_doctor_cohort_decision",
     "run_peer_benchmarks",
+    "save_cohort_recommendations_json",
     "simulate_what_if_relaxation",
+    "to_api_recommendations",
 ]

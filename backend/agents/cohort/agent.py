@@ -20,11 +20,14 @@ from backend.agents.cohort.models import (
     RuleSimulability,
 )
 from backend.agents.cohort.prompts import build_rule_compilation_prompt
+from backend.api.schemas import Recommendation
 from backend.clients.cohort_data import (
     DEFAULT_NHANES_COHORT_PATH,
     DEFAULT_PEER_PROTOCOLS_PATH,
+    DEFAULT_THEO_PEERS_DIR,
     load_nhanes_diabetes_cohort,
     load_peer_diabetes_protocols,
+    save_cohort_recommendations_json,
 )
 
 logger = logging.getLogger(__name__)
@@ -100,6 +103,16 @@ async def compile_rules_with_llm_fallback(
         return deterministic_rules
 
 
+def to_api_recommendations(
+    report: CohortComparisonReport,
+) -> list[Recommendation]:
+    """Convert CohortComparisonReport cards into API Recommendation models."""
+    return [
+        Recommendation.model_validate(card.to_api_recommendation_dict())
+        for card in report.recommendations
+    ]
+
+
 async def analyze_protocol_cohort(
     protocol_id: str,
     protocol_title: str,
@@ -110,13 +123,15 @@ async def analyze_protocol_cohort(
     llm_client: StructuredLlmClient | None = None,
     cohort_path: Path = DEFAULT_NHANES_COHORT_PATH,
     peer_path: Path = DEFAULT_PEER_PROTOCOLS_PATH,
+    registry_dir: Path = DEFAULT_THEO_PEERS_DIR,
+    recommendations_output_path: Path | None = None,
 ) -> CohortComparisonReport:
     """Run Step 3 (Part 1 & Part 2) cohort simulation and peer comparison."""
     patients = load_nhanes_diabetes_cohort(cohort_path)
     resolved_peers = (
         peer_protocols
         if peer_protocols is not None
-        else load_peer_diabetes_protocols(peer_path)
+        else load_peer_diabetes_protocols(peer_path, registry_dir)
     )
 
     compiled_rules = await compile_rules_with_llm_fallback(
@@ -136,6 +151,9 @@ async def analyze_protocol_cohort(
         max_age_years=max_age_years,
         precompiled_rules=compiled_rules,
     )
+    if recommendations_output_path is not None:
+        save_cohort_recommendations_json(report, recommendations_output_path)
+
     logger.info(
         "cohort analysis completed: agent=%s protocol_id=%s base_n=%d "
         "eligible_n=%d eligible_pct=%.2f peer_pct=%.2f recommendations=%d",
@@ -157,6 +175,7 @@ def record_doctor_cohort_decision(
     doctor_comment: str,
     selected_option_id: str | None = None,
     cohort_path: Path = DEFAULT_NHANES_COHORT_PATH,
+    recommendations_output_path: Path | None = None,
 ) -> CohortComparisonReport:
     """Record a physician's HITL decision and re-simulate the cohort."""
     patients = load_nhanes_diabetes_cohort(cohort_path)
@@ -168,6 +187,11 @@ def record_doctor_cohort_decision(
         doctor_comment=doctor_comment,
         selected_option_id=selected_option_id,
     )
+    if recommendations_output_path is not None:
+        save_cohort_recommendations_json(
+            updated_report, recommendations_output_path
+        )
+
     logger.info(
         "doctor decision recorded: agent=%s protocol_id=%s "
         "recommendation_id=%s status=%s new_eligible_pct=%.2f",

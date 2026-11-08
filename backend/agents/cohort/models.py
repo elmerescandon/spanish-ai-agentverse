@@ -105,6 +105,7 @@ class DecisionStatus(StrEnum):
 class DoctorOptionKind(StrEnum):
     """Clinical action option types presented to the reviewing physician."""
 
+    RELAX_TO_PEER_MEDIAN = "RELAX_TO_PEER_MEDIAN"
     RELAX_TO_PEER_STANDARD = "RELAX_TO_PEER_STANDARD"
     ADD_STRATIFIED_SUBCOHORT = "ADD_STRATIFIED_SUBCOHORT"
     KEEP_STRICT_WITH_JUSTIFICATION = "KEEP_STRICT_WITH_JUSTIFICATION"
@@ -261,7 +262,9 @@ class CriterionAttritionStep(BaseModel):
     marginal_drop_count: int
     marginal_drop_pct: float
     peer_mean_drop_pct: float | None = None
+    peer_median_drop_pct: float | None = None
     excess_drop_vs_peers_pct: float | None = None
+    peer_median_threshold: str | None = None
     peer_standard_threshold: str | None = None
     classification: CriterionClassification
     subgroup_impacts: list[SubgroupDropImpact] = Field(default_factory=list)
@@ -329,6 +332,9 @@ class CohortRecommendationCard(BaseModel):
     compiled_rule_summary: str
     target_drop_pct: float
     peer_benchmark_drop_pct: float | None = None
+    peer_median_drop_pct: float | None = None
+    peer_median_threshold: str | None = None
+    clinical_standard_threshold: str | None = None
     subgroup_impacts: list[SubgroupDropImpact] = Field(default_factory=list)
     doctor_options: list[DoctorOption] = Field(default_factory=list)
     decision_owner: str = DEFAULT_DECISION_OWNER
@@ -356,6 +362,11 @@ class CohortRecommendationCard(BaseModel):
                 "compiled_rule_summary": self.compiled_rule_summary,
                 "target_drop_pct": self.target_drop_pct,
                 "peer_benchmark_drop_pct": self.peer_benchmark_drop_pct,
+                "peer_median_drop_pct": self.peer_median_drop_pct,
+                "peer_median_threshold": self.peer_median_threshold,
+                "clinical_standard_threshold": (
+                    self.clinical_standard_threshold
+                ),
                 "subgroup_impacts": [
                     impact.model_dump() for impact in self.subgroup_impacts
                 ],

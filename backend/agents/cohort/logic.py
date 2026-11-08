@@ -855,6 +855,8 @@ def filter_cohort(
     patients: list[PatientRecord],
     rules: list[EligibilityRule],
     peer_variable_drops: dict[CohortVariable, float] | None = None,
+    peer_median_drops: dict[CohortVariable, float] | None = None,
+    peer_median_thresholds: dict[CohortVariable, str] | None = None,
 ) -> tuple[list[PatientRecord], list[CriterionAttritionStep]]:
     """Run sequential and marginal cohort filtering across all rules."""
     if not patients:
@@ -881,9 +883,22 @@ def filter_cohort(
             if (peer_variable_drops and primary_var is not None)
             else None
         )
+        peer_med_drop = (
+            peer_median_drops.get(primary_var)
+            if (peer_median_drops and primary_var is not None)
+            else None
+        )
+        peer_med_thresh = (
+            peer_median_thresholds.get(primary_var)
+            if (peer_median_thresholds and primary_var is not None)
+            else None
+        )
+        reference_peer_drop = (
+            peer_med_drop if peer_med_drop is not None else peer_drop
+        )
         excess_drop = (
-            round(marginal_drop_pct - peer_drop, 2)
-            if peer_drop is not None
+            round(marginal_drop_pct - reference_peer_drop, 2)
+            if reference_peer_drop is not None
             else None
         )
         peer_std = (
@@ -920,7 +935,7 @@ def filter_cohort(
                 and excess_drop >= BOTTLENECK_EXCESS_DROP_PCT
             )
             or (
-                peer_drop is None
+                reference_peer_drop is None
                 and marginal_drop_pct >= BOTTLENECK_ABSOLUTE_DROP_PCT
             )
             or (
@@ -950,7 +965,9 @@ def filter_cohort(
                 marginal_drop_count=marginal_drop,
                 marginal_drop_pct=marginal_drop_pct,
                 peer_mean_drop_pct=peer_drop,
+                peer_median_drop_pct=peer_med_drop,
                 excess_drop_vs_peers_pct=excess_drop,
+                peer_median_threshold=peer_med_thresh,
                 peer_standard_threshold=peer_std,
                 classification=classification,
                 subgroup_impacts=subgroup_impacts,
@@ -959,6 +976,52 @@ def filter_cohort(
         )
 
     return surviving, funnel
+
+
+def compute_peer_variable_medians(
+    patients: list[PatientRecord],
+    peer_protocols: list[PeerTrialProtocol],
+) -> tuple[
+    dict[CohortVariable, float],
+    dict[CohortVariable, list[AtomicPredicate]],
+    dict[CohortVariable, list[tuple[float, list[AtomicPredicate]]]],
+]:
+    """Compute exact median drop and predicates per variable across peers."""
+    entries_by_var: dict[
+        CohortVariable, list[tuple[float, list[AtomicPredicate]]]
+    ] = {}
+    for peer in peer_protocols:
+        peer_rules = compile_protocol_criteria(
+            peer.criteria,
+            min_age_years=peer.min_age_years,
+            max_age_years=peer.max_age_years,
+        )
+        _, peer_funnel = filter_cohort(patients, peer_rules)
+        for rule, step in zip(peer_rules, peer_funnel, strict=True):
+            vars_in_rule = {pred.variable for pred in rule.predicates}
+            for var in vars_in_rule:
+                var_preds = [
+                    pred for pred in rule.predicates if pred.variable == var
+                ]
+                entries_by_var.setdefault(var, []).append(
+                    (step.marginal_drop_pct, var_preds)
+                )
+
+    median_drops: dict[CohortVariable, float] = {}
+    median_preds: dict[CohortVariable, list[AtomicPredicate]] = {}
+    sorted_by_var: dict[
+        CohortVariable, list[tuple[float, list[AtomicPredicate]]]
+    ] = {}
+    for var, items in entries_by_var.items():
+        if not items:
+            continue
+        ordered = sorted(items, key=lambda pair: pair[0])
+        sorted_by_var[var] = ordered
+        mid_idx = (len(ordered) - 1) // 2
+        median_drops[var] = ordered[mid_idx][0]
+        median_preds[var] = ordered[mid_idx][1]
+
+    return median_drops, median_preds, sorted_by_var
 
 
 def run_peer_benchmarks(
@@ -1079,11 +1142,37 @@ def simulate_what_if_relaxation(
     )
 
 
+def _select_peer_median_for_rule(
+    patients: list[PatientRecord],
+    rule: EligibilityRule,
+    target_drop_pct: float,
+    peer_entries: list[tuple[float, list[AtomicPredicate]]],
+    fallback_preds: list[AtomicPredicate],
+) -> tuple[list[AtomicPredicate], float | None]:
+    """Select exact median peer predicates less restrictive than target."""
+    if not peer_entries:
+        return fallback_preds, None
+
+    relaxing = [
+        (drop, preds) for drop, preds in peer_entries if drop < target_drop_pct
+    ]
+    pool = relaxing if relaxing else peer_entries
+    ordered = sorted(pool, key=lambda pair: pair[0])
+    mid_idx = (len(ordered) - 1) // 2
+    chosen_drop, chosen_preds = ordered[mid_idx]
+    _ = patients
+    _ = rule
+    return chosen_preds, chosen_drop
+
+
 def _build_recommendations(
     protocol_id: str,
     patients: list[PatientRecord],
     rules: list[EligibilityRule],
     funnel: list[CriterionAttritionStep],
+    peer_entries_by_var: (
+        dict[CohortVariable, list[tuple[float, list[AtomicPredicate]]]] | None
+    ) = None,
 ) -> list[CohortRecommendationCard]:
     """Generate doctor-in-the-loop Decision Cards for bottlenecks & reviews."""
     cards: list[CohortRecommendationCard] = []
@@ -1113,6 +1202,30 @@ def _build_recommendations(
                 clinical_safety_note=safety_note,
             )
 
+            var_peer_entries = (
+                peer_entries_by_var.get(primary_var, [])
+                if peer_entries_by_var is not None
+                else []
+            )
+            peer_med_preds, peer_med_drop = _select_peer_median_for_rule(
+                patients=patients,
+                rule=rule,
+                target_drop_pct=step.marginal_drop_pct,
+                peer_entries=var_peer_entries,
+                fallback_preds=replacement_preds,
+            )
+            peer_med_label = format_predicate_summary(peer_med_preds)
+            peer_med_what_if = simulate_what_if_relaxation(
+                patients=patients,
+                rules=rules,
+                target_criterion_id=rule.criterion_id,
+                replacement_predicates=peer_med_preds,
+                proposed_wording=(
+                    f"Peer trials median threshold: {peer_med_label}"
+                ),
+                clinical_safety_note=safety_note,
+            )
+
             subgroup_text = (
                 ", ".join(
                     f"{imp.subgroup_name} (-{imp.relative_drop_pct:.1f}%)"
@@ -1122,16 +1235,25 @@ def _build_recommendations(
                 else "broad diabetic population"
             )
             peer_cmp = (
-                f" (peer trials average drop: {step.peer_mean_drop_pct:.1f}%)"
-                if step.peer_mean_drop_pct is not None
-                else ""
+                f" (peer trials median drop: {peer_med_drop:.1f}%, "
+                f"mean drop: {step.peer_mean_drop_pct:.1f}%)"
+                if (
+                    peer_med_drop is not None
+                    and step.peer_mean_drop_pct is not None
+                )
+                else (
+                    f" (peer trials average drop: "
+                    f"{step.peer_mean_drop_pct:.1f}%)"
+                    if step.peer_mean_drop_pct is not None
+                    else ""
+                )
             )
 
             options = [
                 DoctorOption(
                     option_id=f"{rule.criterion_id}-OPT-RELAX",
                     kind=DoctorOptionKind.RELAX_TO_PEER_STANDARD,
-                    title=f"Relax to peer standard: {peer_label}",
+                    title=f"Relax to clinical standard: {peer_label}",
                     clinical_rationale=(
                         f"Recovers +{what_if.patients_gained} eligible "
                         f"patients (+{what_if.relative_gain_pct:.1f}%) on "
@@ -1141,6 +1263,24 @@ def _build_recommendations(
                     proposed_protocol_text=peer_label,
                     replacement_predicates=replacement_preds,
                     what_if_simulation=what_if,
+                    safety_monitoring_requirement=safety_note,
+                ),
+                DoctorOption(
+                    option_id=f"{rule.criterion_id}-OPT-PEER-MEDIAN",
+                    kind=DoctorOptionKind.RELAX_TO_PEER_MEDIAN,
+                    title=(f"Align with peer trials median: {peer_med_label}"),
+                    clinical_rationale=(
+                        f"Adopts the exact median cutoff from completed peer "
+                        f"trials ({peer_med_label}), recovering "
+                        f"+{peer_med_what_if.patients_gained} eligible "
+                        f"patients (+{peer_med_what_if.relative_gain_pct:.1f}"
+                        f"%) and shifting eligible cohort from "
+                        f"{peer_med_what_if.eligible_pct_before:.1f}% to "
+                        f"{peer_med_what_if.eligible_pct_after:.1f}%."
+                    ),
+                    proposed_protocol_text=peer_med_label,
+                    replacement_predicates=peer_med_preds,
+                    what_if_simulation=peer_med_what_if,
                     safety_monitoring_requirement=safety_note,
                 ),
                 DoctorOption(
@@ -1157,7 +1297,7 @@ def _build_recommendations(
                     proposed_protocol_text=(
                         f"{rule.original_text} (Main Cohort); patients "
                         f"meeting {peer_label} eligible for Stratified "
-                        f"Safety Sub-cohort."
+                        "Safety Sub-cohort."
                     ),
                     replacement_predicates=replacement_preds,
                     what_if_simulation=what_if,
@@ -1200,10 +1340,12 @@ def _build_recommendations(
                         f"({step.rule_summary}) excludes "
                         f"{step.marginal_drop_pct:.1f}% of real NHANES "
                         f"diabetic patients{peer_cmp}, disproportionately "
-                        f"affecting {subgroup_text}. Relaxing to peer "
-                        f"standard ({peer_label}) increases eligible cohort "
-                        f"from {what_if.eligible_pct_before:.1f}% to "
-                        f"{what_if.eligible_pct_after:.1f}%."
+                        f"affecting {subgroup_text}. Aligning with peer "
+                        f"median ({peer_med_label}) shifts eligible cohort "
+                        f"from {peer_med_what_if.eligible_pct_before:.1f}% "
+                        f"to {peer_med_what_if.eligible_pct_after:.1f}%; "
+                        f"relaxing to clinical standard ({peer_label}) "
+                        f"shifts it to {what_if.eligible_pct_after:.1f}%."
                     ),
                     original_criterion_text=rule.original_text,
                     page_number=rule.page_number,
@@ -1211,6 +1353,13 @@ def _build_recommendations(
                     compiled_rule_summary=step.rule_summary,
                     target_drop_pct=step.marginal_drop_pct,
                     peer_benchmark_drop_pct=step.peer_mean_drop_pct,
+                    peer_median_drop_pct=(
+                        peer_med_drop
+                        if peer_med_drop is not None
+                        else step.peer_median_drop_pct
+                    ),
+                    peer_median_threshold=peer_med_label,
+                    clinical_standard_threshold=peer_label,
                     subgroup_impacts=step.subgroup_impacts,
                     doctor_options=options,
                 )
@@ -1239,6 +1388,15 @@ def build_cohort_comparison_report(
     peer_runs, peer_profile, peer_var_drops = run_peer_benchmarks(
         patients, peer_protocols
     )
+    (
+        peer_med_drops,
+        peer_med_preds,
+        peer_entries_by_var,
+    ) = compute_peer_variable_medians(patients, peer_protocols)
+    peer_med_thresh_labels = {
+        var: format_predicate_summary(preds)
+        for var, preds in peer_med_preds.items()
+    }
     peer_mean_pct = (
         round(
             sum(r.eligible_pct for r in peer_runs) / len(peer_runs),
@@ -1258,7 +1416,11 @@ def build_cohort_comparison_report(
         )
     )
     eligible_patients, funnel = filter_cohort(
-        patients, rules, peer_variable_drops=peer_var_drops
+        patients,
+        rules,
+        peer_variable_drops=peer_var_drops,
+        peer_median_drops=peer_med_drops,
+        peer_median_thresholds=peer_med_thresh_labels,
     )
     target_profile = compute_cohort_profile(eligible_patients, total_n)
     target_pct = target_profile.share_of_base_pct
@@ -1292,6 +1454,7 @@ def build_cohort_comparison_report(
         patients=patients,
         rules=rules,
         funnel=funnel,
+        peer_entries_by_var=peer_entries_by_var,
     )
 
     return CohortComparisonReport(

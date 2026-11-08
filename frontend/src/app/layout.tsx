@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ProtocolAI Platform",
+  title: "ProtocolAI Clinical Platform",
   description:
     "Find clinical trial protocol problems before the first patient is " +
     "enrolled: guidance checks, peer-trial comparison and eligibility " +

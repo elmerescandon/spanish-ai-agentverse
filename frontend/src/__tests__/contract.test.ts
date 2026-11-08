@@ -12,12 +12,16 @@ import {
   UPDATE_RECOMMENDATION_KEYS,
 } from "@/lib/api";
 import {
+  CHANGE_TYPES,
+  CHART_KINDS,
   DECISION_KEYS,
   EVIDENCE_KEYS,
   EVIDENCE_SOURCES,
   METRIC_TONES,
+  REVIEW_STATUSES,
   STEP_DATA_KEYS,
   STEP_IDS,
+  STEP_STATUSES,
   TRACE_KINDS,
   UPLOAD_FILE_RESPONSE_KEYS,
 } from "@/lib/demo/types";
@@ -126,6 +130,10 @@ describe("Frontend <-> Backend API Schema & Component Contract Alignment", () =>
     expect(schemas.EvidenceSource?.enum).toEqual([...EVIDENCE_SOURCES]);
     expect(schemas.TraceKind?.enum).toEqual([...TRACE_KINDS]);
     expect(schemas.MetricTone?.enum).toEqual([...METRIC_TONES]);
+    expect(schemas.StepStatus?.enum).toEqual([...STEP_STATUSES]);
+    expect(schemas.ChangeType?.enum).toEqual([...CHANGE_TYPES]);
+    expect(schemas.ChartKind?.enum).toEqual([...CHART_KINDS]);
+    expect(schemas.RecommendationStatus?.enum).toEqual([...REVIEW_STATUSES]);
   });
 
   it("exposes the four /demo endpoints as POST routes", () => {
@@ -153,7 +161,10 @@ describe("Frontend <-> Backend API Schema & Component Contract Alignment", () =>
 
   it("keeps the mock steps within the backend enums and keys", () => {
     for (const step of MOCK_STEPS) {
-      expect(Object.keys(step).sort()).toEqual([...STEP_DATA_KEYS].sort());
+      // Mocks may omit optional fields but must not invent new ones.
+      for (const key of Object.keys(step)) {
+        expect(STEP_DATA_KEYS as readonly string[]).toContain(key);
+      }
       expect(STEP_IDS).toContain(step.id);
       for (const decision of step.decisions) {
         expect(STEP_IDS).toContain(decision.step_id);

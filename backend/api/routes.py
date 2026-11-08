@@ -270,6 +270,8 @@ async def upload_file(file: UploadFile) -> UploadFileResponse:
         title=document.title,
         page_count=document.page_count,
         step=build_ingest_step(document),
+        filename=filename,
+        file_size_bytes=len(content),
     )
 
 

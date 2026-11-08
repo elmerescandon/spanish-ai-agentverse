@@ -57,6 +57,26 @@ def test_upload_valid_pdf_returns_protocol_id_and_ingest_step(
     step = body["step"]
     assert isinstance(step, dict)
     assert step["id"] == "ingest"
+    assert body["filename"] == "my_trial.pdf"
+    assert isinstance(body["file_size_bytes"], int)
+    assert body["file_size_bytes"] > 0
+
+
+def test_step_optional_fields_default_to_empty_for_mock_runner(
+    client: TestClient, tmp_path: Path
+) -> None:
+    protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
+    step = client.post(
+        "/api/checklist-recommendation", json={"protocol_id": protocol_id}
+    ).json()
+    assert step["status"] == "completed"
+    assert step["warnings"] == []
+    assert step["tables"] == []
+    assert step["charts"] == []
+    assert step["details"] == {}
+    decision = step["decisions"][0]
+    assert decision["review_status"] == "pending"
+    assert decision["options"] == []
 
 
 def test_upload_non_pdf_is_rejected_with_expected_and_received(

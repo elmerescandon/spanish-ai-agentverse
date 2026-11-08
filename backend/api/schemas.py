@@ -5,6 +5,14 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from backend.shared.messages import (
+    ProposedFix,
+    RuleFamily,
+    RuleFinding,
+    RunResult,
+    SponsorInput,
+)
+
 
 class ProtocolStatus(StrEnum):
     """Lifecycle status of a clinical protocol."""
@@ -79,3 +87,54 @@ class RecommendationDecisionRequest(BaseModel):
 
     status: RecommendationStatus
     comment: str | None = None
+
+
+class RunInfo(BaseModel):
+    """Rule and comparator counts for a compliance evaluation run."""
+
+    rules_evaluated: int
+    comparators_used: int = 0
+
+
+class StatusCounts(BaseModel):
+    """Aggregated rule finding counts across all five evaluation statuses."""
+
+    fired: int
+    passed: int
+    not_applicable: int
+    insufficient_comparators: int
+    cannot_assess: int
+    total: int
+
+
+class FamilySummary(BaseModel):
+    """Per-family summary of fired and applicable rules for UI charts."""
+
+    family: RuleFamily
+    label: str
+    fired: int
+    applicable: int
+
+
+class FindingView(RuleFinding):
+    """Frontend representation of a rule finding with its composite ID."""
+
+    finding_id: str
+
+
+class ComplianceReportResponse(BaseModel):
+    """HTTP response payload for a protocol compliance report."""
+
+    protocol_id: str
+    protocol_title: str
+    protocol_version: str | None = None
+    run: RunInfo
+    before: RunResult
+    after: RunResult | None = None
+    counts: StatusCounts
+    families: list[FamilySummary]
+    top_finding_ids: list[str]
+    findings: list[FindingView]
+    fixes: list[ProposedFix] = Field(default_factory=list)
+    new_findings_after_fixes: list[FindingView] = Field(default_factory=list)
+    sponsor_inputs_needed: list[SponsorInput] = Field(default_factory=list)

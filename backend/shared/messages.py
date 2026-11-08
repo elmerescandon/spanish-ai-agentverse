@@ -1,8 +1,9 @@
 """Shared contract: the typed models every part of the backend exchanges."""
 
 from enum import StrEnum
+from typing import Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class FacetName(StrEnum):
@@ -229,3 +230,256 @@ class ProtocolDocument(BaseModel):
     schedule: list[ScheduledVisit] | None = None
     statistics: StatisticalAssumptions | None = None
     extraction_warnings: list[ExtractionWarning] = Field(default_factory=list)
+
+
+class RuleStatus(StrEnum):
+    """Evaluation status of a completeness or consistency rule."""
+
+    FIRED = "fired"
+    PASSED = "passed"
+    NOT_APPLICABLE = "not_applicable"
+    INSUFFICIENT_COMPARATORS = "insufficient_comparators"
+    CANNOT_ASSESS = "cannot_assess"
+
+
+NON_SCORED_RULE_STATUSES: frozenset[RuleStatus] = frozenset(
+    {
+        RuleStatus.NOT_APPLICABLE,
+        RuleStatus.INSUFFICIENT_COMPARATORS,
+        RuleStatus.CANNOT_ASSESS,
+    }
+)
+
+
+class RuleSeverity(StrEnum):
+    """Rule severity tier (S1 blocker, S2 major, S3 minor)."""
+
+    S1 = "S1"
+    S2 = "S2"
+    S3 = "S3"
+
+
+class GateStatus(StrEnum):
+    """Pass/fail status of a registration or review gate."""
+
+    PASS = "pass"
+    FAIL = "fail"
+
+
+class RuleFamily(StrEnum):
+    """Catalogue family grouping related protocol exclusion rules."""
+
+    REG = "REG"
+    M11 = "M11"
+    EST = "EST"
+    XS = "XS"
+    DM = "DM"
+    ELQ = "ELQ"
+    EX = "EX"
+    AMD = "AMD"
+
+
+class CheckMethod(StrEnum):
+    """Whether a rule was evaluated deterministically in code or by LLM."""
+
+    DETERMINISTIC = "deterministic"
+    JUDGEMENT = "judgement"
+
+
+class SourceTier(StrEnum):
+    """Binding force or provenance tier of the rule's regulatory source."""
+
+    LAW = "law"
+    ICH = "ich"
+    FINAL_GUIDANCE = "final_guidance"
+    PRODUCT_EVIDENCE = "product_evidence"
+    DRAFT_GUIDANCE = "draft_guidance"
+    REGISTRY_QC = "registry_qc"
+    REPORTING_GUIDELINE = "reporting_guideline"
+    COMPARATOR_NORM = "comparator_norm"
+    HEURISTIC = "heuristic"
+
+
+class InterventionType(StrEnum):
+    """High-level category of the trial's primary intervention."""
+
+    DRUG = "DRUG"
+    BIOLOGIC = "BIOLOGIC"
+    DEVICE = "DEVICE"
+    BEHAVIORAL = "BEHAVIORAL"
+    OTHER = "OTHER"
+
+
+class DiabetesType(StrEnum):
+    """Target diabetes population type."""
+
+    T1D = "T1D"
+    T2D = "T2D"
+    OTHER = "OTHER"
+
+
+class DrugClass(StrEnum):
+    """Pharmacological class of the investigational diabetes therapy."""
+
+    METFORMIN = "METFORMIN"
+    SULFONYLUREA = "SULFONYLUREA"
+    DPP4_INHIBITOR = "DPP4_INHIBITOR"
+    SGLT2_INHIBITOR = "SGLT2_INHIBITOR"
+    GLP1_RECEPTOR_AGONIST = "GLP1_RECEPTOR_AGONIST"
+    TZD = "TZD"
+    INSULIN = "INSULIN"
+    OTHER = "OTHER"
+
+
+class ControlType(StrEnum):
+    """Comparator arm control type."""
+
+    PLACEBO = "PLACEBO"
+    ACTIVE = "ACTIVE"
+    USUAL_CARE = "USUAL_CARE"
+    NONE = "NONE"
+    OTHER = "OTHER"
+
+
+class SearchedLocation(BaseModel):
+    """Protocol section and page range inspected when checking for content."""
+
+    heading: M11Heading
+    section_title: str | None = None
+    start_page: int
+    end_page: int
+
+
+class FindingLocation(BaseModel):
+    """Protocol section numbering, M11 heading and page of a finding."""
+
+    section: str | None = None
+    heading: M11Heading | None = None
+    page: int | None = None
+
+
+class RuleFinding(BaseModel):
+    """Single rule evaluation produced by the completeness checker."""
+
+    rule_id: str
+    family: RuleFamily
+    severity: RuleSeverity
+    status: RuleStatus
+    status_reason: str | None = None
+    title: str
+    finding: str
+    location: FindingLocation = Field(default_factory=FindingLocation)
+    evidence: list[Citation] = Field(default_factory=list)
+    searched_locations: list[SearchedLocation] = Field(default_factory=list)
+    proposed_fix: str | None = None
+    requires_medical_review: bool = False
+    confidence: float = Field(ge=0.0, le=1.0)
+    source: str
+    source_tier: SourceTier
+    check_method: CheckMethod
+
+    @model_validator(mode="after")
+    def _validate_status_invariants(self) -> Self:
+        if (
+            self.status == RuleStatus.FIRED
+            and not self.evidence
+            and not self.searched_locations
+        ):
+            raise ValueError(
+                f"fired finding '{self.rule_id}' must have non-empty "
+                "evidence or searched_locations, got evidence=[] and "
+                "searched_locations=[]"
+            )
+        if self.status in NON_SCORED_RULE_STATUSES and (
+            self.status_reason is None or not self.status_reason.strip()
+        ):
+            raise ValueError(
+                f"finding '{self.rule_id}' with status '{self.status}' "
+                "must have a non-blank status_reason, "
+                f"got {self.status_reason!r}"
+            )
+        return self
+
+
+class GateResult(BaseModel):
+    """Pass/fail outcome of a registration or review readiness gate."""
+
+    status: GateStatus
+    is_partial: bool
+    failing_rule_ids: list[str] = Field(default_factory=list)
+
+
+class RunResult(BaseModel):
+    """Completeness score and gate outcomes for one evaluation pass."""
+
+    score: float = Field(ge=0.0, le=100.0)
+    registration_gate: GateResult
+    review_gate: GateResult
+
+
+class ProposedFix(BaseModel):
+    """Suggested replacement text for a fired rule under a protocol section."""
+
+    rule_id: str
+    section: str
+    replacement_text: str
+    requires_medical_review: bool = False
+
+
+class SponsorInput(BaseModel):
+    """Fact placeholder that only the trial sponsor can supply."""
+
+    section: str
+    placeholder: str
+
+
+class TrialProfile(BaseModel):
+    """Cited trial characteristics that govern rule applicability."""
+
+    intervention_type: CitedValue[InterventionType] | None = None
+    diabetes_type: CitedValue[DiabetesType] | None = None
+    drug_class: CitedValue[DrugClass] | None = None
+    phase: CitedValue[TrialPhase] | None = None
+    control_type: CitedValue[ControlType] | None = None
+    is_non_inferiority: CitedValue[bool] | None = None
+    is_add_on: CitedValue[bool] | None = None
+
+
+class ComplianceReport(BaseModel):
+    """Internal completeness and consistency report for a protocol."""
+
+    protocol_id: str
+    protocol_title: str
+    protocol_version: str | None = None
+    trial_profile: TrialProfile
+    rules_evaluated: int
+    comparators_used: int = 0
+    before: RunResult
+    after: RunResult | None = None
+    findings: list[RuleFinding]
+    fixes: list[ProposedFix] = Field(default_factory=list)
+    new_findings_after_fixes: list[RuleFinding] = Field(default_factory=list)
+    sponsor_inputs_needed: list[SponsorInput] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _validate_findings_consistency(self) -> Self:
+        if self.rules_evaluated != len(self.findings):
+            raise ValueError(
+                "rules_evaluated must equal len(findings): "
+                f"expected {self.rules_evaluated}, got {len(self.findings)}"
+            )
+        seen_rule_ids: set[str] = set()
+        duplicate_rule_ids: list[str] = []
+        for item in self.findings:
+            if (
+                item.rule_id in seen_rule_ids
+                and item.rule_id not in duplicate_rule_ids
+            ):
+                duplicate_rule_ids.append(item.rule_id)
+            seen_rule_ids.add(item.rule_id)
+        if duplicate_rule_ids:
+            raise ValueError(
+                "findings must have unique rule_ids, got duplicate "
+                f"rule_id(s): {duplicate_rule_ids}"
+            )
+        return self

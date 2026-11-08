@@ -1,1 +1,1 @@
-"""Tests for shared contracts, configuration, and runtime helpers."""
+"""Tests for shared backend utilities and configuration."""

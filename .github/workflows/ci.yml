@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
@@ -35,3 +35,21 @@ jobs:
       # `extended` tests (real demo PDFs); only live API tests are skipped.
       - name: Run tests (pytest incl. extended, live tests skipped)
         run: uv run pytest -m 'not live'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        run: bun install --cwd frontend --frozen-lockfile
+
+      - name: Lint frontend (eslint)
+        run: bun run --cwd frontend lint
+
+      - name: Type-check frontend (tsc)
+        run: bun run --cwd frontend typecheck
+
+      - name: Run frontend tests (bun test)
+        run: bun run --cwd frontend test
+
+      - name: Build frontend (next build)
+        run: bun run --cwd frontend build

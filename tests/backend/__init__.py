@@ -1,1 +1,1 @@
-"""Backend unit and integration tests."""
+"""Backend test suite."""

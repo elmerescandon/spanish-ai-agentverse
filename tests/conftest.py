@@ -3,10 +3,12 @@
 from collections.abc import Sequence
 from pathlib import Path
 
+import pytest
 from fpdf import FPDF
 from pydantic import BaseModel
 
-from backend.clients.gemini import ThinkingLevel
+from backend.clients.gemini import GeminiClient, ThinkingLevel
+from backend.shared.config import load_settings
 
 PDF_FONT_FAMILY = "Helvetica"
 PDF_FONT_SIZE_PT = 10
@@ -54,3 +56,13 @@ class FakeJsonGenerator:
             raise next_item
         assert isinstance(next_item, response_model)
         return next_item
+
+
+def make_live_gemini_client() -> GeminiClient:
+    """Return a real Gemini client from settings, or skip the live test."""
+    settings = load_settings()
+    try:
+        api_key = settings.require_gemini_api_key()
+    except ValueError:
+        pytest.skip("GEMINI_API_KEY is not set in .env or the environment")
+    return GeminiClient(api_key=api_key, model=settings.gemini_model)

@@ -1,18 +1,22 @@
 [project]
 name = "spanish-ai-agentverse"
 version = "0.1.0"
-description = "Multi-agent clinical protocol review built with Gemini for the AgentVerse UCL hackathon"
+description = "Multi-agent system for the Agentverse UCL hackathon"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "fastapi>=0.115.0",
     "google-genai>=2.3.0",
+    "pydantic>=2.10.0",
     "pydantic-settings>=2.16.2",
     "pypdf>=7.0.0",
+    "uvicorn>=0.34.0",
 ]
 
 [dependency-groups]
 dev = [
     "fpdf2>=2.9.0",
+    "httpx>=0.28.0",
     "httpx2>=2.16.0",
     "mypy>=2.4.1",
     "pre-commit>=4.7.0",

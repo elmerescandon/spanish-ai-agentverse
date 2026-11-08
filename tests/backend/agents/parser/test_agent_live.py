@@ -4,12 +4,10 @@ import logging
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
 
 from backend.agents.parser.agent import parse_protocol
 from backend.agents.parser.logic import collect_citations, count_verified
-from backend.clients.gemini import GeminiClient
-from backend.shared.config import load_settings
+from tests.conftest import make_live_gemini_client
 
 logger = logging.getLogger(__name__)
 
@@ -26,16 +24,7 @@ async def test_parse_protocol_end_to_end_on_fame_d() -> None:
     if not FAME_D_PDF_PATH.exists():
         pytest.skip(f"Demo protocol PDF not found at {FAME_D_PDF_PATH}")
 
-    try:
-        settings = load_settings()
-    except ValidationError:
-        pytest.skip("GEMINI_API_KEY or settings not configured in .env")
-
-    api_key = settings.gemini_api_key.get_secret_value().strip()
-    if not api_key:
-        pytest.skip("GEMINI_API_KEY is empty in .env")
-
-    llm = GeminiClient(api_key=api_key, model=settings.gemini_model)
+    llm = make_live_gemini_client()
     document = await parse_protocol(FAME_D_PDF_PATH, llm)
 
     assert document.design is not None

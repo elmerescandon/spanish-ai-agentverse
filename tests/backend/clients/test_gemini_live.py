@@ -3,11 +3,11 @@
 from pathlib import Path
 
 import pytest
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from pypdf import PdfReader
 
-from backend.clients.gemini import GeminiClient, ThinkingLevel
-from backend.shared.config import load_settings
+from backend.clients.gemini import ThinkingLevel
+from tests.conftest import make_live_gemini_client
 
 DEMO_PROTOCOL_PDF_PATH = Path("data/protocols/demo/NCT04828785_protocol.pdf")
 EXPECTED_NCT_ID = "NCT04828785"
@@ -23,22 +23,10 @@ class ProtocolIdentity(BaseModel):
 
 @pytest.mark.live
 async def test_argon_identifies_demo_protocol_from_first_page() -> None:
-    try:
-        settings = load_settings()
-    except ValidationError:
-        pytest.skip("GEMINI_API_KEY or settings not configured in .env")
-
-    api_key = settings.gemini_api_key.get_secret_value().strip()
-    if not api_key:
-        pytest.skip("GEMINI_API_KEY is empty in .env")
-
     reader = PdfReader(str(DEMO_PROTOCOL_PDF_PATH))
     first_page_text = reader.pages[0].extract_text() or ""
 
-    client = GeminiClient(
-        api_key=api_key,
-        model=settings.gemini_model,
-    )
+    client = make_live_gemini_client()
     prompt = (
         f"=== PAGE 1 ===\n{first_page_text}\n---\n"
         "Extract the ClinicalTrials.gov NCT identifier and the brief study "

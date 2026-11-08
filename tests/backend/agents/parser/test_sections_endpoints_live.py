@@ -5,7 +5,6 @@ import logging
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
 
 from backend.agents.parser.agent import extract_facet
 from backend.agents.parser.logic import (
@@ -16,7 +15,6 @@ from backend.agents.parser.logic import (
 )
 from backend.clients.gemini import GeminiClient
 from backend.clients.pdf_reader import read_pdf_pages
-from backend.shared.config import load_settings
 from backend.shared.messages import (
     EndpointKind,
     EndpointList,
@@ -24,6 +22,7 @@ from backend.shared.messages import (
     ProtocolSection,
     SectionMap,
 )
+from tests.conftest import make_live_gemini_client
 
 logger = logging.getLogger(__name__)
 
@@ -91,16 +90,7 @@ async def test_sections_and_endpoints_on_both_demo_protocols() -> None:
         if not pdf_path.exists():
             pytest.skip(f"Demo protocol PDF not found at {pdf_path}")
 
-    try:
-        settings = load_settings()
-    except ValidationError:
-        pytest.skip("GEMINI_API_KEY or settings not configured in .env")
-
-    api_key = settings.gemini_api_key.get_secret_value().strip()
-    if not api_key:
-        pytest.skip("GEMINI_API_KEY is empty in .env")
-
-    llm = GeminiClient(api_key=api_key, model=settings.gemini_model)
+    llm = make_live_gemini_client()
 
     (
         fame_sections,

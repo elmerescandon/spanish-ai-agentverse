@@ -1,1 +1,1 @@
-"""External service and LLM client wrappers."""
+"""External data and API client wrappers."""

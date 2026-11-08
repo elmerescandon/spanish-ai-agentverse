@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 async def _run_cli(pdf_path: Path) -> str:
     settings = load_settings()
     llm = GeminiClient(
-        api_key=settings.gemini_api_key.get_secret_value(),
+        api_key=settings.require_gemini_api_key(),
         model=settings.gemini_model,
     )
     document = await parse_protocol(pdf_path, llm)

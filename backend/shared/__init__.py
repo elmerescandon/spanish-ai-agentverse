@@ -1,1 +1,1 @@
-"""Shared message contracts, configuration, and runtime helpers."""
+"""Shared utilities, configuration, and data contracts."""

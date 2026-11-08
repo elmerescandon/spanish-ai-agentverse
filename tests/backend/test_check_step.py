@@ -12,7 +12,13 @@ from backend.agents.completeness.logic import (
 from backend.agents.completeness.rules import load_rule_catalogue
 from backend.api.check_step import GapKind, gap_kind, to_check_step
 from backend.api.protocol_pipeline import CheckRun
-from backend.api.schemas import ChangeType, Decision, StepData, StepId
+from backend.api.schemas import (
+    ChangeType,
+    Decision,
+    StepData,
+    StepId,
+    TraceKind,
+)
 from backend.shared.messages import (
     CheckMethod,
     Citation,
@@ -195,6 +201,29 @@ def test_absence_finding_adds_text_and_shows_where_it_searched(
     assert decision.proposed_change.change_type == ChangeType.ADD
     assert decision.proposed_change.before == ""
     assert "1 Protocol Summary (pages 2-4)" in decision.trace[0].text
+
+
+def test_confirmed_flag_shows_why_the_second_opinion_agreed() -> None:
+    report = _report()
+    reason = "The quoted endpoint has no time frame."
+    findings = [
+        f.model_copy(update={"second_opinion_reason": reason})
+        if f.rule_id == "REG-24"
+        else f
+        for f in report.findings
+    ]
+    run = CheckRun(
+        report.model_copy(update={"findings": findings}),
+        STARTED_AT,
+        DURATION_SECONDS,
+    )
+
+    step = to_check_step(run, load_rule_catalogue(), page_count=40)
+
+    last_entry = _decision(step, "REG-24").trace[-1]
+    assert last_entry.kind == TraceKind.CONCLUDE
+    assert last_entry.text == f"Second opinion confirmed: {reason}"
+    assert len(_decision(step, "XS-07").trace) == 3
 
 
 def test_eligibility_finding_points_at_its_criterion(step: StepData) -> None:

@@ -1159,7 +1159,8 @@ def apply_second_opinion(
                 update={
                     "confidence": min(
                         item.finding.confidence, verdict.confidence
-                    )
+                    ),
+                    "second_opinion_reason": verdict.reason,
                 }
             )
         )

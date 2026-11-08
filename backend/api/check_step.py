@@ -191,7 +191,7 @@ def _trace(
         retrieved = f"Searched {searched}."
     else:
         retrieved = f"Found {len(evidence)} supporting quote(s)."
-    return [
+    trace = [
         TraceEntry(
             agent=AGENT_LABEL,
             kind=TraceKind.RETRIEVE,
@@ -212,6 +212,18 @@ def _trace(
             evidence_ids=evidence_ids,
         ),
     ]
+    if finding.second_opinion_reason:
+        trace.append(
+            TraceEntry(
+                agent=AGENT_LABEL,
+                kind=TraceKind.CONCLUDE,
+                text=(
+                    "Second opinion confirmed: "
+                    f"{finding.second_opinion_reason}"
+                ),
+            )
+        )
+    return trace
 
 
 def _proposed_change(finding: RuleFinding) -> ProposedChange | None:

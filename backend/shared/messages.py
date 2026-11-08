@@ -640,6 +640,8 @@ class RuleFinding(BaseModel):
     status_reason: str | None = None
     title: str
     finding: str
+    # Why the second Gemini opinion agreed with a flag; None if not reviewed.
+    second_opinion_reason: str | None = None
     location: FindingLocation = Field(default_factory=FindingLocation)
     evidence: list[Citation] = Field(default_factory=list)
     searched_locations: list[SearchedLocation] = Field(default_factory=list)

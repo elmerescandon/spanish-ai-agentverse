@@ -870,6 +870,9 @@ def test_second_opinion_confirms_rejects_and_caps_on_failure() -> None:
     }
     assert resolved["EST-01"].status == RuleStatus.FIRED
     assert resolved["EST-01"].confidence == pytest.approx(0.75)
+    assert resolved["EST-01"].second_opinion_reason == (
+        "Quote confirms objective is not a treatment effect."
+    )
     assert resolved["EST-05"].status == RuleStatus.CANNOT_ASSESS
     assert resolved["EST-05"].status_reason == (
         "second opinion did not confirm: "

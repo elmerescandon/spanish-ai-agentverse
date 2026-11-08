@@ -95,6 +95,11 @@ export default function DemoPipeline({
   // Set when a "builds on" link opens a finding, so it scrolls into view.
   const scrollTargetId = useRef<string | null>(null);
   const [stepChangeCount, setStepChangeCount] = useState(0);
+  // Which way the last step change moved, so the content slides in from
+  // that side.
+  const [slideDirection, setSlideDirection] = useState<"forward" | "back">(
+    "forward"
+  );
 
   // Ingest comes with the upload; the other agents run in parallel and
   // each settles on its own.
@@ -159,16 +164,29 @@ export default function DemoPipeline({
     return { id: step.id, title: step.title, state };
   });
 
+  const activeIndex = barItems.findIndex((item) => item.id === activeStepId);
+  const previousItem = activeIndex > 0 ? barItems[activeIndex - 1] : null;
+  const nextItem =
+    activeIndex >= 0 && activeIndex < barItems.length - 1
+      ? barItems[activeIndex + 1]
+      : null;
+
   // Only a change of step animates the content; first render and opening a
   // finding within the same step do not.
   const openStep = useCallback(
     (id: string) => {
       if (id !== activeStepId) {
+        const stepIds = steps.map((step) => step.id as string);
+        setSlideDirection(
+          stepIds.indexOf(id) < stepIds.indexOf(activeStepId)
+            ? "back"
+            : "forward"
+        );
         setStepChangeCount((count) => count + 1);
       }
       setActiveStepId(id as StepId);
     },
-    [activeStepId]
+    [activeStepId, steps]
   );
 
   const toggleDecision = (decisionId: string) =>
@@ -246,7 +264,13 @@ export default function DemoPipeline({
 
       <div
         key={stepChangeCount}
-        className={stepChangeCount > 0 ? "animate-file-change" : undefined}
+        className={
+          stepChangeCount > 0
+            ? slideDirection === "back"
+              ? "animate-step-back"
+              : "animate-step-forward"
+            : undefined
+        }
       >
         {stepError ? (
           <section aria-label={currentStep.title} className="space-y-2">
@@ -278,6 +302,33 @@ export default function DemoPipeline({
           />
         )}
       </div>
+
+      <nav
+        aria-label="Step navigation"
+        className="flex items-center justify-between border-t border-zinc-200/60 pb-16 pt-6 font-sans text-sm"
+      >
+        {previousItem ? (
+          <button
+            type="button"
+            onClick={() => openStep(previousItem.id)}
+            className="cursor-pointer text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900"
+          >
+            ← Previous: {previousItem.title}
+          </button>
+        ) : (
+          <span />
+        )}
+        {nextItem && (
+          <button
+            type="button"
+            disabled={nextItem.state === "running"}
+            onClick={() => openStep(nextItem.id)}
+            className="cursor-pointer text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900 disabled:cursor-default disabled:no-underline disabled:opacity-40"
+          >
+            Next: {nextItem.title} →
+          </button>
+        )}
+      </nav>
     </div>
   );
 }

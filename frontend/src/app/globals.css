@@ -369,6 +369,32 @@ html {
   from { opacity: 0; transform: translateY(24px) scale(.97); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Report page (src/app/report/page.tsx). The placeholder appears after a
+   short delay so a fast load never flashes it, shimmers while waiting, and
+   the report then rises in section by section into the same layout. */
+.report-loading {
+  animation: report-rise 300ms ease-out 150ms both;
+}
+.report-shimmer {
+  background: linear-gradient(90deg, #f4f4f5 25%, #fafafa 50%, #f4f4f5 75%);
+  background-size: 200% 100%;
+  animation: report-shimmer 1.4s ease-in-out infinite;
+}
+.report-reveal > * {
+  animation: report-rise 450ms cubic-bezier(.2, .7, .2, 1) both;
+}
+.report-reveal > :nth-child(2) { animation-delay: 70ms; }
+.report-reveal > :nth-child(3) { animation-delay: 140ms; }
+.report-reveal > :nth-child(n + 4) { animation-delay: 210ms; }
+@keyframes report-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+@keyframes report-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

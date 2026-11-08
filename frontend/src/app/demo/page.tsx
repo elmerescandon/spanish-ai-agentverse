@@ -1,21 +1,10 @@
-"use client";
-
-import { useState } from "react";
-import ProtocolIngestion from "@/components/ProtocolIngestion";
-import { type ProtocolSummary } from "@/lib/api";
+import DemoPipeline from "@/components/demo/DemoPipeline";
 
 export default function DemoPage() {
-  const [loadedProtocol, setLoadedProtocol] = useState<ProtocolSummary | null>(
-    null
-  );
-
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <main className="max-w-2xl w-full mx-auto">
-        <ProtocolIngestion
-          onProtocolLoaded={setLoadedProtocol}
-          activeProtocolId={loadedProtocol?.protocol_id}
-        />
+    <div className="min-h-screen bg-white px-6 py-12 text-zinc-900 selection:bg-emerald-100 sm:px-10 lg:px-12">
+      <main className="mx-auto w-full max-w-5xl">
+        <DemoPipeline />
       </main>
     </div>
   );

@@ -1,200 +1,329 @@
 import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DemoPage from "@/app/demo/page";
+import StepBar from "@/components/demo/StepBar";
+import StepView from "@/components/demo/StepView";
 import * as api from "@/lib/api";
+import { MOCK_PROTOCOL_PAGE_COUNT, MOCK_STEPS } from "@/lib/demo/mock";
+import {
+  findTraceabilityErrors,
+  MAX_STEP_METRICS,
+} from "@/lib/demo/traceability";
+import type { StepData } from "@/lib/demo/types";
 
-describe("DemoPage Step 0 Protocol Ingestion Experience", () => {
+type User = ReturnType<typeof userEvent.setup>;
+
+const SLOW_STEP_TIMEOUT_MS = 4000;
+
+async function loadPreset(user: User) {
+  await user.click(
+    screen.getByRole("button", { name: "Try the sample protocol" })
+  );
+}
+
+async function waitForAllStepsDone() {
+  await waitFor(
+    () =>
+      expect(
+        screen.getByRole("button", { name: "Cohort Comparison" })
+      ).toBeEnabled(),
+    { timeout: SLOW_STEP_TIMEOUT_MS }
+  );
+}
+
+describe("demo traceability mock data", () => {
+  it("has an intact chain from every decision to its evidence", () => {
+    expect(
+      findTraceabilityErrors(MOCK_STEPS, MOCK_PROTOCOL_PAGE_COUNT)
+    ).toEqual([]);
+  });
+
+  it("flags a trace entry citing evidence the decision does not hold", () => {
+    const broken: StepData[] = structuredClone(MOCK_STEPS);
+    broken[0].decisions[0].trace[0].evidence_ids = ["e-missing"];
+
+    expect(
+      findTraceabilityErrors(broken, MOCK_PROTOCOL_PAGE_COUNT)
+    ).toContain("decision d-ing-01 trace cites unknown evidence e-missing");
+  });
+
+  it("flags a decision deriving from a later step", () => {
+    const broken: StepData[] = structuredClone(MOCK_STEPS);
+    broken[0].decisions[0].derived_from = ["d-coh-01"];
+
+    const errors = findTraceabilityErrors(broken, MOCK_PROTOCOL_PAGE_COUNT);
+    expect(errors.some((e) => e.includes("derives from d-coh-01"))).toBe(
+      true
+    );
+  });
+
+  it("flags a protocol page beyond the document", () => {
+    const broken: StepData[] = structuredClone(MOCK_STEPS);
+    broken[0].decisions[0].evidence[0].page = MOCK_PROTOCOL_PAGE_COUNT + 1;
+
+    const errors = findTraceabilityErrors(broken, MOCK_PROTOCOL_PAGE_COUNT);
+    expect(errors.some((e) => e.includes("cites page"))).toBe(true);
+  });
+
+  it("flags a step with more overview metrics than allowed", () => {
+    const broken: StepData[] = structuredClone(MOCK_STEPS);
+    broken[0].metrics.push({ label: "Extra", value: "1" });
+
+    const errors = findTraceabilityErrors(broken, MOCK_PROTOCOL_PAGE_COUNT);
+    expect(
+      errors.some((e) => e.includes(`at most ${MAX_STEP_METRICS}`))
+    ).toBe(true);
+  });
+});
+
+describe("demo pipeline step bar flow", () => {
   beforeEach(() => {
     mock.restore();
   });
 
-  it("renders the /demo page with Step 0 ingestion and NO active protocol or recommendations", async () => {
-    spyOn(api, "checkHealth").mockResolvedValue({ status: "ok" });
-
+  it("shows a single CTA and the upload before any protocol is loaded", () => {
     render(<DemoPage />);
 
-    // Step 0 Intake section is present with icon header
+    expect(screen.getAllByRole("heading")).toHaveLength(1);
     expect(
-      screen.getByRole("heading", {
-        name: "Protocol Intake & Data Ingestion",
+      screen.getByRole("heading", { name: "Analyze a draft protocol" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Try the sample protocol" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("navigation", { name: "Pipeline steps" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "browse" })
+    ).toBeInTheDocument();
+  });
+
+  it("opens the pipeline after a file is uploaded through the box", async () => {
+    spyOn(api, "createProtocol").mockResolvedValue({
+      protocol_id: "proto-upl-1",
+      title: "Uploaded Draft",
+      status: "ready",
+      data: {},
+    });
+    const user = userEvent.setup();
+    render(<DemoPage />);
+
+    await user.upload(
+      screen.getByLabelText("Upload protocol file"),
+      new File(['{"title": "Uploaded Draft"}'], "draft.json", {
+        type: "application/json",
       })
+    );
+
+    await waitFor(
+      () =>
+        expect(
+          screen.getByRole("navigation", { name: "Pipeline steps" })
+        ).toBeInTheDocument(),
+      { timeout: SLOW_STEP_TIMEOUT_MS }
+    );
+  });
+
+  it("shows the step bar on the first step after a preset loads", async () => {
+    const user = userEvent.setup();
+    render(<DemoPage />);
+    await loadPreset(user);
+
+    expect(
+      screen.getByRole("navigation", { name: "Pipeline steps" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Data Ingestion" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Data Ingestion" })
+    ).toBeEnabled();
+  });
+
+  it("completes steps in order and keeps later ones disabled until done", async () => {
+    const user = userEvent.setup();
+    render(<DemoPage />);
+    await loadPreset(user);
+
+    const check = screen.getByRole("button", {
+      name: "Completeness & Consistency",
+    });
+    const cohort = screen.getByRole("button", { name: "Cohort Comparison" });
+    expect(check).toBeDisabled();
+    expect(cohort).toBeDisabled();
+
+    await waitFor(() => expect(check).toBeEnabled(), {
+      timeout: SLOW_STEP_TIMEOUT_MS,
+    });
+    expect(cohort).toBeDisabled();
+
+    await waitForAllStepsDone();
+    // The user stayed on step 1 while later steps completed.
+    expect(
+      screen.getByRole("heading", { name: "Data Ingestion" })
+    ).toBeInTheDocument();
+  });
+
+  it("navigates with arrows, segments and keyboard keys", async () => {
+    const user = userEvent.setup();
+    render(<DemoPage />);
+    await loadPreset(user);
+    await waitForAllStepsDone();
+
+    expect(
+      screen.getByRole("button", { name: "Previous step" })
+    ).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(
+      screen.getByRole("heading", { name: "Completeness & Consistency" })
     ).toBeInTheDocument();
 
-    // Top header and Home redirect button were removed per design
+    await user.click(
+      screen.getByRole("button", { name: "Protocol Comparison" })
+    );
     expect(
-      screen.queryByText("Protocol Gap Agent — Interactive Demo")
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText("Step 0 Ingestion")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: /Home/i })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("Connected (FastAPI Proxy)")
-    ).not.toBeInTheDocument();
-
-    // Verify Active Protocol and Pipeline Recommendations are NOT shown
-    expect(screen.queryByText("Active Protocol")).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("Pipeline Recommendations")
-    ).not.toBeInTheDocument();
-  });
-
-  it("handles clicking 'Run Preselected Protocol' to trigger protocol ingestion", async () => {
-    spyOn(api, "checkHealth").mockResolvedValue({ status: "ok" });
-
-    const user = userEvent.setup();
-    render(<DemoPage />);
-
-    const runButton = screen.getByRole("button", {
-      name: /Run Preselected Protocol/i,
-    });
-    expect(runButton).toBeInTheDocument();
-
-    await user.click(runButton);
-
-    // Displays the preselected file intake card
-    expect(
-      screen.getByText("Phase_3_SGLT2_High_Risk_T2D_Protocol.json")
+      screen.getByRole("heading", { name: "Protocol Comparison" })
     ).toBeInTheDocument();
 
-    // Shows protocol title in the UI
+    await user.keyboard("{ArrowRight}");
     expect(
-      screen.getAllByText(
-        /Phase III Evaluation of SGLT2 Inhibitor in High-Risk T2D Cohort/i
-      ).length
-    ).toBeGreaterThanOrEqual(1);
+      screen.getByRole("heading", { name: "Cohort Comparison" })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next step" })).toBeDisabled();
 
-    // Still does NOT render Active Protocol or Recommendations
-    expect(screen.queryByText("Active Protocol")).not.toBeInTheDocument();
+    await user.keyboard("{ArrowLeft}");
     expect(
-      screen.queryByText("Pipeline Recommendations")
-    ).not.toBeInTheDocument();
+      screen.getByRole("heading", { name: "Protocol Comparison" })
+    ).toBeInTheDocument();
   });
 
-  it("handles JSON protocol file upload and displays ingested file status", async () => {
-    spyOn(api, "checkHealth").mockResolvedValue({ status: "ok" });
-    const uploadedSummary: api.ProtocolSummary = {
-      protocol_id: "proto-upl-999",
-      title: "Phase 2 Oncology Protocol Draft",
-      status: "ready",
-      data: {
-        phase: "Phase 2",
-        indication: "Advanced Melanoma",
-        target_enrollment: 350,
-        primary_endpoint: "Progression-Free Survival at 12 Months",
-        source_file: "custom_oncology.json",
-        file_size: "1.2 KB",
-      },
-    };
-
-    const createSpy = spyOn(api, "createProtocol").mockResolvedValue(
-      uploadedSummary
-    );
-
+  it("ignores arrow keys typed inside a text input", async () => {
     const user = userEvent.setup();
     render(<DemoPage />);
+    await loadPreset(user);
+    await waitForAllStepsDone();
 
-    const fileInput = screen.getByLabelText(/Upload protocol file/i);
-
-    const jsonPayload = JSON.stringify({
-      title: "Phase 2 Oncology Protocol Draft",
-      data: {
-        phase: "Phase 2",
-        indication: "Advanced Melanoma",
-      },
-    });
-
-    const file = new File([jsonPayload], "custom_oncology.json", {
-      type: "application/json",
-    });
-
-    await user.upload(fileInput, file);
-
-    await waitFor(
-      () => {
-        expect(createSpy).toHaveBeenCalledWith(
-          expect.objectContaining({
-            title: "Phase 2 Oncology Protocol Draft",
-          })
-        );
-      },
-      { timeout: 3000 }
-    );
-
-    // Displays uploaded file badge and loaded toast
-    await waitFor(
-      () => {
-        expect(
-          screen.getAllByText("custom_oncology.json").length
-        ).toBeGreaterThanOrEqual(1);
-        expect(
-          screen.getAllByText(/Phase 2 Oncology Protocol Draft/i).length
-        ).toBeGreaterThanOrEqual(1);
-      },
-      { timeout: 3000 }
-    );
-
-    // Confirms sections remain hidden
-    expect(screen.queryByText("Active Protocol")).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("Pipeline Recommendations")
-    ).not.toBeInTheDocument();
+    const field = document.createElement("input");
+    document.body.appendChild(field);
+    try {
+      fireEvent.keyDown(field, { key: "ArrowRight" });
+      expect(
+        screen.getByRole("heading", { name: "Data Ingestion" })
+      ).toBeInTheDocument();
+    } finally {
+      field.remove();
+    }
   });
 
-  it("handles PDF protocol file upload", async () => {
-    spyOn(api, "checkHealth").mockResolvedValue({ status: "ok" });
-    const pdfProtocolSummary: api.ProtocolSummary = {
-      protocol_id: "proto-pdf-777",
-      title: "Clinical Protocol Draft: Pediatric Diabetes Protocol",
-      status: "ready",
-      data: {
-        source_file: "pediatric_diabetes_protocol.pdf",
-        document_format: "PDF Clinical Protocol",
-      },
-    };
-
-    const createSpy = spyOn(api, "createProtocol").mockResolvedValue(
-      pdfProtocolSummary
-    );
-
+  it("animates content only when the step changes, not on first render", async () => {
     const user = userEvent.setup();
     render(<DemoPage />);
+    await loadPreset(user);
 
-    const fileInput = screen.getByLabelText(/Upload protocol file/i);
-    const pdfFile = new File(
-      ["dummy pdf bytes"],
-      "pediatric_diabetes_protocol.pdf",
-      {
-        type: "application/pdf",
-      }
+    const stepContent = () =>
+      screen.getByRole("region", { name: /Data Ingestion|Completeness/ })
+        .parentElement!;
+    expect(stepContent()).not.toHaveClass("animate-file-change");
+
+    await user.click(
+      screen.getByRole("button", { name: /Eligibility criteria extracted/ })
     );
-
-    await user.upload(fileInput, pdfFile);
+    await user.click(
+      screen.getByRole("button", { name: "Back to findings" })
+    );
+    expect(stepContent()).not.toHaveClass("animate-file-change");
 
     await waitFor(
-      () => {
-        expect(createSpy).toHaveBeenCalledWith(
-          expect.objectContaining({
-            title: "Clinical Protocol Draft: Pediatric Diabetes Protocol",
-          })
-        );
-      },
-      { timeout: 3000 }
-    );
-
-    await waitFor(
-      () => {
+      () =>
         expect(
-          screen.getAllByText("pediatric_diabetes_protocol.pdf").length
-        ).toBeGreaterThanOrEqual(1);
-      },
-      { timeout: 3000 }
+          screen.getByRole("button", { name: "Next step" })
+        ).toBeEnabled(),
+      { timeout: SLOW_STEP_TIMEOUT_MS }
+    );
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(stepContent()).toHaveClass("animate-file-change");
+  });
+
+  it("opens a finding under the step bar and goes back by button or Esc", async () => {
+    const user = userEvent.setup();
+    render(<DemoPage />);
+    await loadPreset(user);
+
+    await user.click(
+      screen.getByRole("button", { name: /Eligibility criteria extracted/ })
+    );
+    expect(
+      screen.getByRole("heading", { name: "Eligibility criteria extracted" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: "Pipeline steps" })
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Back to findings" })
+    );
+    expect(
+      screen.getByRole("heading", { name: "Data Ingestion" })
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: /Eligibility criteria extracted/ })
+    );
+    await user.keyboard("{Escape}");
+    expect(
+      screen.queryByRole("button", { name: "Back to findings" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Data Ingestion" })
+    ).toBeInTheDocument();
+  });
+});
+
+describe("StepView in isolation", () => {
+  it("renders any step from props alone, one row per finding", () => {
+    const peers = MOCK_STEPS.find((step) => step.id === "peers")!;
+    render(<StepView step={peers} onOpenDecision={() => {}} />);
+
+    expect(
+      screen.getByRole("heading", { name: "Protocol Comparison" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("HbA1c ≥ 9.0")).toBeInTheDocument();
+    for (const decision of peers.decisions) {
+      expect(
+        screen.getByRole("button", { name: new RegExp(decision.title) })
+      ).toBeInTheDocument();
+    }
+  });
+});
+
+describe("StepBar in isolation", () => {
+  it("marks the viewed step and only lets finished steps be opened", async () => {
+    const user = userEvent.setup();
+    const onSelect = mock();
+    render(
+      <StepBar
+        items={[
+          { id: "ingest", title: "Data Ingestion", state: "done" },
+          { id: "check", title: "Completeness", state: "done" },
+          { id: "peers", title: "Peers", state: "running" },
+          { id: "cohort", title: "Cohort", state: "pending" },
+        ]}
+        activeId="check"
+        onSelect={onSelect}
+      />
     );
 
-    expect(screen.queryByText("Active Protocol")).not.toBeInTheDocument();
     expect(
-      screen.queryByText("Pipeline Recommendations")
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: "Completeness" })
+    ).toHaveAttribute("aria-current", "step");
+    expect(screen.getByRole("button", { name: "Peers" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cohort" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next step" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Previous step" }));
+    expect(onSelect).toHaveBeenCalledWith("ingest");
   });
 });

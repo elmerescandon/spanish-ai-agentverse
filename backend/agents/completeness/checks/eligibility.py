@@ -8,6 +8,7 @@ import re
 from collections.abc import Callable, Mapping
 
 from backend.agents.completeness.checks.common import (
+    HBA1C_PATTERN,
     cannot_assess_outcome,
     find_pattern_citation,
     fired_outcome,
@@ -46,9 +47,6 @@ LOOK_BACK_WINDOW_PATTERN = re.compile(
 )
 # ELQ-09: HbA1c given in percent needs the IFCC unit alongside; eGFR needs
 # the estimating equation named.
-HBA1C_PATTERN = re.compile(
-    r"\b(?:hba1c|a1c|glycated\s+ha?emoglobin)\b", re.IGNORECASE
-)
 PERCENT_PATTERN = re.compile(r"%")
 MMOL_PER_MOL_PATTERN = re.compile(r"mmol\s*/\s*mol", re.IGNORECASE)
 EGFR_PATTERN = re.compile(r"\begfr\b|\bestimated\s+glomerular", re.IGNORECASE)

@@ -18,24 +18,7 @@ from backend.agents.completeness.rules import (
 )
 from backend.shared.messages import CheckMethod, RuleFamily, SourceTier
 
-EXPECTED_DM_NUMBERS = (
-    1,
-    2,
-    6,
-    11,
-    12,
-    13,
-    14,
-    15,
-    17,
-    20,
-    21,
-    23,
-    28,
-    32,
-    43,
-    45,
-)
+EXPECTED_DM_NUMBERS = tuple(range(1, 46))
 EXPECTED_RULE_IDS: frozenset[str] = frozenset(
     [f"XS-{index:02d}" for index in range(1, 23)]
     + [f"EST-{index:02d}" for index in range(1, 27)]
@@ -48,7 +31,7 @@ EXPECTED_FAMILY_COUNTS: dict[RuleFamily, int] = {
     RuleFamily.XS: 22,
     RuleFamily.EST: 26,
     RuleFamily.REG: 39,
-    RuleFamily.DM: 16,
+    RuleFamily.DM: 45,
     RuleFamily.ELQ: 23,
     RuleFamily.EX: 50,
 }

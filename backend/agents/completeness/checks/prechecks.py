@@ -4,6 +4,11 @@ import re
 from collections.abc import Callable, Mapping
 
 from backend.agents.completeness.checks.common import (
+    CGM_TIR_PATTERN,
+    CONTINUOUS_CHANGE_PATTERN,
+    HBA1C_PATTERN,
+    HYPOGLYCEMIA_ENDPOINT_PATTERN,
+    RESPONDER_TERM_PATTERN,
     absence_fired_outcome,
     extract_all_timepoints_weeks,
     find_pattern_citation,
@@ -19,8 +24,10 @@ from backend.shared.messages import (
     EndpointKind,
     EpochType,
     EstimandStrategy,
+    InterventionType,
     M11Heading,
     ProtocolDocument,
+    TrialPhase,
     TrialProfile,
 )
 
@@ -28,24 +35,30 @@ type JudgementPrecheck = Callable[
     [ProtocolDocument, TrialProfile], CheckOutcome | None
 ]
 
-CONTINUOUS_CHANGE_PATTERN = re.compile(
-    r"\bchange\s+from\s+baseline\b", re.IGNORECASE
-)
-RESPONDER_TERM_PATTERN = re.compile(
-    r"(?:\b(?:proportion|percentage|rate|responder|achieving)\b|[<≤])",
-    re.IGNORECASE,
-)
-HBA1C_PATTERN = re.compile(
-    r"\b(?:hba1c|a1c|glycated\s+ha?emoglobin)\b", re.IGNORECASE
-)
-HYPOGLYCEMIA_ENDPOINT_PATTERN = re.compile(
-    r"\bhypoglyc(?:a?emia|emic)\b", re.IGNORECASE
-)
-
 # REG-39: first-person wording. Case-sensitive so "US" (the country) does
 # not match the pronoun "us".
 BMI_PATTERN = re.compile(r"\bbmi\b|body\s+mass\s+index", re.IGNORECASE)
 FIRST_PERSON_PATTERN = re.compile(r"\b(?:[Ww]e|[Oo]ur|us)\b")
+
+HYS_LAW_PATTERN = re.compile(r"\bhy['’]?s\s+law\b", re.IGNORECASE)
+# DM-42: validated diabetes-specific PROs. Acronyms are case-sensitive so
+# "PAID" does not match "participants will be paid".
+DIABETES_PRO_PATTERN = re.compile(
+    r"\b(?:DTSQ[sc]?|DQOL|ADDQoL|PAID|HFS(?:-II)?|DDS)\b"
+    r"|(?i:diabetes\s+treatment\s+satisfaction|diabetes\s+distress"
+    r"|hypoglyc(?:a)?emia\s+fear)"
+)
+SHORT_TRIAL_WEEKS = 8.0  # below this, HbA1c cannot show the full effect
+CONFIRMATORY_PHASES = frozenset({TrialPhase.PHASE3, TrialPhase.PHASE4})
+SMALL_MOLECULE_CLASSES = frozenset(
+    {
+        DrugClass.METFORMIN,
+        DrugClass.SULFONYLUREA,
+        DrugClass.DPP4_INHIBITOR,
+        DrugClass.SGLT2_INHIBITOR,
+        DrugClass.TZD,
+    }
+)
 
 MIN_SIX_MONTH_WEEKS = 25.0
 MAX_THREE_MONTH_WEEKS = 13.0
@@ -448,6 +461,127 @@ def precheck_elq_19(
     return passed_outcome("No eligibility criterion limits BMI.")
 
 
+def precheck_dm_09(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """DM-09: Not applicable when the primary timepoint is 8 weeks or more."""
+    if document.endpoints is None:
+        return None
+    weeks = [
+        week
+        for ep in document.endpoints
+        if ep.kind == EndpointKind.PRIMARY and ep.time_frame
+        for week in extract_all_timepoints_weeks(ep.time_frame)
+    ]
+    if not weeks or max(weeks) < SHORT_TRIAL_WEEKS:
+        return None
+    return not_applicable_outcome(
+        f"the primary assessment is at week {max(weeks):g}, not a short trial"
+    )
+
+
+def precheck_dm_10(
+    _document: ProtocolDocument, profile: TrialProfile
+) -> CheckOutcome | None:
+    """DM-10: Not applicable in phase 3 or 4; else Gemini decides."""
+    if profile.phase is None or profile.phase.value not in CONFIRMATORY_PHASES:
+        return None
+    return not_applicable_outcome(
+        "a confirmatory phase trial is not a dose-ranging study",
+        evidence=[profile.phase.citation],
+    )
+
+
+def _no_endpoint_matches(
+    document: ProtocolDocument, pattern: re.Pattern[str], reason: str
+) -> CheckOutcome | None:
+    """Not applicable when no endpoint matches pattern; else Gemini."""
+    if document.endpoints is None:
+        return None
+    if any(pattern.search(ep.description) for ep in document.endpoints):
+        return None
+    return not_applicable_outcome(reason)
+
+
+def precheck_dm_30(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """DM-30: Not applicable without a hypoglycaemia endpoint."""
+    return _no_endpoint_matches(
+        document,
+        HYPOGLYCEMIA_ENDPOINT_PATTERN,
+        "no endpoint measures hypoglycaemia",
+    )
+
+
+def precheck_dm_33(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """DM-33: Not applicable without a CGM endpoint."""
+    return _no_endpoint_matches(
+        document, CGM_TIR_PATTERN, "no endpoint uses CGM"
+    )
+
+
+def precheck_dm_35(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """DM-35: Passes when CV events are adjudicated; else Gemini judges."""
+    monitoring = document.safety_monitoring
+    if monitoring is None or monitoring.has_cv_adjudication is None:
+        return None
+    if not monitoring.has_cv_adjudication.value:
+        return None
+    return passed_outcome(
+        "Cardiovascular events are adjudicated.",
+        evidence=[monitoring.has_cv_adjudication.citation],
+    )
+
+
+def precheck_dm_36(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """DM-36: Passes on Hy's law liver rules; else Gemini judges."""
+    citation = find_pattern_citation(document, HYS_LAW_PATTERN)
+    if citation is None:
+        return None
+    return passed_outcome(
+        "Liver monitoring follows Hy's law rules.", evidence=[citation]
+    )
+
+
+def precheck_dm_38(
+    _document: ProtocolDocument, profile: TrialProfile
+) -> CheckOutcome | None:
+    """DM-38: Not applicable for small-molecule classes; else Gemini."""
+    if (
+        profile.intervention_type is not None
+        and profile.intervention_type.value == InterventionType.BIOLOGIC
+    ):
+        return None
+    if (
+        profile.drug_class is None
+        or profile.drug_class.value not in SMALL_MOLECULE_CLASSES
+    ):
+        return None
+    return not_applicable_outcome(
+        "the drug is a small molecule, not a protein or peptide",
+        evidence=[profile.drug_class.citation],
+    )
+
+
+def precheck_dm_42(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """DM-42: Passes on a named diabetes PRO; else Gemini judges."""
+    citation = find_pattern_citation(document, DIABETES_PRO_PATTERN)
+    if citation is None:
+        return None
+    return passed_outcome(
+        "A validated diabetes-specific PRO is used.", evidence=[citation]
+    )
+
+
 JUDGEMENT_PRECHECKS: Mapping[str, JudgementPrecheck] = {
     "EST-07": precheck_est_07,
     "EST-08": precheck_est_08,
@@ -468,4 +602,12 @@ JUDGEMENT_PRECHECKS: Mapping[str, JudgementPrecheck] = {
     "REG-39": precheck_reg_39,
     "ELQ-12": precheck_elq_12,
     "ELQ-19": precheck_elq_19,
+    "DM-09": precheck_dm_09,
+    "DM-10": precheck_dm_10,
+    "DM-30": precheck_dm_30,
+    "DM-33": precheck_dm_33,
+    "DM-35": precheck_dm_35,
+    "DM-36": precheck_dm_36,
+    "DM-38": precheck_dm_38,
+    "DM-42": precheck_dm_42,
 }

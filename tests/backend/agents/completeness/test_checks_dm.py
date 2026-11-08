@@ -47,7 +47,7 @@ def test_deterministic_checks_registry_matches_catalogue() -> None:
         for rule in catalogue.rules
         if rule.check == CheckMethod.JUDGEMENT
     }
-    assert len(deterministic_ids) == 55
+    assert len(deterministic_ids) == 64
     assert (
         set(DETERMINISTIC_CHECKS)
         == deterministic_ids - EXTERNAL_INPUT_DETERMINISTIC_RULES

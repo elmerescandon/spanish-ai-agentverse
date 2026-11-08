@@ -1,5 +1,5 @@
 # Completeness & Consistency Checker — Rule Catalogue
-# Families: REG (39), EST (26), XS (22), DM (16), ELQ (23), EX (50).
+# Families: REG (39), EST (26), XS (22), DM (45), ELQ (23), EX (50).
 # All titles, triggers (flag_if), and fixes are written in project-own wording
 # and cite public regulatory/registry standards.
 
@@ -1564,6 +1564,441 @@ fix = "Add blood ketone monitoring thresholds, sick-day insulin/hydration rules,
 source = "EMA CPMP/EWP/1080/00 Rev. 2"
 source_tier = "final_guidance"
 
+
+[[rule]]
+id = "DM-03"
+family = "DM"
+severity = "S2"
+detection = ["X"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES", "TRIAL_INTERVENTION"]
+check = "judgement"
+title = "HbA1c read before 12 weeks of stable dosing"
+flag_if = "The HbA1c used for efficacy is measured before participants have had about 12 weeks on a stable dose."
+fix = "Move the efficacy HbA1c assessment to at least 12 weeks after the final dose step."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-04"
+family = "DM"
+severity = "S2"
+detection = ["P"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "deterministic"
+title = "HbA1c not from a central certified assay"
+flag_if = "HbA1c is not analysed by a central laboratory using an NGSP-certified (or IFCC-traceable) method."
+fix = "Name the central laboratory and its NGSP or IFCC certification."
+source = "FDA draft guidance (non-binding): Diabetes Mellitus: Efficacy Endpoints (May 2023)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-05"
+family = "DM"
+severity = "S2"
+detection = ["J", "C"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_DESIGN", "INTRODUCTION"]
+check = "judgement"
+title = "No 12-month durability data planned"
+flag_if = "Neither this trial nor the wider programme it cites provides glycaemic data over at least 12 months."
+fix = "Add a 12-month extension or name the trial in the programme that supplies it."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-07"
+family = "DM"
+severity = "S2"
+detection = ["P"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "HbA1c responder rate used as primary"
+flag_if = "The primary endpoint is the share of participants reaching an HbA1c target (for example below 7%)."
+fix = "Make change in HbA1c primary and report the responder rate as secondary."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-08"
+family = "DM"
+severity = "S3"
+detection = ["P"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "deterministic"
+title = "FPG not central or not in mg/dL"
+flag_if = "Fasting plasma glucose is measured but not by a central laboratory, or not reported in mg/dL for a US submission."
+fix = "Measure FPG centrally and report it in mg/dL (and mmol/L)."
+source = "FDA draft guidance (non-binding): Diabetes Mellitus: Efficacy Endpoints (May 2023)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-09"
+family = "DM"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "TRIAL_DESIGN"]
+check = "judgement"
+title = "Short trial uses HbA1c as primary"
+flag_if = "A trial shorter than 8 weeks uses HbA1c as its primary endpoint instead of glucose metrics or fructosamine."
+fix = "Use glucose metrics or fructosamine as the primary endpoint in short trials."
+source = "FDA draft guidance (non-binding): Diabetes Mellitus: Efficacy Endpoints (May 2023)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-10"
+family = "DM"
+severity = "S2"
+detection = ["P"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["TRIAL_DESIGN", "TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Dose-ranging with too few doses or weeks"
+flag_if = "A dose-ranging study tests fewer than 3 doses or treats for less than 8 weeks."
+fix = "Test at least 3 doses for at least 8 weeks."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-16"
+family = "DM"
+severity = "S2"
+detection = ["J", "C"]
+applies_when = ["DIABETES_TYPE_T2D", "CONTROL_IS_ACTIVE"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION", "INTRODUCTION"]
+check = "judgement"
+title = "Comparator is not current standard of care"
+flag_if = "The active comparator does not reflect current standard of care for the population."
+fix = "Choose a comparator in line with current ADA/EASD consensus and cite it."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-18"
+family = "DM"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "IS_ADD_ON"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Background dose may change during maintenance"
+flag_if = "Background glucose-lowering doses may be changed during the maintenance period for reasons other than safety."
+fix = "Allow changes only for safety and record them as intercurrent events."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-19"
+family = "DM"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION", "TRIAL_POPULATION"]
+check = "judgement"
+title = "Washout of prior glucose-lowering drugs missing"
+flag_if = "The protocol does not say how earlier glucose-lowering drugs are washed out, and the trial is not long enough to make washout unnecessary."
+fix = "Add a washout period or justify why none is needed."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-22"
+family = "DM"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS", "OBJECTIVES_AND_ESTIMANDS"]
+check = "judgement"
+title = "Rescue modelled only from non-rescued people"
+flag_if = "A hypothetical strategy for rescue imputes outcomes using only participants who were never rescued."
+fix = "Use reference-based (placebo) or retrieved-dropout imputation instead."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-24"
+family = "DM"
+severity = "S2"
+detection = ["F"]
+applies_when = ["DIABETES_TYPE_T2D", "IS_RANDOMIZED"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION", "STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "No strata for baseline HbA1c or prior therapy"
+flag_if = "Randomisation is not stratified by baseline HbA1c (for example 8% or less versus above 8%) or by prior therapy."
+fix = "Stratify by baseline HbA1c and prior therapy."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-25"
+family = "DM"
+severity = "S2"
+detection = ["P"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Elderly age bands not pre-specified"
+flag_if = "Subgroups for older adults are not pre-specified as 65-74, 75-84 and 85 years or over."
+fix = "Pre-specify age subgroups 65-74, 75-84 and 85 or over."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-26"
+family = "DM"
+severity = "S2"
+detection = ["F"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Standard diabetes subgroups not pre-specified"
+flag_if = "Subgroups by sex, race, ethnicity, diabetes duration and baseline HbA1c are not all pre-specified."
+fix = "Pre-specify subgroups by sex, race, ethnicity, diabetes duration and baseline HbA1c."
+source = "FDA draft guidance (non-binding): Diabetes Mellitus: Efficacy Endpoints (May 2023)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-27"
+family = "DM"
+severity = "S3"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_DESIGN", "TRIAL_POPULATION"]
+check = "judgement"
+title = "Few participants from EU-like care settings"
+flag_if = "For an EMA submission, too few participants come from care settings comparable to the EU."
+fix = "Note in the site plan how EU-like care settings are represented."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-29"
+family = "DM"
+severity = "S2"
+detection = ["F"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "deterministic"
+title = "No meter or CGM named for glucose readings"
+flag_if = "No glucose meter or CGM device is specified for confirming hypoglycaemia and glucose values."
+fix = "Name the glucose meter or CGM device participants will use."
+source = "FDA draft guidance (non-binding): Diabetes Mellitus: Efficacy Endpoints (May 2023)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-30"
+family = "DM"
+severity = "S2"
+detection = ["X"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES", "REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "Severe hypoglycaemia not adjudicated"
+flag_if = "Level 3 hypoglycaemia is used as an endpoint but events are not reviewed by an adjudication committee."
+fix = "Add adjudication of level 3 events by an independent committee."
+source = "FDA draft guidance (non-binding): Diabetes Mellitus: Efficacy Endpoints (May 2023)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-31"
+family = "DM"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS", "ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Hypoglycaemia analysis leaves out time windows"
+flag_if = "The hypoglycaemia analysis excludes the titration period or the nocturnal window instead of covering the whole period, 24 hours a day."
+fix = "Analyse hypoglycaemia over the whole treatment period and all 24 hours."
+source = "FDA draft guidance (non-binding): Diabetes Mellitus: Efficacy Endpoints (May 2023)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-33"
+family = "DM"
+severity = "S2"
+detection = ["P"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "CGM endpoint device not fixed"
+flag_if = "CGM endpoints allow several device models, or use a device not authorised in the US."
+fix = "Use one authorised CGM device model for every CGM endpoint."
+source = "FDA draft guidance (non-binding): Diabetes Mellitus: Efficacy Endpoints (May 2023)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-34"
+family = "DM"
+severity = "S2"
+detection = ["F"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Per-episode hypoglycaemia details not collected"
+flag_if = "Each hypoglycaemia episode is not recorded with its onset time, relation to dose and meals, severity, duration and outcome."
+fix = "Add per-episode hypoglycaemia fields to the case report form."
+source = "FDA draft guidance (non-binding): Diabetes Mellitus: Efficacy Endpoints (May 2023)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-35"
+family = "DM"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "CV events not collected for programme review"
+flag_if = "Cardiovascular events are not collected in a way that supports a programme-level cardiovascular assessment."
+fix = "Add MACE adjudication or justify why it is not needed."
+source = "EMA reflection paper EMA/CHMP/50549/2015 and EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-36"
+family = "DM"
+severity = "S2"
+detection = ["F"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "No liver monitoring plan"
+flag_if = "Liver enzymes are not monitored with rules that separate a drug effect from diabetes-related fluctuation."
+fix = "Add Hy's law based liver monitoring and follow-up rules."
+source = "FDA draft guidance (non-binding): Type 2 Diabetes Mellitus: Evaluating the Safety of New Drugs (March 2020)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-37"
+family = "DM"
+severity = "S2"
+detection = ["J", "C"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Class adverse events of special interest absent"
+flag_if = "Adverse events of special interest known for the drug class (pancreatitis, DKA, genital infections, retinopathy worsening, gallbladder events, thyroid C-cell, injection-site reactions) are not listed."
+fix = "List the class-relevant adverse events of special interest and how they are captured."
+source = "Investigator's Brochure and earlier trials of the same drug class"
+source_tier = "product_evidence"
+
+[[rule]]
+id = "DM-38"
+family = "DM"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "No anti-drug antibody plan for a peptide"
+flag_if = "A protein or peptide drug has no plan to measure anti-drug antibody incidence and titres over time."
+fix = "Add immunogenicity sampling and analysis."
+source = "FDA draft guidance (non-binding): Type 2 Diabetes Mellitus: Evaluating the Safety of New Drugs (March 2020)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-39"
+family = "DM"
+severity = "S2"
+detection = ["F"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "deterministic"
+title = "Cardiovascular risk factors not scheduled"
+flag_if = "Lipids, body weight, waist circumference, blood pressure or heart rate are missing from the schedule of activities."
+fix = "Add each cardiovascular risk factor to the schedule of activities."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-40"
+family = "DM"
+severity = "S2"
+detection = ["F"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "deterministic"
+title = "Microvascular safety not scheduled"
+flag_if = "Retinopathy (eye examination) or nephropathy (urine albumin-to-creatinine ratio) is not assessed in the schedule of activities."
+fix = "Schedule eye examinations and UACR measurements."
+source = "FDA draft guidance (non-binding): Type 2 Diabetes Mellitus: Evaluating the Safety of New Drugs (March 2020)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-41"
+family = "DM"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "INTERVENTION_IS_DRUG", "IS_PHASE_3"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION", "TRIAL_DESIGN"]
+check = "judgement"
+title = "Exclusions block populations FDA wants studied"
+flag_if = "Phase 3 exclusions shut out groups the programme must include (CKD stage 3-4, established cardiovascular disease, people over 65) without pointing to another trial that covers them."
+fix = "Loosen these exclusions or name the trial in the programme that covers them."
+source = "FDA draft guidance (non-binding): Type 2 Diabetes Mellitus: Evaluating the Safety of New Drugs (March 2020)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-42"
+family = "DM"
+severity = "S3"
+detection = ["F"]
+applies_when = ["DIABETES_TYPE_T2D", "IS_PHASE_3"]
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "No validated diabetes-specific PRO"
+flag_if = "A confirmatory trial has no validated diabetes-specific patient-reported outcome."
+fix = "Add a validated diabetes PRO, such as a treatment-satisfaction questionnaire."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-44"
+family = "DM"
+severity = "S2"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T1D"]
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "judgement"
+title = "Insulin-dose reduction claimed as efficacy"
+flag_if = "In type 1 diabetes, a fall in insulin dose is claimed as benefit without a matching hypoglycaemia or weight benefit."
+fix = "Reframe the endpoint around hypoglycaemia or weight benefit."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
 # ---------------------------------------------------------------------------
 # Family ELQ: Eligibility-criteria quality (ELQ-01 to ELQ-23)
 # ---------------------------------------------------------------------------

@@ -52,6 +52,32 @@ SHARED_UNIT_LIST_PATTERN = re.compile(
 )
 
 
+# Clinical wording shared by several diabetes and eligibility checks.
+CONTINUOUS_CHANGE_PATTERN = re.compile(
+    r"\bchange\s+from\s+baseline\b", re.IGNORECASE
+)
+RESPONDER_TERM_PATTERN = re.compile(
+    r"(?:\b(?:proportion|percentage|rate|responder|achieving)\b|[<≤])",
+    re.IGNORECASE,
+)
+HBA1C_PATTERN = re.compile(
+    r"\b(?:hba1c|a1c|glycated\s+ha?emoglobin)\b", re.IGNORECASE
+)
+HYPOGLYCEMIA_ENDPOINT_PATTERN = re.compile(
+    r"\bhypoglyc(?:a?emia|emic)\b", re.IGNORECASE
+)
+CGM_TIR_PATTERN = re.compile(
+    r"\b(?:time[\s\-]+in[\s\-]+range|tir|"
+    r"continuous\s+glucose\s+monitoring|cgm)\b",
+    re.IGNORECASE,
+)
+CENTRAL_LAB_PATTERN = re.compile(
+    r"\bcentral\s+lab(?:orator(?:y|ies)|s)?\b"
+    r"|\b(?:analy[sz]ed|measured|assessed)\s+centrally\b",
+    re.IGNORECASE,
+)
+
+
 class CategorizedItem[CategoryT: StrEnum](Protocol):
     """Extracted item carrying a canonical StrEnum category and citation."""
 

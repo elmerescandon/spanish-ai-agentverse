@@ -8,13 +8,16 @@ raised as ProtocolStoreError, never swallowed.
 
 import asyncio
 import logging
+import os
 import sqlite3
 from collections.abc import Callable, Sequence
 from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Protocol
 
+from backend.clients.document_store import BLOB_TOKEN_ENV_VAR
 from backend.shared.config import load_settings
 
 logger = logging.getLogger(__name__)
@@ -282,6 +285,18 @@ class ProtocolDb:
             )
         )
 
+    async def latest_protocol_id(self) -> str | None:
+        """The most recently uploaded protocol's id; None if none yet."""
+
+        def latest(connection: sqlite3.Connection) -> str | None:
+            row = connection.execute(
+                "SELECT protocol_id FROM protocols "
+                "ORDER BY uploaded_at DESC LIMIT 1"
+            ).fetchone()
+            return None if row is None else str(row[0])
+
+        return await self._run(latest)
+
     async def offers_for(
         self, protocol_id: str, field: str
     ) -> list[OfferedValue]:
@@ -403,18 +418,68 @@ class ProtocolDb:
         return await self._run(load)
 
 
-_protocol_db: ProtocolDb | None = None
+class ReviewStore(Protocol):
+    """What the routes need from a protocol review store.
+
+    ProtocolDb (one local SQLite file) implements it, and so does the
+    Blob-backed store that every Vercel instance shares.
+    """
+
+    async def save_protocol(
+        self, record: ProtocolRecord, fields: Sequence[StoredField]
+    ) -> None: ...
+
+    async def save_offers(
+        self,
+        protocol_id: str,
+        starting_fields: Sequence[StoredField],
+        offers: Sequence[OfferedValue],
+    ) -> None: ...
+
+    async def has_protocol(self, protocol_id: str) -> bool: ...
+
+    async def offers_for(
+        self, protocol_id: str, field: str
+    ) -> list[OfferedValue]: ...
+
+    async def apply_change(
+        self,
+        protocol_id: str,
+        new_field: StoredField,
+        offer: OfferedValue,
+        changed_at: datetime,
+    ) -> FieldChangeRecord | None: ...
+
+    async def load_review(self, protocol_id: str) -> ProtocolReview | None: ...
+
+    async def latest_protocol_id(self) -> str | None: ...
 
 
-def get_protocol_db() -> ProtocolDb:
-    """The app's database, at the configured path, created on first use."""
+_protocol_db: ReviewStore | None = None
+
+
+def get_protocol_db() -> ReviewStore:
+    """Blob when the token is set (Vercel), else SQLite; made on first use.
+
+    Blob is shared by every serverless instance; the SQLite file at the
+    configured path is the local fallback.
+    """
     global _protocol_db
     if _protocol_db is None:
-        _protocol_db = ProtocolDb(load_settings().protocol_db_path)
+        if os.environ.get(BLOB_TOKEN_ENV_VAR):
+            # Imported here: protocol_blob_store imports this module.
+            from backend.clients.protocol_blob_store import BlobProtocolStore
+
+            _protocol_db = BlobProtocolStore()
+        else:
+            _protocol_db = ProtocolDb(load_settings().protocol_db_path)
+        logger.info(
+            "protocol store chosen: store=%s", type(_protocol_db).__name__
+        )
     return _protocol_db
 
 
-def set_protocol_db(protocol_db: ProtocolDb | None) -> None:
+def set_protocol_db(protocol_db: ReviewStore | None) -> None:
     """Replace the app's database (tests); None resets it."""
     global _protocol_db
     _protocol_db = protocol_db

@@ -278,6 +278,46 @@ describe("demo pipeline step bar flow", () => {
     ).toBeInTheDocument();
   });
 
+  it("offers the PDF report download in the header once the last step is reached", async () => {
+    const user = userEvent.setup();
+    render(<DemoPage />);
+    await loadPreset(user);
+
+    const stepNavigation = () =>
+      within(screen.getByRole("navigation", { name: "Step navigation" }));
+    // The site header comes first; step content may hold its own.
+    const header = () => within(screen.getAllByRole("banner")[0]);
+    const headerReportLink = () =>
+      header().queryByRole("link", { name: "Download report (PDF)" });
+    expect(headerReportLink()).not.toBeInTheDocument();
+
+    while (stepNavigation().queryByRole("button", { name: /^Next:/ })) {
+      const nextButton = stepNavigation().getByRole("button", {
+        name: /^Next:/,
+      });
+      await waitFor(() => expect(nextButton).toBeEnabled(), {
+        timeout: SLOW_STEP_TIMEOUT_MS,
+      });
+      await user.click(nextButton);
+    }
+
+    expect(headerReportLink()).toHaveAttribute(
+      "href",
+      api.LATEST_REPORT_PDF_URL
+    );
+    expect(
+      header().getByRole("link", { name: "View report" })
+    ).toHaveAttribute("href", api.REPORT_PAGE_PATH);
+    expect(
+      stepNavigation().getByRole("link", { name: "Download report (PDF)" })
+    ).toHaveAttribute("href", api.LATEST_REPORT_PDF_URL);
+
+    await user.click(
+      stepNavigation().getByRole("button", { name: /^← Previous:/ })
+    );
+    expect(headerReportLink()).toBeInTheDocument();
+  });
+
   it("opens a finding in place and folds it by click or Esc", async () => {
     const user = userEvent.setup();
     render(<DemoPage />);

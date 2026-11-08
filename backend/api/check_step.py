@@ -18,7 +18,6 @@ from backend.agents.completeness.logic import (
 from backend.agents.completeness.rules import RuleCatalogue
 from backend.api.protocol_pipeline import CheckRun
 from backend.api.schemas import (
-    ChangeType,
     Chart,
     ChartKind,
     ChartPoint,
@@ -26,13 +25,11 @@ from backend.api.schemas import (
     DataSource,
     DataTable,
     Decision,
-    DecisionOption,
     Evidence,
     EvidenceSource,
     GuidelineReference,
     Metric,
     MetricTone,
-    ProposedChange,
     ProtocolLocation,
     Severity,
     StepData,
@@ -226,25 +223,6 @@ def _trace(
     return trace
 
 
-def _proposed_change(finding: RuleFinding) -> ProposedChange | None:
-    if finding.proposed_fix is None:
-        return None
-    location = finding.location
-    path = location.section or (
-        location.heading.value if location.heading else "Protocol"
-    )
-    has_quote = bool(finding.evidence)
-    return ProposedChange(
-        path=path,
-        before=finding.evidence[0].quote if has_quote else "",
-        after=finding.proposed_fix,
-        change_type=ChangeType.MODIFY if has_quote else ChangeType.ADD,
-        section_title=location.heading.value if location.heading else None,
-        page=location.page,
-        rationale=finding.title,
-    )
-
-
 def _impact_if_fixed(
     finding: RuleFinding, report: ComplianceReport
 ) -> list[Metric]:
@@ -287,8 +265,6 @@ def _decision(
 ) -> Decision:
     decision_id = f"chk-{finding.rule_id}"
     evidence = _evidence(finding, report.protocol_title)
-    proposed_change = _proposed_change(finding)
-    impact = _impact_if_fixed(finding, report)
     severity_label = finding.severity.value
     return Decision(
         decision_id=decision_id,
@@ -300,35 +276,12 @@ def _decision(
         trace=_trace(
             finding, catalogue.get(finding.rule_id).flag_if, evidence
         ),
-        proposed_change=proposed_change,
         category=FAMILY_LABELS[finding.family],
         confidence=finding.confidence,
         location=_location(finding),
-        impact=impact,
-        options=[
-            DecisionOption(
-                option_id=f"{decision_id}-fix",
-                title="Apply the fix",
-                rationale=finding.proposed_fix or finding.title,
-                is_recommended=True,
-                proposed_change=proposed_change,
-                impact=impact,
-            ),
-            DecisionOption(
-                option_id=f"{decision_id}-justify",
-                title="Keep the text and record a justification",
-                rationale=(
-                    "Keep the protocol as it is and document why this "
-                    "rule does not apply."
-                ),
-                risks=[
-                    (
-                        f"Stays an open {severity_label} finding for "
-                        f"reviewers ({finding.source})."
-                    )
-                ],
-            ),
-        ],
+        # A flag only: fixing it needs new wording from the author, which
+        # the system never invents, so there is no change to accept.
+        impact=_impact_if_fixed(finding, report),
         references=[GuidelineReference(label=finding.source)],
         decision_owner=(
             "Medical Monitor"
@@ -344,6 +297,7 @@ def _decision(
         ],
         details={
             "rule_id": finding.rule_id,
+            "how_to_fix": finding.proposed_fix,
             "source_tier": finding.source_tier.value,
             "check_method": finding.check_method.value,
             "searched_locations": [

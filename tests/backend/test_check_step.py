@@ -13,7 +13,6 @@ from backend.agents.completeness.rules import load_rule_catalogue
 from backend.api.check_step import GapKind, gap_kind, to_check_step
 from backend.api.protocol_pipeline import CheckRun
 from backend.api.schemas import (
-    ChangeType,
     Decision,
     StepData,
     StepId,
@@ -180,31 +179,30 @@ def test_metrics_count_present_weak_missing_and_contradictions(
     assert values["Not applicable"] == "1"
 
 
-def test_quoted_finding_carries_verbatim_evidence_and_a_modify_change(
-    step: StepData,
-) -> None:
+def test_quoted_finding_carries_verbatim_evidence(step: StepData) -> None:
     decision = _decision(step, "REG-24")
 
     [evidence] = decision.evidence
     assert (evidence.quote, evidence.page) == (ENDPOINT_QUOTE, 3)
     assert evidence.is_verified
-    assert decision.proposed_change is not None
-    assert decision.proposed_change.change_type == ChangeType.MODIFY
-    assert decision.proposed_change.before == ENDPOINT_QUOTE
     for entry in decision.trace:
         assert set(entry.evidence_ids) <= {evidence.evidence_id}
 
 
-def test_absence_finding_adds_text_and_shows_where_it_searched(
-    step: StepData,
-) -> None:
+def test_absence_finding_shows_where_it_searched(step: StepData) -> None:
     decision = _decision(step, "M11-21")
 
     assert decision.evidence == []
-    assert decision.proposed_change is not None
-    assert decision.proposed_change.change_type == ChangeType.ADD
-    assert decision.proposed_change.before == ""
     assert "1 Protocol Summary (pages 2-4)" in decision.trace[0].text
+
+
+def test_findings_are_flags_with_advice_and_nothing_to_accept(
+    step: StepData,
+) -> None:
+    for decision in step.decisions:
+        assert decision.proposed_change is None
+        assert decision.options == []
+        assert "how_to_fix" in decision.details
 
 
 def test_confirmed_flag_shows_why_the_second_opinion_agreed() -> None:

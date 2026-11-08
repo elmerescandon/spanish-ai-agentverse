@@ -10,6 +10,7 @@ run in parallel and a retried call is safe.
 
 import logging
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import cast
 
 from pydantic import JsonValue
@@ -26,7 +27,10 @@ from backend.agents.completeness.rules import load_rule_catalogue
 from backend.agents.protocol_comparison.agent import (
     AGENT_NAME as COMPARISON_AGENT_NAME,
 )
-from backend.agents.protocol_comparison.demo import compare_demo_draft
+from backend.agents.protocol_comparison.demo import (
+    DemoComparison,
+    compare_demo_draft,
+)
 from backend.agents.protocol_comparison.peer_store import PeerStoreError
 from backend.agents.protocol_comparison.step_data import (
     to_step_data as comparison_step_data,
@@ -193,14 +197,23 @@ async def run_checklist_agent(document: ProtocolDocument) -> StepData:
     return _step_logged(document, step)
 
 
+@dataclass(frozen=True)
+class ComparisonStep:
+    """Theo's comparison and the PEERS section built from it."""
+
+    comparison: DemoComparison
+    step: StepData
+
+
 async def run_protocol_comparison_agent(
     document: ProtocolDocument,
-) -> StepData:
+) -> ComparisonStep:
     """Return the PEERS section (comparison with similar trials).
 
     Compares the demo draft with the committed peer snapshot and no LLM,
-    so the step is fast, gives the same result when called twice and
-    never writes to disk (the deployed filesystem is read-only).
+    so the step is fast and gives the same result when called twice. The
+    comparison is returned too, so the caller can store the values it
+    offers; the runner itself writes nothing.
 
     Raises:
         PeerStoreError: the peer snapshot in data/peers is missing or
@@ -222,7 +235,7 @@ async def run_protocol_comparison_agent(
         comparison.results,
         comparison.cards,
     )
-    return _step_logged(document, step)
+    return ComparisonStep(comparison, _step_logged(document, step))
 
 
 def _cohort_card_to_decision(

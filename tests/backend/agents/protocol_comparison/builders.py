@@ -9,11 +9,29 @@ def make_study(
     interventions: tuple[tuple[str, str], ...] = (("DRUG", "Dapagliflozin"),),
     intervention_mesh: tuple[str, ...] = (),
     primary_purpose: str | None = "TREATMENT",
+    minimum_age: str | None = None,
+    maximum_age: str | None = None,
+    enrollment: tuple[int, str] | None = None,
+    start_date: str | None = None,
 ) -> StudyRecord:
-    """Build a minimal registry record; defaults describe a valid peer."""
+    """Build a minimal registry record; defaults describe a valid peer.
+
+    enrollment is (count, type), e.g. (120, "ACTUAL").
+    """
     design: dict[str, object] = {"phases": ["PHASE3"]}
     if primary_purpose is not None:
         design["designInfo"] = {"primaryPurpose": primary_purpose}
+    if enrollment is not None:
+        count, enrollment_type = enrollment
+        design["enrollmentInfo"] = {"count": count, "type": enrollment_type}
+    status: dict[str, object] = {"overallStatus": "COMPLETED"}
+    if start_date is not None:
+        status["startDateStruct"] = {"date": start_date}
+    eligibility: dict[str, object] = {}
+    if minimum_age is not None:
+        eligibility["minimumAge"] = minimum_age
+    if maximum_age is not None:
+        eligibility["maximumAge"] = maximum_age
     return StudyRecord.model_validate(
         {
             "protocolSection": {
@@ -21,8 +39,9 @@ def make_study(
                     "nctId": nct_id,
                     "briefTitle": f"Study {nct_id}",
                 },
-                "statusModule": {"overallStatus": "COMPLETED"},
+                "statusModule": status,
                 "designModule": design,
+                "eligibilityModule": eligibility,
                 "armsInterventionsModule": {
                     "interventions": [
                         {"type": kind, "name": name}

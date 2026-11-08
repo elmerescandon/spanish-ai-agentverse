@@ -86,3 +86,37 @@ TYPE_2_DIABETES_PEER_CRITERIA = PeerCriteria(
     intervention_types=frozenset({"DRUG", "BIOLOGICAL"}),
     primary_purpose="TREATMENT",
 )
+
+
+@dataclass(frozen=True)
+class FlagRules:
+    """When a draft's value counts as unusual against its peers.
+
+    Proposed thresholds, pending clinical sign-off; see section 3 of
+    docs/protocol_comparison_rules.md.
+    """
+
+    # Below this many peers stating a value, no flag is raised at all.
+    min_peers: int = 10
+    # A recent or same-class group needs this many peers stating a value
+    # before "stricter than every peer in it" means anything.
+    min_group_peers: int = 3
+    # Peers that started this many years before the protocol are recent.
+    recent_window_years: int = 3
+    low_percentile: int = 10
+    high_percentile: int = 90
+
+    def __post_init__(self) -> None:
+        # A percentile range needs at least two values to interpolate.
+        if self.min_peers < 2:
+            raise ValueError(
+                f"min_peers must be at least 2, got {self.min_peers}"
+            )
+        if not 0 < self.low_percentile < self.high_percentile < 100:
+            raise ValueError(
+                "percentiles must satisfy 0 < low < high < 100, got "
+                f"low={self.low_percentile} high={self.high_percentile}"
+            )
+
+
+DEFAULT_FLAG_RULES = FlagRules()

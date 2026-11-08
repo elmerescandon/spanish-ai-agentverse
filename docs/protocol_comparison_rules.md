@@ -67,8 +67,29 @@ No flag is raised from fewer than 10 peers overall ("insufficient peers").
 Every card shows how many peers each group contains and how many state a
 value (coverage).
 
+Percentiles use linear interpolation (numpy's default). A draft value
+exactly on the 10th or 90th percentile counts as inside the range. A
+value outside the range is flagged in either direction: looser than most
+peers is as worth a look as stricter. "Stricter than every peer" means
+strictly stricter: matching the strictest peer is not flagged.
+
 ## 4. Dimensions
 
-To be filled in as each dimension is built, with: definition and unit,
-where the draft's value comes from, where peers' values come from, which
-direction counts as stricter.
+For now the draft's values are read from its own registry record, like
+the peers'. They will come from the parsed protocol, because the
+registry shows the protocol after its amendments.
+
+| Dimension | Unit | Stricter when | Peers' value from |
+| --- | --- | --- | --- |
+| Minimum age | years | higher | registry `minimumAge` |
+| Maximum age | years | lower | registry `maximumAge` |
+| Enrollment | participants | higher (more to recruit) | registry `enrollmentInfo` |
+
+Registry ages in months, weeks or days are converted to years. A peer
+with no value, or one that cannot be read, is left out of that
+dimension and shows as "not stated" in the evidence; it still counts in
+the group's size. A peer with no maximum age is treated as not stating
+one, not as having no limit.
+
+Peers' enrollment is usually the number actually enrolled, while a
+draft states a target; the evidence shows which each value is.

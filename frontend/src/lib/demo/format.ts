@@ -95,3 +95,16 @@ export function formatCellValue(value: unknown): string {
   if (typeof value === "string") return value;
   return JSON.stringify(value);
 }
+
+/** "1 row", "48 rows". */
+export function formatRowCount(count: number): string {
+  return count === 1 ? "1 row" : `${count} rows`;
+}
+
+/** A column is numeric when it has values and every present one is a number. */
+export function isNumericColumn(values: readonly unknown[]): boolean {
+  const present = values.filter(
+    (value) => value !== null && value !== undefined && value !== ""
+  );
+  return present.length > 0 && present.every((v) => typeof v === "number");
+}

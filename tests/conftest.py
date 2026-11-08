@@ -14,6 +14,7 @@ from backend.api.protocol_pipeline import (
 )
 from backend.clients.gemini import (
     GeminiClient,
+    JsonGenerator,
     LlmCallFailedError,
     ThinkingLevel,
 )
@@ -96,11 +97,33 @@ class UnavailableLlm:
         raise LlmCallFailedError("Gemini is unavailable in offline tests")
 
 
-class OfflineProtocolPipeline(ProtocolPipeline):
-    """API-test pipeline: text-only parse, rule check without Gemini."""
+class EmptyAnswersLlm:
+    """JsonGenerator that returns an empty default response_model()."""
 
     def __init__(self) -> None:
-        super().__init__(llm=UnavailableLlm())
+        self.call_count = 0
+
+    async def generate_json[ModelT: BaseModel](
+        self,
+        prompt: str,
+        response_model: type[ModelT],
+        thinking_level: ThinkingLevel = ThinkingLevel.MEDIUM,
+    ) -> ModelT:
+        """Count the call and return response_model()."""
+        self.call_count += 1
+        return response_model()
+
+
+class OfflineProtocolPipeline(ProtocolPipeline):
+    """API-test pipeline: text-only parse, rule check without Gemini.
+
+    By default every Gemini call fails, so the check keeps its flags at
+    capped confidence and is rerun on each request; pass EmptyAnswersLlm
+    for a complete check that repeat requests reuse.
+    """
+
+    def __init__(self, llm: JsonGenerator | None = None) -> None:
+        super().__init__(llm=llm or UnavailableLlm())
 
     async def parse(self, pdf_path: Path) -> ProtocolDocument:
         """Read the PDF's text only (raises UnreadablePdfError like parse)."""

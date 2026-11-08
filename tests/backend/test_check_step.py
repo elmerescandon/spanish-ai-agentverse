@@ -123,7 +123,11 @@ def _report() -> ComplianceReport:
 @pytest.fixture
 def step() -> StepData:
     return to_check_step(
-        CheckRun(_report(), STARTED_AT, DURATION_SECONDS),
+        CheckRun(
+            report=_report(),
+            started_at=STARTED_AT,
+            duration_seconds=DURATION_SECONDS,
+        ),
         load_rule_catalogue(),
         page_count=40,
     )
@@ -213,9 +217,9 @@ def test_confirmed_flag_shows_why_the_second_opinion_agreed() -> None:
         for f in report.findings
     ]
     run = CheckRun(
-        report.model_copy(update={"findings": findings}),
-        STARTED_AT,
-        DURATION_SECONDS,
+        report=report.model_copy(update={"findings": findings}),
+        started_at=STARTED_AT,
+        duration_seconds=DURATION_SECONDS,
     )
 
     step = to_check_step(run, load_rule_catalogue(), page_count=40)
@@ -261,10 +265,28 @@ def test_step_lists_every_rule_and_flags_a_partial_run(step: StepData) -> None:
     assert step.duration_ms == 240_000
 
 
+def test_failed_gemini_calls_add_a_retry_warning() -> None:
+    run = CheckRun(
+        report=_report(),
+        started_at=STARTED_AT,
+        duration_seconds=DURATION_SECONDS,
+        failed_llm_calls=3,
+    )
+
+    step = to_check_step(run, load_rule_catalogue(), page_count=40)
+
+    [warning] = [w for w in step.warnings if w.code == "gemini_calls_failed"]
+    assert warning.message.startswith("3 Gemini calls failed")
+
+
 def test_mapping_is_pure_and_repeatable() -> None:
     def build() -> StepData:
         return to_check_step(
-            CheckRun(_report(), STARTED_AT, DURATION_SECONDS),
+            CheckRun(
+                report=_report(),
+                started_at=STARTED_AT,
+                duration_seconds=DURATION_SECONDS,
+            ),
             load_rule_catalogue(),
             page_count=40,
         )

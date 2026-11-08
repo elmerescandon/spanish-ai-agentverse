@@ -452,6 +452,17 @@ def to_check_step(
                 ),
             )
         )
+    if run.failed_llm_calls:
+        warnings.append(
+            StepWarning(
+                code="gemini_calls_failed",
+                message=(
+                    f"{run.failed_llm_calls} Gemini calls failed, so some "
+                    "rules show as not assessed. Run the check again to "
+                    "retry them."
+                ),
+            )
+        )
     if not_assessed:
         warnings.append(
             StepWarning(

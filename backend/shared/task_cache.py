@@ -18,11 +18,17 @@ class SharedTaskCache[ResultT]:
 
     The first request for a key starts the job; requests that arrive while
     it runs wait for the same job; later requests get the stored result.
-    A failed or cancelled job is forgotten so the next request retries it.
+    A failed or cancelled job, or a result that is_reusable rejects, is
+    forgotten so the next request runs it again.
     """
 
-    def __init__(self, name: str) -> None:
+    def __init__(
+        self,
+        name: str,
+        is_reusable: Callable[[ResultT], bool] = lambda _result: True,
+    ) -> None:
         self._name = name
+        self._is_reusable = is_reusable
         # A running task is an in-flight job; a finished one is the cache.
         self._tasks: dict[str, asyncio.Task[ResultT]] = {}
 
@@ -53,7 +59,7 @@ class SharedTaskCache[ResultT]:
             task = asyncio.create_task(start())
             self._tasks[key] = task
             task.add_done_callback(
-                lambda finished: self._forget_if_failed(key, finished)
+                lambda finished: self._forget_unless_reusable(key, finished)
             )
         logger.info(
             "%s cache %s: key=%s done=%s",
@@ -64,7 +70,7 @@ class SharedTaskCache[ResultT]:
         )
         return task
 
-    def _forget_if_failed(
+    def _forget_unless_reusable(
         self, key: str, finished: asyncio.Task[ResultT]
     ) -> None:
         if finished.cancelled():
@@ -73,13 +79,20 @@ class SharedTaskCache[ResultT]:
             # Reading the exception also marks it as retrieved, so a
             # background job nobody awaited fails in the log, not silently.
             error = finished.exception()
-        if error is None:
+        if error is not None:
+            logger.warning(
+                "%s job failed, next request retries it: key=%s error=%r",
+                self._name,
+                key[:LOGGED_KEY_LENGTH],
+                error,
+            )
+        elif self._is_reusable(finished.result()):
             return
-        logger.warning(
-            "%s job failed, next request retries it: key=%s error=%r",
-            self._name,
-            key[:LOGGED_KEY_LENGTH],
-            error,
-        )
+        else:
+            logger.info(
+                "%s result incomplete, next request reruns it: key=%s",
+                self._name,
+                key[:LOGGED_KEY_LENGTH],
+            )
         if self._tasks.get(key) is finished:
             del self._tasks[key]

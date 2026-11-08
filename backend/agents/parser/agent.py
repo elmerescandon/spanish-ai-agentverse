@@ -45,6 +45,7 @@ from backend.shared.task_cache import SharedTaskCache
 logger = logging.getLogger(__name__)
 
 AGENT_NAME = "parser"
+FACET_FAILED_WARNING_PREFIX = "facet failed after retries"
 MAX_CITATION_REPAIR_ROUNDS = 1  # one re-ask; a third call rarely helps
 HASH_CHUNK_BYTES = 1024 * 1024  # stream large PDFs while hashing
 
@@ -76,7 +77,7 @@ async def extract_facet[ResultT: BaseModel](
         return FacetOutcome(
             facet=facet.name,
             result=None,
-            warnings=[f"facet failed after retries: {error}"],
+            warnings=[f"{FACET_FAILED_WARNING_PREFIX}: {error}"],
         )
 
     best_result = verify_result(raw_result, pages)
@@ -193,7 +194,15 @@ async def extract_eligibility_criteria(
     ]
 
 
-def _hash_file_contents(pdf_path: Path) -> str:
+def has_failed_facets(document: ProtocolDocument) -> bool:
+    """True if a facet failed, so the document must not be reused."""
+    return any(
+        warning.message.startswith(FACET_FAILED_WARNING_PREFIX)
+        for warning in document.extraction_warnings
+    )
+
+
+def hash_file_contents(pdf_path: Path) -> str:
     """Return the SHA-256 hex digest of a file's bytes."""
     digest = hashlib.sha256()
     with pdf_path.open("rb") as pdf_file:
@@ -208,8 +217,9 @@ class CachedProtocolParser:
     PDFs are keyed by a hash of their bytes, so a renamed copy of the same
     file is still a cache hit (its ID and title come from the first parse).
     Requests for a PDF that is already being parsed wait for that parse
-    instead of starting another. Failed parses are forgotten so a retry
-    really re-parses. The cache lives in memory for this process only.
+    instead of starting another. Failed parses, and parses where a facet
+    failed, are forgotten so a retry really re-parses. The cache lives in
+    memory for this process only.
     """
 
     def __init__(
@@ -217,7 +227,10 @@ class CachedProtocolParser:
     ) -> None:
         self._llm = llm
         self._facets = facets
-        self._parses = SharedTaskCache[ProtocolDocument]("parse")
+        self._parses = SharedTaskCache[ProtocolDocument](
+            "parse",
+            is_reusable=lambda document: not has_failed_facets(document),
+        )
 
     async def parse(self, pdf_path: Path) -> ProtocolDocument:
         """Return the parsed document, parsing only on the first request.
@@ -229,7 +242,7 @@ class CachedProtocolParser:
             The same errors as parse_protocol (UnreadablePdfError,
             ValueError, OSError, AllFacetsFailedError).
         """
-        content_hash = await asyncio.to_thread(_hash_file_contents, pdf_path)
+        content_hash = await asyncio.to_thread(hash_file_contents, pdf_path)
         document = await self._parses.get_or_run(
             content_hash,
             lambda: parse_protocol(pdf_path, self._llm, self._facets),

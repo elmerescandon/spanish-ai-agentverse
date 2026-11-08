@@ -18,7 +18,11 @@ from backend.api.protocol_pipeline import (
 from backend.api.routes import reset_mock_state
 from backend.main import app
 from backend.shared.messages import ProtocolDocument
-from tests.conftest import OfflineProtocolPipeline, make_pdf
+from tests.conftest import (
+    EmptyAnswersLlm,
+    OfflineProtocolPipeline,
+    make_pdf,
+)
 
 STEP_ROUTES = {
     "/api/checklist-recommendation": "check",
@@ -255,10 +259,24 @@ def test_recommendation_route_empty_protocol_id_returns_422(
 def test_recommendation_route_called_twice_returns_same_result(
     client: TestClient, tmp_path: Path, route: str
 ) -> None:
+    # A complete check is reused; an incomplete one reruns by design.
+    set_protocol_pipeline(OfflineProtocolPipeline(llm=EmptyAnswersLlm()))
     protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
     first = client.post(route, json={"protocol_id": protocol_id})
     second = client.post(route, json={"protocol_id": protocol_id})
     assert first.json() == second.json()
+
+
+def test_check_with_failed_gemini_calls_warns_to_retry(
+    client: TestClient, tmp_path: Path
+) -> None:
+    protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
+
+    body = client.post(
+        "/api/checklist-recommendation", json={"protocol_id": protocol_id}
+    ).json()
+
+    assert "gemini_calls_failed" in {w["code"] for w in body["warnings"]}
 
 
 def test_protocol_recommendation_serves_the_comparison_agent(

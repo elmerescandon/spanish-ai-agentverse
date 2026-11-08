@@ -48,3 +48,17 @@ async def test_failed_background_job_is_logged_and_retried(
 
     assert result == "result 2"
     assert "test job failed, next request retries it" in caplog.text
+
+
+async def test_unreusable_result_is_returned_but_run_again_next_time() -> None:
+    cache = SharedTaskCache[str](
+        "test", is_reusable=lambda result: result != "result 1"
+    )
+    job = _CountingJob()
+
+    first = await cache.get_or_run(KEY, job)
+    second = await cache.get_or_run(KEY, job)
+    third = await cache.get_or_run(KEY, job)
+
+    assert (first, second, third) == ("result 1", "result 2", "result 2")
+    assert job.start_count == 2

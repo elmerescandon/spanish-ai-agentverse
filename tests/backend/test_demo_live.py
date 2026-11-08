@@ -12,6 +12,10 @@ import httpx
 import pytest
 
 from backend.agents.completeness.rules import load_rule_catalogue
+from backend.api.protocol_pipeline import (
+    ProtocolPipeline,
+    set_protocol_pipeline,
+)
 from backend.api.routes import reset_mock_state
 from backend.api.schemas import StepData, UploadFileResponse
 from backend.main import app
@@ -32,6 +36,9 @@ REQUEST_TIMEOUT_SECONDS = 1200.0  # full parse or full check, with margin
 @pytest.fixture(autouse=True)
 def _reset_state() -> Generator[None]:
     reset_mock_state()
+    # Memory-only pipeline so the live test always calls Gemini and never
+    # passes by reading an earlier cached run from data/cache.
+    set_protocol_pipeline(ProtocolPipeline())
     yield
     reset_mock_state()
 

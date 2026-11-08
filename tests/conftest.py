@@ -8,6 +8,25 @@ import pytest
 from fpdf import FPDF
 from pydantic import BaseModel
 
+from backend.agents.protocol_comparison.agent import compare_registry_draft
+from backend.agents.protocol_comparison.comparison import (
+    Category,
+    FlagRule,
+)
+from backend.agents.protocol_comparison.demo import (
+    DEMO_DRAFT_NCT_ID,
+    DEMO_PEER_QUERY,
+    DEMO_PROTOCOL_DATE,
+    DemoComparison,
+    compare_demo_draft,
+)
+from backend.agents.protocol_comparison.dimensions import DimensionId
+from backend.agents.protocol_comparison.peer_store import PeerStore
+from backend.agents.protocol_comparison.review import (
+    ReasoningStatus,
+    SuggestionCard,
+)
+from backend.agents.protocol_comparison.suggestions import Suggestion
 from backend.api.protocol_pipeline import (
     ProtocolPipeline,
     set_protocol_pipeline,
@@ -19,6 +38,7 @@ from backend.clients.gemini import (
     ThinkingLevel,
 )
 from backend.clients.pdf_reader import read_pdf_pages
+from backend.clients.protocol_db import ProtocolDb, set_protocol_db
 from backend.shared.config import load_settings
 from backend.shared.messages import ProtocolDocument
 
@@ -149,3 +169,103 @@ def _offline_protocol_pipeline(
         set_protocol_pipeline(OfflineProtocolPipeline())
     yield
     set_protocol_pipeline(None)
+
+
+# Values a test card offers for the HbA1c upper bound, one per peer group.
+OFFERED_HBA1C_VALUES = {Category.ALL: 10.5, Category.RECENT: 10.0}
+
+
+async def flagged_demo_comparison() -> DemoComparison:
+    """Theo's real demo comparison plus one card for the HbA1c upper bound.
+
+    The committed peer snapshot flags nothing for the demo draft, so this
+    adds the card a flag would produce, letting tests accept a value.
+    """
+    comparison = await compare_demo_draft()
+    result = next(
+        r
+        for r in comparison.results
+        if r.dimension.dimension_id == DimensionId.HBA1C_UPPER_BOUND
+    )
+    card = SuggestionCard(
+        comparison=result,
+        suggestions=tuple(
+            Suggestion(
+                category=category,
+                rule=FlagRule.PERCENTILE_RANGE,
+                suggested_value=value,
+                peer_ids=("NCT00000001", "NCT00000002"),
+            )
+            for category, value in OFFERED_HBA1C_VALUES.items()
+        ),
+        reasoning=None,
+        reasoning_status=ReasoningStatus.SKIPPED,
+    )
+    return DemoComparison(
+        draft_trial_id=comparison.draft_trial_id,
+        protocol_date=comparison.protocol_date,
+        results=comparison.results,
+        cards=(card,),
+    )
+
+
+# Registry values far outside the demo peers, so Theo's own rules flag them.
+OUT_OF_LINE_MINIMUM_AGE = "60 Years"
+OUT_OF_LINE_MAXIMUM_AGE = "99 Years"
+OUT_OF_LINE_ENROLLMENT = 5000
+
+
+async def out_of_line_demo_comparison() -> DemoComparison:
+    """Theo's real comparison of a demo draft with three values out of line.
+
+    The draft's minimum age, maximum age and enrollment are pushed far
+    from its peers, so his rules flag all three and suggest peer values;
+    nothing about the flags or the suggestions is made up by the test.
+    """
+    store = PeerStore()
+    peers = store.load_studies(DEMO_PEER_QUERY)
+    assert peers is not None, "expected the committed demo peers"
+    draft = store.load_study(DEMO_DRAFT_NCT_ID)
+    section = draft.protocol_section
+    assert section.eligibility_module is not None
+    assert section.design_module is not None
+    assert section.design_module.enrollment_info is not None
+    eligibility = section.eligibility_module.model_copy(
+        update={
+            "minimum_age": OUT_OF_LINE_MINIMUM_AGE,
+            "maximum_age": OUT_OF_LINE_MAXIMUM_AGE,
+        }
+    )
+    enrollment = section.design_module.enrollment_info.model_copy(
+        update={"count": OUT_OF_LINE_ENROLLMENT}
+    )
+    design = section.design_module.model_copy(
+        update={"enrollment_info": enrollment}
+    )
+    draft = draft.model_copy(
+        update={
+            "protocol_section": section.model_copy(
+                update={
+                    "eligibility_module": eligibility,
+                    "design_module": design,
+                }
+            )
+        }
+    )
+    results, cards = await compare_registry_draft(
+        draft, DEMO_PROTOCOL_DATE, peers, store
+    )
+    return DemoComparison(
+        draft_trial_id=DEMO_DRAFT_NCT_ID,
+        protocol_date=DEMO_PROTOCOL_DATE,
+        results=results,
+        cards=cards,
+    )
+
+
+@pytest.fixture(autouse=True)
+def _temporary_protocol_db(tmp_path: Path) -> Generator[None]:
+    """Every test gets its own empty database, never data/protocols.db."""
+    set_protocol_db(ProtocolDb(tmp_path / "protocols.db"))
+    yield
+    set_protocol_db(None)

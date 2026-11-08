@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import {
+  acceptFieldChange,
   checkHealth,
   createProtocol,
   fetchChecklistRecommendation,
@@ -7,11 +8,17 @@ import {
   fetchProtocolRecommendation,
   RECOMMENDATION_ENDPOINTS,
   uploadProtocolFile,
+  getProtocolFields,
   getProtocols,
   getRecommendations,
   updateRecommendation,
 } from "@/lib/api";
-import { MOCK_PROTOCOL, MOCK_RECOMMENDATIONS, MOCK_STEP } from "./fixtures";
+import {
+  MOCK_PROTOCOL,
+  MOCK_PROTOCOL_FIELDS,
+  MOCK_RECOMMENDATIONS,
+  MOCK_STEP,
+} from "./fixtures";
 
 describe("Frontend API client", () => {
   beforeEach(() => {
@@ -202,5 +209,60 @@ describe("Frontend API client", () => {
     await expect(fetchCohortRecommendation("p-9")).rejects.toThrow(
       "Bad Gateway"
     );
+  });
+
+  it("posts an accepted change and returns the updated field", async () => {
+    const response = {
+      field: MOCK_PROTOCOL_FIELDS.fields[0],
+      change: MOCK_PROTOCOL_FIELDS.changes[0],
+    };
+    const fetchSpy = spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => response,
+    } as unknown as Response);
+
+    const result = await acceptFieldChange("proto-001", {
+      field: "comparison.hba1c_upper_bound",
+      value: 10.5,
+    });
+
+    expect(result).toEqual(response);
+    const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/protocols/proto-001/changes");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({
+      field: "comparison.hba1c_upper_bound",
+      value: 10.5,
+    });
+  });
+
+  it("surfaces why a change was not accepted", async () => {
+    spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      statusText: "Unprocessable Content",
+      json: async () => ({
+        detail: "expected one of the offered values [10.0, 10.5]",
+      }),
+    } as unknown as Response);
+
+    await expect(
+      acceptFieldChange("proto-001", {
+        field: "comparison.hba1c_upper_bound",
+        value: 9,
+      })
+    ).rejects.toThrow("expected one of the offered values");
+  });
+
+  it("pulls the protocol fields and accepted changes", async () => {
+    const fetchSpy = spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => MOCK_PROTOCOL_FIELDS,
+    } as unknown as Response);
+
+    const result = await getProtocolFields("proto-001");
+
+    expect(result).toEqual(MOCK_PROTOCOL_FIELDS);
+    expect(fetchSpy).toHaveBeenCalledWith("/api/protocols/proto-001/fields");
   });
 });

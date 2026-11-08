@@ -306,6 +306,9 @@ describe("demo pipeline step bar flow", () => {
       api.LATEST_REPORT_PDF_URL
     );
     expect(
+      header().getByRole("link", { name: "View report" })
+    ).toHaveAttribute("href", api.REPORT_PAGE_PATH);
+    expect(
       stepNavigation().getByRole("link", { name: "Download report (PDF)" })
     ).toHaveAttribute("href", api.LATEST_REPORT_PDF_URL);
 

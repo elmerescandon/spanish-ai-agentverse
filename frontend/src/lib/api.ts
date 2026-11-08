@@ -347,3 +347,16 @@ export async function getProtocolFields(
 
 // The most recent upload's fields and accepted changes, as a PDF download.
 export const LATEST_REPORT_PDF_URL = "/api/protocols/latest/report.pdf";
+
+// The page that shows the same review as the PDF.
+export const REPORT_PAGE_PATH = "/report";
+
+export async function getLatestReview(): Promise<ProtocolFieldsResponse> {
+  const res = await fetch("/api/protocols/latest/review");
+  if (!res.ok) {
+    throw new Error(
+      `Failed to fetch the latest review: ${await readErrorDetail(res)}`
+    );
+  }
+  return res.json();
+}

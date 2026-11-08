@@ -312,3 +312,28 @@ def test_report_pdf_holds_the_latest_upload_and_its_changes(
     assert older_id not in text
     assert "Accepted changes (1)" in text
     assert f"{HBA1C_FIELD}: 11 -> 10" in text
+
+
+def test_latest_review_is_404_before_any_upload(client: TestClient) -> None:
+    response = client.get("/api/protocols/latest/review")
+
+    assert response.status_code == 404
+    assert "No uploaded protocol" in response.json()["detail"]
+
+
+def test_latest_review_matches_the_latest_uploads_fields(
+    client: TestClient, tmp_path: Path
+) -> None:
+    older_dir, latest_dir = tmp_path / "older", tmp_path / "latest"
+    older_dir.mkdir()
+    latest_dir.mkdir()
+    _upload(client, older_dir)
+    latest_id = _upload(client, latest_dir)
+    _run_peers(client, latest_id)
+    _accept(client, latest_id, HBA1C_FIELD, RECENT_VALUE)
+
+    response = client.get("/api/protocols/latest/review")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == _fields(client, latest_id)
+    assert len(response.json()["changes"]) == 1

@@ -1,12 +1,7 @@
 "use client";
 
 import type { Severity } from "@/lib/api";
-import type {
-  MetricTone,
-  ReviewResolution,
-  ReviewThread,
-  StepData,
-} from "@/lib/demo/types";
+import type { MetricTone, StepData } from "@/lib/demo/types";
 
 const TONE_CLASSES: Record<MetricTone, string> = {
   neutral: "text-zinc-900",
@@ -27,26 +22,14 @@ const SEVERITY_LABEL: Record<Severity, string> = {
   critical: "Critical",
 };
 
-const RESOLUTION_LABEL: Record<ReviewResolution, string> = {
-  open: "Open",
-  accepted: "Accepted",
-  rejected: "Rejected",
-};
-
 export interface StepViewProps {
   step: StepData;
-  threads: Record<string, ReviewThread>;
   onOpenDecision: (decisionId: string) => void;
-}
-
-function commentCountLabel(count: number): string {
-  return `${count} ${count === 1 ? "comment" : "comments"}`;
 }
 
 /** One step: summary line, key figures and one row per agent finding. */
 export default function StepView({
   step,
-  threads,
   onOpenDecision,
 }: StepViewProps) {
   return (
@@ -77,9 +60,6 @@ export default function StepView({
 
       <ul className="divide-y divide-zinc-200/60 border-y border-zinc-200/60">
         {step.decisions.map((decision) => {
-          const thread = threads[decision.decision_id];
-          const resolution = thread?.resolution ?? "open";
-          const commentCount = thread?.comments.length ?? 0;
           return (
             <li key={decision.decision_id}>
               <button
@@ -97,19 +77,8 @@ export default function StepView({
                 <span className="flex-1 font-sans text-sm text-zinc-900">
                   {decision.title}
                 </span>
-                {commentCount > 0 && (
-                  <span className="shrink-0 font-sans text-xs text-zinc-400">
-                    {commentCountLabel(commentCount)}
-                  </span>
-                )}
-                <span
-                  className={`shrink-0 font-sans text-xs ${
-                    resolution === "open"
-                      ? "text-zinc-400"
-                      : "text-emerald-700"
-                  }`}
-                >
-                  {RESOLUTION_LABEL[resolution]}
+                <span className="shrink-0 font-sans text-xs text-zinc-400">
+                  {SEVERITY_LABEL[decision.severity]}
                 </span>
               </button>
             </li>

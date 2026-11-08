@@ -1,24 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import ProtocolIngestion from "@/components/ProtocolIngestion";
 import DecisionView from "./DecisionView";
 import StepBar, { type StepBarState } from "./StepBar";
 import StepView from "./StepView";
 import { MOCK_STEPS } from "@/lib/demo/mock";
-import type {
-  Decision,
-  ReviewComment,
-  ReviewResolution,
-  ReviewThread,
-  StepData,
-  StepId,
-} from "@/lib/demo/types";
+import type { Decision, StepData, StepId } from "@/lib/demo/types";
 
 // Fake agent latency so the running state is visible in the mock.
 const RUN_DELAY_MS = 700;
-const COMMENT_AUTHOR = "You";
 
 export interface DemoPipelineProps {
   steps?: StepData[];
@@ -51,8 +43,6 @@ export default function DemoPipeline({
     stepId: steps[0].id,
     decisionId: null,
   });
-  const [threads, setThreads] = useState<Record<string, ReviewThread>>({});
-  const commentCounter = useRef(0);
 
   // The rest of the steps follow the upload one by one.
   useEffect(() => {
@@ -117,41 +107,6 @@ export default function DemoPipeline({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [hasOpenDecision, closeDecision]);
 
-  const nextCommentId = (): string => {
-    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-      return crypto.randomUUID();
-    }
-    commentCounter.current += 1;
-    return `comment-${commentCounter.current}`;
-  };
-
-  const updateThread = (
-    decisionId: string,
-    change: (thread: ReviewThread) => ReviewThread
-  ) => {
-    setThreads((previous) => {
-      const thread = previous[decisionId] ?? {
-        decision_id: decisionId,
-        resolution: "open" as ReviewResolution,
-        comments: [],
-      };
-      return { ...previous, [decisionId]: change(thread) };
-    });
-  };
-
-  const addComment = (decisionId: string, body: string) => {
-    const comment: ReviewComment = {
-      comment_id: nextCommentId(),
-      author: COMMENT_AUTHOR,
-      body,
-      created_at: new Date().toISOString(),
-    };
-    updateThread(decisionId, (thread) => ({
-      ...thread,
-      comments: [...thread.comments, comment],
-    }));
-  };
-
   if (!isLoaded) {
     return (
       <div className="space-y-8">
@@ -160,7 +115,7 @@ export default function DemoPipeline({
             Protocol Gap Agent
           </p>
           <h1 className="font-serif text-4xl font-normal tracking-tight text-zinc-900">
-            From draft protocol to reviewed decisions
+            From draft protocol to agent findings
           </h1>
         </header>
         <ProtocolIngestion onProtocolLoaded={loadProtocol} />
@@ -199,29 +154,18 @@ export default function DemoPipeline({
             <DecisionView
               key={currentDecision.decision_id}
               decision={currentDecision}
-              thread={threads[currentDecision.decision_id]}
               parents={(currentDecision.derived_from ?? []).flatMap((id) => {
                 const parent = decisionsById.get(id);
                 return parent
                   ? [{ decision_id: id, title: parent.title }]
                   : [];
               })}
-              onAddComment={(body) =>
-                addComment(currentDecision.decision_id, body)
-              }
-              onResolve={(resolution) =>
-                updateThread(currentDecision.decision_id, (thread) => ({
-                  ...thread,
-                  resolution,
-                }))
-              }
               onOpenParent={openDecision}
             />
           </div>
         ) : (
           <StepView
             step={currentStep}
-            threads={threads}
             onOpenDecision={openDecision}
           />
         )}

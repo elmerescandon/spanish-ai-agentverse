@@ -2,13 +2,7 @@
 
 import { useState } from "react";
 import { BadgeCheck, ChevronDown, ChevronRight } from "lucide-react";
-import CommentThread from "@/components/demo/CommentThread";
-import type {
-  Decision,
-  ReviewResolution,
-  ReviewThread,
-  TraceKind,
-} from "@/lib/demo/types";
+import type { Decision, TraceKind } from "@/lib/demo/types";
 
 const TRACE_KIND_LABEL: Record<TraceKind, string> = {
   retrieve: "Retrieved",
@@ -19,11 +13,8 @@ const TRACE_KIND_LABEL: Record<TraceKind, string> = {
 
 export interface DecisionViewProps {
   decision: Decision;
-  thread: ReviewThread | undefined;
   // Titles of the earlier decisions this one builds on, with a way to jump.
   parents: { decision_id: string; title: string }[];
-  onAddComment: (body: string) => void;
-  onResolve: (resolution: ReviewResolution) => void;
   onOpenParent: (decisionId: string) => void;
 }
 
@@ -35,13 +26,10 @@ function SectionTitle({ children }: { children: string }) {
   );
 }
 
-/** Deepest level: a Docs-style page with a margin comment card. */
+/** Deepest level: what one agent concluded, from what evidence, and how. */
 export default function DecisionView({
   decision,
-  thread,
   parents,
-  onAddComment,
-  onResolve,
   onOpenParent,
 }: DecisionViewProps) {
   const [isReasoningOpen, setIsReasoningOpen] = useState(false);
@@ -60,11 +48,7 @@ export default function DecisionView({
   };
 
   return (
-    <article
-      aria-label={decision.title}
-      className="grid gap-8 lg:grid-cols-3"
-    >
-      <div className="space-y-6 lg:col-span-2">
+    <article aria-label={decision.title} className="max-w-3xl space-y-6">
         <header className="space-y-2">
           <h1 className="font-serif text-3xl font-normal tracking-tight text-zinc-900">
             {decision.title}
@@ -178,16 +162,6 @@ export default function DecisionView({
             </ul>
           </section>
         )}
-      </div>
-
-      <aside className="lg:pt-12">
-        <CommentThread
-          decisionId={decision.decision_id}
-          thread={thread}
-          onAddComment={onAddComment}
-          onResolve={onResolve}
-        />
-      </aside>
     </article>
   );
 }

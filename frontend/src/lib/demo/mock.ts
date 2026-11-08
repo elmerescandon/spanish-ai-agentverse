@@ -254,7 +254,7 @@ export const MOCK_STEPS: StepData[] = [
       { label: "Peer trials", value: "42" },
       { label: "Outliers", value: "2", tone: "warn" },
       { label: "Biggest outlier", value: "HbA1c ≥ 9.0", tone: "risk" },
-      { label: "Reviewed", value: "0/2" },
+      { label: "Peer median duration", value: "36 wk" },
     ],
     decisions: [
       {

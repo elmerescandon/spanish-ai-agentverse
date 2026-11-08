@@ -3,7 +3,6 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DemoPage from "@/app/demo/page";
 import StepView from "@/components/demo/StepView";
-import type { ReviewThread } from "@/lib/demo/types";
 import { MOCK_PROTOCOL_PAGE_COUNT, MOCK_STEPS } from "@/lib/demo/mock";
 import {
   findTraceabilityErrors,
@@ -220,35 +219,18 @@ describe("demo pipeline step bar flow", () => {
 });
 
 describe("StepView in isolation", () => {
-  it("renders any step from props alone, showing thread status", () => {
+  it("renders any step from props alone, one row per finding", () => {
     const peers = MOCK_STEPS.find((step) => step.id === "peers")!;
-    const firstId = peers.decisions[0].decision_id;
-    const threads: Record<string, ReviewThread> = {
-      [firstId]: {
-        decision_id: firstId,
-        resolution: "accepted",
-        comments: [
-          {
-            comment_id: "c-1",
-            author: "You",
-            body: "Looks right",
-            created_at: "2026-01-01T00:00:00.000Z",
-          },
-        ],
-      },
-    };
-    render(
-      <StepView step={peers} threads={threads} onOpenDecision={() => {}} />
-    );
+    render(<StepView step={peers} onOpenDecision={() => {}} />);
 
     expect(
       screen.getByRole("heading", { name: "Protocol Comparison" })
     ).toBeInTheDocument();
     expect(screen.getByText("HbA1c ≥ 9.0")).toBeInTheDocument();
-    expect(screen.getByText("Accepted")).toBeInTheDocument();
-    expect(screen.getByText("1 comment")).toBeInTheDocument();
-    expect(screen.getAllByText("Open")).toHaveLength(
-      peers.decisions.length - 1
-    );
+    for (const decision of peers.decisions) {
+      expect(
+        screen.getByRole("button", { name: new RegExp(decision.title) })
+      ).toBeInTheDocument();
+    }
   });
 });

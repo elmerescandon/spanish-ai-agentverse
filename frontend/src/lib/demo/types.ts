@@ -64,18 +64,3 @@ export interface StepData {
   metrics: Metric[];
   decisions: Decision[];
 }
-
-export type ReviewResolution = "open" | "accepted" | "rejected";
-
-export interface ReviewComment {
-  comment_id: string;
-  author: string;
-  body: string;
-  created_at: string;
-}
-
-export interface ReviewThread {
-  decision_id: string;
-  resolution: ReviewResolution;
-  comments: ReviewComment[];
-}

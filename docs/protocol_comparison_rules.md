@@ -93,3 +93,22 @@ one, not as having no limit.
 
 Peers' enrollment is usually the number actually enrolled, while a
 draft states a target; the evidence shows which each value is.
+
+## 5. Suggestions and reasoning
+
+Each flagged dimension gets one suggested value per reason it was
+flagged, always taken from the peers' own values:
+
+| Flagged because | Suggested value |
+| --- | --- |
+| Outside the 10th–90th percentile of all peers | The nearest edge of that range |
+| Stricter than every recent or same-class peer | That group's strictest value |
+
+An LLM then writes the reasoning for the doctor from the same facts:
+what is out of line, why it matters, what changing it could cost, and a
+leaning (bring in line, keep as is, or needs clinical judgement). It
+never proposes numbers. Any trial it cites that is not among the
+compared peers is shown as a warning on the card.
+
+The doctor decides: bring the value in line with one suggestion, or
+keep it, with a reason.

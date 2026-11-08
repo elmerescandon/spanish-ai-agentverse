@@ -54,11 +54,11 @@ def test_nhanes_cohort_loads_complete_nan_free_patients() -> None:
     patients = load_nhanes_diabetes_cohort()
     peers = load_peer_diabetes_protocols()
 
-    assert len(patients) >= 3400
-    assert len(peers) >= 5
+    assert len(patients) == 3485
+    assert len(peers) == 5
 
-    # Verify both pediatric (10-17) and senior (65+) patients are present
-    assert any(p.age < 18 for p in patients)
+    # Verify cohort is strictly adult (age >= 18) and includes seniors (65+)
+    assert all(p.age >= 18 for p in patients)
     assert any(p.age >= 65 for p in patients)
 
 
@@ -318,22 +318,27 @@ def test_llm_fallback_resolves_custom_criterion() -> None:
     assert rules[0].predicates[0].variable == CohortVariable.HBA1C
 
 
-def test_filter_cohort_supports_pediatric_and_fame_d_demo_protocols() -> None:
+def test_filter_cohort_supports_fame_d_demo_protocol() -> None:
     patients = load_nhanes_diabetes_cohort()
 
-    # Pediatric Canagliflozin demo protocol (NCT03170518: age 10-18)
-    ped_rules = compile_protocol_criteria(
+    # FAME-D demo protocol (NCT04828785: adults >= 18, food insecurity)
+    fame_d_rules = compile_protocol_criteria(
         [
             ProtocolCriterionInput(
                 criterion_id="IN-01",
                 kind=CriterionType.INCLUSION,
-                text="HbA1c of >= 6.5% to <= 11.0%",
-                page_number=15,
-            )
+                text="HbA1c >= 7.0% and <= 11.5%",
+                page_number=22,
+            ),
+            ProtocolCriterionInput(
+                criterion_id="IN-02",
+                kind=CriterionType.INCLUSION,
+                text="Positive screen on Hunger Vital Sign (food insecurity)",
+                page_number=22,
+            ),
         ],
-        min_age_years=10.0,
-        max_age_years=18.0,
+        min_age_years=18.0,
     )
-    ped_eligible, _ = filter_cohort(patients, ped_rules)
-    assert len(ped_eligible) > 0
-    assert all(10 <= p.age <= 18 for p in ped_eligible)
+    fame_d_eligible, _ = filter_cohort(patients, fame_d_rules)
+    assert len(fame_d_eligible) > 100
+    assert all(p.age >= 18 and p.food_insecure for p in fame_d_eligible)

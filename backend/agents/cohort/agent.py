@@ -15,6 +15,7 @@ from backend.agents.cohort.models import (
     CohortComparisonReport,
     DecisionStatus,
     EligibilityRule,
+    PeerTrialProtocol,
     ProtocolCriterionInput,
     RuleSimulability,
 )
@@ -105,13 +106,18 @@ async def analyze_protocol_cohort(
     criteria: list[ProtocolCriterionInput],
     min_age_years: float | None = None,
     max_age_years: float | None = None,
+    peer_protocols: list[PeerTrialProtocol] | None = None,
     llm_client: StructuredLlmClient | None = None,
     cohort_path: Path = DEFAULT_NHANES_COHORT_PATH,
     peer_path: Path = DEFAULT_PEER_PROTOCOLS_PATH,
 ) -> CohortComparisonReport:
     """Run Step 3 (Part 1 & Part 2) cohort simulation and peer comparison."""
     patients = load_nhanes_diabetes_cohort(cohort_path)
-    peer_protocols = load_peer_diabetes_protocols(peer_path)
+    resolved_peers = (
+        peer_protocols
+        if peer_protocols is not None
+        else load_peer_diabetes_protocols(peer_path)
+    )
 
     compiled_rules = await compile_rules_with_llm_fallback(
         criteria=criteria,
@@ -125,7 +131,7 @@ async def analyze_protocol_cohort(
         protocol_title=protocol_title,
         criteria=criteria,
         patients=patients,
-        peer_protocols=peer_protocols,
+        peer_protocols=resolved_peers,
         min_age_years=min_age_years,
         max_age_years=max_age_years,
         precompiled_rules=compiled_rules,

@@ -118,7 +118,7 @@ class PatientRecord(BaseModel):
 
     patient_id: int
     cycle: str
-    age: int = Field(ge=10, le=120)
+    age: int = Field(ge=18, le=120)
     sex: str
     race: str
     diabetes_type: str

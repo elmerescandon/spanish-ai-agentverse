@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+# A newer push to the same ref makes older runs (and their deploys) stale.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     name: Lint, type-check and test
@@ -58,6 +63,8 @@ jobs:
     needs: check
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    # Deploys take ~30s; the Vercel CLI sometimes never exits, so fail fast.
+    timeout-minutes: 10
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -72,7 +79,7 @@ jobs:
 
       - name: Install Vercel CLI
         if: env.VERCEL_TOKEN != ''
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@65.12.1
 
       - name: Pull Vercel Environment (Production)
         if: env.VERCEL_TOKEN != '' && github.ref == 'refs/heads/main'

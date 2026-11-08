@@ -1,5 +1,8 @@
 """Tests for the completeness agent: trial profile and full check run."""
 
+import asyncio
+from collections.abc import Callable
+
 import pytest
 from pydantic import BaseModel
 
@@ -243,6 +246,39 @@ def _make_test_catalogue() -> RuleCatalogue:
     )
 
 
+class _AnswersByRequest:
+    """Answers each call by what it asks for, not by call order.
+
+    The check runs batches and second opinions concurrently, so a scripted
+    sequence of answers would depend on scheduling.
+    """
+
+    def __init__(
+        self, answer: Callable[[str, type[BaseModel]], BaseModel | Exception]
+    ) -> None:
+        self._answer = answer
+        self.prompts: list[str] = []
+        self.thinking_levels: list[ThinkingLevel] = []
+
+    async def generate_json[ModelT: BaseModel](
+        self,
+        prompt: str,
+        response_model: type[ModelT],
+        thinking_level: ThinkingLevel = ThinkingLevel.MEDIUM,
+    ) -> ModelT:
+        """Record the call and return or raise the answer for it."""
+        self.prompts.append(prompt)
+        self.thinking_levels.append(thinking_level)
+        result = self._answer(prompt, response_model)
+        if isinstance(result, Exception):
+            raise result
+        assert isinstance(result, response_model)
+        return result
+
+    def count(self, marker: str) -> int:
+        return sum(marker in prompt for prompt in self.prompts)
+
+
 async def test_check_protocol_end_to_end_order_and_statuses() -> None:
     doc = _document().model_copy(
         update={
@@ -298,9 +334,15 @@ async def test_check_protocol_end_to_end_order_and_statuses() -> None:
             ),
         ]
     )
-    llm = FakeJsonGenerator(
-        [_profile_answer(), batch_1, batch_2, second_opinion]
-    )
+
+    def answer(prompt: str, model: type[BaseModel]) -> BaseModel:
+        if model is JudgementVerdicts:
+            return batch_1 if '"EST-01"' in prompt else batch_2
+        if model is SecondOpinionVerdicts:
+            return second_opinion
+        return _profile_answer()
+
+    llm = _AnswersByRequest(answer)
 
     report = await check_protocol(doc, llm, catalogue=catalogue)
 
@@ -321,17 +363,12 @@ async def test_check_protocol_end_to_end_order_and_statuses() -> None:
     assert by_id["EST-01"].confidence == pytest.approx(0.75)
     assert by_id["XS-06"].status == RuleStatus.PASSED
 
-    # Prompt order: profile (MEDIUM) -> 2 batches (HIGH) -> 2nd opinion (HIGH)
-    assert llm.thinking_levels == [
-        ThinkingLevel.MEDIUM,
-        ThinkingLevel.HIGH,
-        ThinkingLevel.HIGH,
-        ThinkingLevel.HIGH,
-    ]
+    # Profile first, then two batches; the code-decided flag (EST-13) and
+    # batch 1's flag (EST-01) each get their own second opinion.
     assert "TrialProfile" in llm.prompts[0]
-    assert "Rules to evaluate:" in llm.prompts[1]
-    assert "Rules to evaluate:" in llm.prompts[2]
-    assert "Flags to verify:" in llm.prompts[3]
+    assert llm.count("Rules to evaluate:") == 2
+    assert llm.count("Flags to verify:") == 2
+    assert set(llm.thinking_levels) == {ThinkingLevel.LOW}
 
 
 async def test_check_protocol_handles_failed_batch_and_second_opinion() -> (
@@ -364,14 +401,17 @@ async def test_check_protocol_handles_failed_batch_and_second_opinion() -> (
             )
         ]
     )
-    llm = FakeJsonGenerator(
-        [
-            _profile_answer(),
-            LlmCallFailedError("batch 1 timeout"),
-            batch_2,
-            LlmCallFailedError("second opinion down"),
-        ]
-    )
+
+    def answer(prompt: str, model: type[BaseModel]) -> BaseModel | Exception:
+        if model is JudgementVerdicts:
+            if '"EST-01"' in prompt:
+                return LlmCallFailedError("batch 1 timeout")
+            return batch_2
+        if model is SecondOpinionVerdicts:
+            return LlmCallFailedError("second opinion down")
+        return _profile_answer()
+
+    llm = _AnswersByRequest(answer)
 
     report = await check_protocol(doc, llm, catalogue=catalogue)
 
@@ -382,6 +422,65 @@ async def test_check_protocol_handles_failed_batch_and_second_opinion() -> (
     assert "second opinion unavailable" in by_id["XS-06"].finding
     assert by_id["EST-13"].status == RuleStatus.FIRED
     assert by_id["EST-13"].confidence == pytest.approx(0.5)
+
+
+async def test_a_batch_is_reviewed_without_waiting_for_slower_batches() -> (
+    None
+):
+    fired_est_01 = JudgementVerdicts(
+        verdicts=[
+            JudgementVerdict(
+                rule_id="EST-01",
+                status=JudgementStatus.FIRED,
+                finding="Primary objective is not a treatment effect.",
+                evidence=[Citation(page_number=1, quote=DESIGN_QUOTE)],
+            )
+        ]
+    )
+    confirmed = SecondOpinionVerdicts(
+        verdicts=[
+            SecondOpinionVerdict(
+                rule_id=rule_id, confirmed=True, reason="ok", confidence=0.9
+            )
+            for rule_id in ("EST-01", "EST-13")
+        ]
+    )
+    est_01_reviewed = asyncio.Event()
+
+    class _SlowSecondBatch:
+        """The XS-06 batch answers only after EST-01's second opinion
+        starts, which deadlocks if reviews wait for every batch."""
+
+        async def generate_json[ModelT: BaseModel](
+            self,
+            prompt: str,
+            response_model: type[ModelT],
+            thinking_level: ThinkingLevel = ThinkingLevel.MEDIUM,
+        ) -> ModelT:
+            answer: BaseModel = _profile_answer()
+            if response_model is JudgementVerdicts:
+                if '"EST-01"' in prompt:
+                    answer = fired_est_01
+                else:
+                    await est_01_reviewed.wait()
+                    answer = JudgementVerdicts(verdicts=[])
+            elif response_model is SecondOpinionVerdicts:
+                if '"EST-01"' in prompt:
+                    est_01_reviewed.set()
+                answer = confirmed
+            assert isinstance(answer, response_model)
+            return answer
+
+    report = await asyncio.wait_for(
+        check_protocol(
+            _document(), _SlowSecondBatch(), catalogue=_make_test_catalogue()
+        ),
+        timeout=5,
+    )
+
+    by_id = {f.rule_id: f for f in report.findings}
+    assert by_id["EST-01"].status == RuleStatus.FIRED
+    assert by_id["EST-01"].second_opinion_reason == "ok"
 
 
 def _absence_rule(rule_id: str) -> RuleDefinition:

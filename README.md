@@ -6,6 +6,7 @@
   <a href="https://protocol-ai-rho.vercel.app"><b>Live demo</b></a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#getting-started">Getting started</a> ·
+  <a href="#extension-features">Extension features</a> ·
   <a href="PROJECT.md">Project plan</a>
 </p>
 
@@ -14,8 +15,8 @@
   <img src="https://img.shields.io/badge/Python-3.14-065f46?logo=python&logoColor=white" alt="Python 3.14">
   <img src="https://img.shields.io/badge/FastAPI-backend-065f46?logo=fastapi&logoColor=white" alt="FastAPI">
   <img src="https://img.shields.io/badge/Next.js-16-18181b?logo=nextdotjs&logoColor=white" alt="Next.js 16">
-  <img src="https://img.shields.io/badge/Gemini-gemini--4--argon-0284c7?logo=googlegemini&logoColor=white" alt="Gemini">
-  <img src="https://img.shields.io/badge/Agentverse-UCL%20hackathon-d97706" alt="Agentverse UCL hackathon">
+  <img src="https://img.shields.io/badge/Gemini-gemini--4--argon-047857?logo=googlegemini&logoColor=white" alt="Gemini">
+  <img src="https://img.shields.io/badge/Agentverse-UCL%20hackathon-064e3b" alt="Agentverse UCL hackathon">
 </p>
 
 ---
@@ -74,10 +75,10 @@ flowchart LR
     PC --> CT["ClinicalTrials.gov"]
     CO --> N["NHANES cohort"]
 
-    classDef app fill:#f4f4f5,stroke:#18181b,color:#18181b
-    classDef agent fill:#ecfdf5,stroke:#059669,color:#064e3b
-    classDef llm fill:#fffbeb,stroke:#d97706,color:#78350f
-    classDef data fill:#f0f9ff,stroke:#0284c7,color:#0c4a6e
+    classDef app fill:#f4f4f5,stroke:#3f3f46,color:#18181b
+    classDef agent fill:#ecfdf5,stroke:#065f46,color:#064e3b
+    classDef llm fill:#064e3b,stroke:#064e3b,color:#ecfdf5
+    classDef data fill:#ffffff,stroke:#047857,color:#064e3b,stroke-dasharray:4 3
     class UI,API app
     class P,C,PC,CO agent
     class G llm
@@ -172,18 +173,35 @@ Every environment variable is documented in `.env.example`. On Vercel,
 frontend, and CI deploys `main` once checks pass. Never prefix backend
 secrets with `NEXT_PUBLIC_`.
 
-## Roadmap
+## Extension features
 
-- [ ] Choose peer trials from the protocol's own condition, phase and date
-- [ ] Turn accepted Decision Cards into an amended, redlined protocol
-- [ ] Show Gemini's reasoning on comparison flags (built, off for speed)
-- [ ] Require a reason when a reviewer dismisses a finding
-- [ ] More comparison dimensions: washout, visit burden, duration
-- [ ] Compare eGFR cut-offs only between trials using the same equation
-- [ ] Validate flags against amendments in AACT's History of Changes
-- [ ] MIMIC-IV and Synthea cohorts alongside NHANES
-- [ ] Store reviews in a database with an audit trail
-- [ ] Therapeutic areas beyond diabetes
+What we would build next, grouped by what it unlocks. The core flow above
+runs end to end today; these extend it.
+
+### Sharper comparisons
+
+| Feature | What it adds |
+| :--- | :--- |
+| **Protocol-specific peer search** | Choose comparison trials from the protocol's own condition, phase, population and date, instead of the demo's fixed search. |
+| **More dimensions** | Washout periods, visit burden, study duration and sample-size assumptions alongside ages, enrollment and lab limits. |
+| **Like-for-like lab limits** | Compare eGFR cut-offs only between trials that use the same equation (CKD-EPI or MDRD). |
+| **Written reasoning on every flag** | Show Gemini's explanation for each comparison flag in the UI (built, turned off for speed). |
+
+### Closing the loop with clinicians
+
+| Feature | What it adds |
+| :--- | :--- |
+| **Amended protocol out** | Turn accepted Decision Cards into a redlined protocol, then re-run every check on it. |
+| **Reasons for every dismissal** | Require and record why a reviewer rejected a finding, to learn which flags matter. |
+| **Review history** | Store protocols and decisions in a database with a full audit trail, instead of memory. |
+
+### Richer evidence
+
+| Feature | What it adds |
+| :--- | :--- |
+| **Amendment hit rate** | Check our flags against criteria real trials later amended, using AACT's History of Changes. |
+| **More patient data** | MIMIC-IV and Synthea cohorts, mapped with OMOP concept sets, alongside NHANES. |
+| **Beyond diabetes** | Rule catalogues and peer criteria for other therapeutic areas. |
 
 ## Contributing
 

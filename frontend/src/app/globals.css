@@ -260,3 +260,92 @@
 html {
   scroll-padding-top: 5rem;
 }
+
+.protocol-loading {
+  animation: review-arrive 300ms ease-out both;
+}
+.protocol-document {
+  position: relative;
+  color: #52525b;
+  filter: drop-shadow(0 10px 14px #064e3b0d);
+}
+.protocol-scan-line {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 20%;
+  height: 2px;
+  background: #059669;
+  box-shadow: 0 0 12px #34d39980;
+  animation: document-scan 850ms ease-in-out infinite alternate;
+}
+@keyframes document-scan {
+  from { transform: translateY(0); opacity: .3; }
+  to { transform: translateY(85px); opacity: 1; }
+}
+.review-card {
+  animation: review-arrive 750ms cubic-bezier(.16, 1, .3, 1) both;
+}
+@keyframes review-arrive {
+  from { opacity: 0; transform: translateY(24px) scale(.97); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.analysis-card {
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 250ms ease, border-color 250ms ease;
+}
+.analysis-card:not(:disabled):hover {
+  border-color: #059669;
+  box-shadow: 0 8px 24px #064e3b12;
+}
+.analysis-card[data-loading="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent, #d1fae580, transparent);
+  animation: analysis-shimmer 1.8s ease-in-out infinite;
+}
+@keyframes analysis-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+.review-primary, .review-secondary {
+  border-radius: 0.65rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease;
+}
+.review-primary { background: #047857; color: white; }
+.review-secondary { border: 1px solid #d4d4d8; background: white; }
+.review-primary:hover { background: #065f46; }
+.review-secondary:hover { background: #f4f4f5; }
+.review-primary:active, .review-secondary:active { transform: scale(.97); }
+.review-secondary:disabled { opacity: .4; cursor: not-allowed; }
+.review-scanner {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #d1fae5;
+}
+.review-scanner::after {
+  content: "";
+  display: block;
+  height: 100%;
+  width: 35%;
+  background: #059669;
+  animation: review-scan 1.6s ease-in-out infinite alternate;
+}
+@keyframes review-scan {
+  from { transform: translateX(0); }
+  to { transform: translateX(190%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

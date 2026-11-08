@@ -165,7 +165,7 @@ export default function StepView({
         >
           <SectionTitle>Findings</SectionTitle>
           <ul className="divide-y divide-zinc-200/60">
-            {step.decisions.map((decision) => {
+            {step.decisions.map((decision, index) => {
               const meta = findingMeta(decision);
               const isExpanded = expandedDecisionIds.has(
                 decision.decision_id
@@ -176,7 +176,8 @@ export default function StepView({
                   key={decision.decision_id}
                   id={`finding-row-${decision.decision_id}`}
                   // Clears the sticky header and step bar when jumped to.
-                  className="scroll-mt-44"
+                  className="review-card scroll-mt-44 rounded-xl border p-3"
+                  style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
                 >
                   <button
                     type="button"

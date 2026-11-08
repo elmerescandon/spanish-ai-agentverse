@@ -204,17 +204,21 @@ def test_part2_separates_normal_criteria_from_bottlenecks() -> None:
         for imp in funnel_by_id["EX-01"].subgroup_impacts
     )
 
-    # Unsimulatable ECG criterion must be flagged for doctor review
+    # Unsimulatable ECG criterion must be disclosed transparently, not as a
+    # fake bottleneck recommendation card without metrics
     assert (
         funnel_by_id["EX-02"].classification
         == CriterionClassification.UNSIMULATABLE_NEEDS_REVIEW
     )
     assert len(report.unsimulatable_criteria_for_doctor) == 1
+    assert len(report.data_transparency_notices) == 1
+    assert "EX-02" in report.data_transparency_notices[0]
 
-    # Recommendations must include bottleneck what-if cards and review card
+    # Recommendations must only include actionable bottleneck what-if cards
     rec_by_crit = {r.criterion_id: r for r in report.recommendations}
     assert "EX-01" in rec_by_crit
-    assert "EX-02" in rec_by_crit
+    assert "IN-03" in rec_by_crit
+    assert "EX-02" not in rec_by_crit
 
     egfr_card = rec_by_crit["EX-01"]
     relax_opt = egfr_card.doctor_options[0]

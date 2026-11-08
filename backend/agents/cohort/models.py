@@ -397,5 +397,6 @@ class CohortComparisonReport(BaseModel):
     compiled_rules: list[EligibilityRule]
     attrition_funnel: list[CriterionAttritionStep]
     unsimulatable_criteria_for_doctor: list[EligibilityRule]
+    data_transparency_notices: list[str] = Field(default_factory=list)
     recommendations: list[CohortRecommendationCard]
     decision_audit_log: list[DecisionTraceEntry] = Field(default_factory=list)

@@ -7,8 +7,6 @@ import type { Severity } from "@/lib/api";
 export const STEP_IDS = ["ingest", "check", "peers", "cohort"] as const;
 export type StepId = (typeof STEP_IDS)[number];
 
-export type StepState = "locked" | "ready" | "running" | "done";
-
 export type EvidenceSource = "protocol" | "consent" | "aact" | "mimic";
 
 export interface Evidence {
@@ -67,9 +65,17 @@ export interface StepData {
   decisions: Decision[];
 }
 
-export type HumanStatus = "accepted" | "dismissed";
+export type ReviewResolution = "open" | "accepted" | "rejected";
 
-export interface HumanDecision {
-  status: HumanStatus;
-  reason?: string;
+export interface ReviewComment {
+  comment_id: string;
+  author: string;
+  body: string;
+  created_at: string;
+}
+
+export interface ReviewThread {
+  decision_id: string;
+  resolution: ReviewResolution;
+  comments: ReviewComment[];
 }

@@ -11,6 +11,21 @@ import {
   SEVERITIES,
   UPDATE_RECOMMENDATION_KEYS,
 } from "@/lib/api";
+import {
+  CHANGE_TYPES,
+  CHART_KINDS,
+  DECISION_KEYS,
+  EVIDENCE_KEYS,
+  EVIDENCE_SOURCES,
+  METRIC_TONES,
+  REVIEW_STATUSES,
+  STEP_DATA_KEYS,
+  STEP_IDS,
+  STEP_STATUSES,
+  TRACE_KINDS,
+  UPLOAD_FILE_RESPONSE_KEYS,
+} from "@/lib/demo/types";
+import { MOCK_STEPS, MOCK_UPLOAD_RESPONSE } from "@/lib/demo/mock";
 import { MOCK_PROTOCOL, MOCK_RECOMMENDATIONS } from "./fixtures";
 
 interface OpenApiSchemaProperty {
@@ -107,6 +122,70 @@ describe("Frontend <-> Backend API Schema & Component Contract Alignment", () =>
       expect(schemas.PipelineStep?.enum).toContain(rec.source_step);
       expect(schemas.Severity?.enum).toContain(rec.severity);
       expect(schemas.RecommendationStatus?.enum).toContain(rec.status);
+    }
+  });
+
+  it("aligns the /demo step enums with the frontend arrays", () => {
+    expect(schemas.StepId?.enum).toEqual([...STEP_IDS]);
+    expect(schemas.EvidenceSource?.enum).toEqual([...EVIDENCE_SOURCES]);
+    expect(schemas.TraceKind?.enum).toEqual([...TRACE_KINDS]);
+    expect(schemas.MetricTone?.enum).toEqual([...METRIC_TONES]);
+    expect(schemas.StepStatus?.enum).toEqual([...STEP_STATUSES]);
+    expect(schemas.ChangeType?.enum).toEqual([...CHANGE_TYPES]);
+    expect(schemas.ChartKind?.enum).toEqual([...CHART_KINDS]);
+    expect(schemas.RecommendationStatus?.enum).toEqual([...REVIEW_STATUSES]);
+  });
+
+  it("exposes the four /demo endpoints as POST routes", () => {
+    for (const route of [
+      "/api/upload-file",
+      "/api/checklist-recommendation",
+      "/api/protocol-recommendation",
+      "/api/cohort-recommendation",
+    ]) {
+      expect(Object.keys(openApi.paths[route] ?? {})).toContain("post");
+    }
+  });
+
+  it("aligns /demo model property keys with the frontend types", () => {
+    const keysOf = (name: string) =>
+      Object.keys(schemas[name]?.properties ?? {}).sort();
+
+    expect(keysOf("StepData")).toEqual([...STEP_DATA_KEYS].sort());
+    expect(keysOf("Decision")).toEqual([...DECISION_KEYS].sort());
+    expect(keysOf("Evidence")).toEqual([...EVIDENCE_KEYS].sort());
+    expect(keysOf("UploadFileResponse")).toEqual(
+      [...UPLOAD_FILE_RESPONSE_KEYS].sort()
+    );
+  });
+
+  it("keeps the sample upload response within the backend keys", () => {
+    for (const key of Object.keys(MOCK_UPLOAD_RESPONSE)) {
+      expect(UPLOAD_FILE_RESPONSE_KEYS as readonly string[]).toContain(key);
+    }
+    const required = schemas["UploadFileResponse"]?.required ?? [];
+    for (const key of required) {
+      expect(Object.keys(MOCK_UPLOAD_RESPONSE)).toContain(key);
+    }
+    expect(MOCK_UPLOAD_RESPONSE.step.id).toBe("ingest");
+  });
+
+  it("keeps the mock steps within the backend enums and keys", () => {
+    for (const step of MOCK_STEPS) {
+      // Mocks may omit optional fields but must not invent new ones.
+      for (const key of Object.keys(step)) {
+        expect(STEP_DATA_KEYS as readonly string[]).toContain(key);
+      }
+      expect(STEP_IDS).toContain(step.id);
+      for (const decision of step.decisions) {
+        expect(STEP_IDS).toContain(decision.step_id);
+        for (const evidence of decision.evidence) {
+          expect(EVIDENCE_SOURCES).toContain(evidence.source);
+        }
+        for (const entry of decision.trace) {
+          expect(TRACE_KINDS).toContain(entry.kind);
+        }
+      }
     }
   });
 });

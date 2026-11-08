@@ -1,143 +1,92 @@
-import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
-import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import HomePage from "@/app/page";
-import * as api from "@/lib/api";
 
-describe("HomePage UI functionality", () => {
+describe("HomePage ProtocolAI editorial presentation with Three.js ASCII background", () => {
   beforeEach(() => {
     mock.restore();
   });
 
-  it("renders the active protocol summary and pipeline recommendations list", async () => {
-    spyOn(api, "checkHealth").mockResolvedValue({ status: "ok" });
-    spyOn(api, "getProtocols").mockResolvedValue([]);
+  it("renders HomePage with header title, thesis heading, problem metrics, and connected pipeline", () => {
+    const { container } = render(<HomePage />);
 
-    render(<HomePage />);
+    const mainElement = container.querySelector("main");
+    expect(mainElement).toBeInTheDocument();
+    expect(mainElement).toHaveClass("bg-white");
+    expect(mainElement).toHaveClass("text-zinc-900");
 
-    expect(
-      screen.getByText(
-        "Phase III Evaluation of SGLT2 Inhibitor in High-Risk T2D Cohort"
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByText("ID: prot-t2d-001")).toBeInTheDocument();
-
-    expect(
-      screen.getByText("Missing eGFR Safety Monitoring Schedule")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Comparator Arm Dose Misalignment with Standard of Care")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Opportunity to Broaden Inclusion Criteria for Older Adults"
-      )
-    ).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(screen.getByText("Connected (FastAPI Proxy)")).toBeInTheDocument();
-    });
-  });
-
-  it("filters recommendations by pipeline step (completeness, comparison, cohort)", async () => {
-    spyOn(api, "checkHealth").mockResolvedValue({ status: "ok" });
-    spyOn(api, "getProtocols").mockResolvedValue([]);
-
-    const user = userEvent.setup();
-    render(<HomePage />);
-
-    // Filter by Completeness
-    await user.click(screen.getByRole("button", { name: "Completeness" }));
-    expect(
-      screen.getByText("Missing eGFR Safety Monitoring Schedule")
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        "Comparator Arm Dose Misalignment with Standard of Care"
-      )
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        "Opportunity to Broaden Inclusion Criteria for Older Adults"
-      )
-    ).not.toBeInTheDocument();
-
-    // Filter by Comparison
-    await user.click(screen.getByRole("button", { name: "Comparison" }));
-    expect(
-      screen.getByText("Comparator Arm Dose Misalignment with Standard of Care")
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText("Missing eGFR Safety Monitoring Schedule")
-    ).not.toBeInTheDocument();
-
-    // Filter by Cohort
-    await user.click(screen.getByRole("button", { name: "Cohort" }));
-    expect(
-      screen.getByText(
-        "Opportunity to Broaden Inclusion Criteria for Older Adults"
-      )
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        "Comparator Arm Dose Misalignment with Standard of Care"
-      )
-    ).not.toBeInTheDocument();
-
-    // Reset to All Steps
-    await user.click(screen.getByRole("button", { name: "All Steps" }));
-    expect(
-      screen.getByText("Missing eGFR Safety Monitoring Schedule")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Comparator Arm Dose Misalignment with Standard of Care")
-    ).toBeInTheDocument();
-  });
-
-  it("accepts and rejects recommendations with optimistic state update and API PATCH call", async () => {
-    spyOn(api, "checkHealth").mockResolvedValue({ status: "ok" });
-    spyOn(api, "getProtocols").mockResolvedValue([]);
-    const updateSpy = spyOn(api, "updateRecommendation").mockImplementation(
-      async (protocolId, recId, payload) => ({
-        recommendation_id: recId,
-        protocol_id: protocolId,
-        source_step: "completeness",
-        severity: "warning",
-        title: "Updated",
-        description: "Updated",
-        status: payload.status,
-        comment: null,
-        details: {},
-      })
+    // Product title "ProtocolAI" is in the header link
+    const headerTitle = within(screen.getByRole("banner")).getByRole(
+      "link",
+      { name: "ProtocolAI" }
     );
+    expect(headerTitle).toBeInTheDocument();
 
+    // Main hero thesis heading is rendered as h1
+    const mainHeading = screen.getByRole("heading", {
+      name: /Find protocol problems before the first patient/i,
+    });
+    expect(mainHeading).toBeInTheDocument();
+
+    // Removed redundant badges
+    expect(screen.queryByText(/UCL Agentverse/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Clinical Trial Protocol Intelligence/i)
+    ).not.toBeInTheDocument();
+
+    // Three.js 3D ASCII protein viewer runs in the background
+    const viewer = screen.getByRole("img", {
+      name: /Rotating 3D ASCII structure of Human Insulin/i,
+    });
+    expect(viewer).toBeInTheDocument();
+
+    // 3 Key Problem Metrics
+    expect(screen.getByText("57%")).toBeInTheDocument();
+    expect(screen.getByText("45%")).toBeInTheDocument();
+    expect(screen.getByText("18%")).toBeInTheDocument();
+
+    // Multi-Agent Pipeline Architecture Steps
+    expect(
+      screen.getByText("From draft protocol to doctor-approved changes")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Understand the protocol")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Find missing or conflicting parts")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Compare with similar trials")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Count the patients you would lose")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Doctors make the call")
+    ).toBeInTheDocument();
+
+    // Foundational Clinical Data & Validation Guardrails
+    expect(
+      screen.getByText("Every finding points to real data")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Built so doctors stay in control")
+    ).toBeInTheDocument();
+  });
+
+  it("supports interactive clinician amendment approval in step 04", async () => {
     const user = userEvent.setup();
     render(<HomePage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Connected (FastAPI Proxy)")).toBeInTheDocument();
+    const approveButton = screen.getByRole("button", {
+      name: /Approve Amendment/i,
     });
+    expect(approveButton).toBeInTheDocument();
 
-    // Click Accept on the first recommendation (rec-001)
-    const acceptButtons = screen.getAllByRole("button", { name: "Accept" });
-    await user.click(acceptButtons[0]);
-
+    await user.click(approveButton);
     expect(
-      screen.getByRole("button", { name: "Accepted" })
+      screen.getByRole("button", { name: /Approved by Clinician/i })
     ).toBeInTheDocument();
-    expect(updateSpy).toHaveBeenCalledWith("prot-t2d-001", "rec-001", {
-      status: "accepted",
-    });
-
-    // Click Reject on the second recommendation (rec-002)
-    const rejectButtons = screen.getAllByRole("button", { name: "Reject" });
-    await user.click(rejectButtons[1]);
-
-    expect(
-      screen.getByRole("button", { name: "Rejected" })
-    ).toBeInTheDocument();
-    expect(updateSpy).toHaveBeenCalledWith("prot-t2d-001", "rec-002", {
-      status: "rejected",
-    });
   });
 });

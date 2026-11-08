@@ -1,10 +1,21 @@
 """HTTP routes for clinical protocol gap analysis and recommendations."""
 
+import asyncio
+import logging
+import tempfile
+from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import Annotated
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
+from backend.api.agent_runners import (
+    build_ingest_step,
+    run_checklist_agent,
+    run_cohort_agent,
+    run_protocol_comparison_agent,
+)
 from backend.api.compliance import (
     to_compliance_report_response,
     to_recommendations,
@@ -27,18 +38,27 @@ from backend.api.schemas import (
     Recommendation,
     RecommendationDecisionRequest,
     Severity,
+    StepData,
+    StepRecommendationRequest,
+    UploadFileResponse,
 )
-from backend.shared.messages import ComplianceReport
+from backend.clients.pdf_reader import UnreadablePdfError, read_pdf_pages
+from backend.shared.messages import ComplianceReport, ProtocolDocument
+
+logger = logging.getLogger(__name__)
 
 DEMO_PROTOCOL_ID = "proto-diabetes-001"
 DEMO_PROTOCOL_TITLE = "Type 2 Diabetes Glycemic Control Trial Protocol"
 MAX_UPLOAD_BYTES = 30 * 1024 * 1024  # protocol PDFs are ~1-5 MB
-PDF_SIGNATURE = b"%PDF-"  # first bytes of every PDF file
+
+PDF_MAGIC_BYTES = b"%PDF"
+PDF_CONTENT_TYPES = {"application/pdf", "application/x-pdf"}
 
 router = APIRouter(prefix="/api")
 
 _protocols: dict[str, ProtocolSummary] = {}
 _recommendations: dict[str, dict[str, Recommendation]] = {}
+_documents: dict[str, ProtocolDocument] = {}
 
 
 def _build_default_recommendations(
@@ -87,6 +107,7 @@ def reset_mock_state() -> None:
     """Reset in-memory protocols and recommendations to default demo state."""
     _protocols.clear()
     _recommendations.clear()
+    _documents.clear()
 
     demo_proto = ProtocolSummary(
         protocol_id=DEMO_PROTOCOL_ID,
@@ -276,10 +297,10 @@ async def upload_protocol_pdf(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail=f"PDF must be at most {MAX_UPLOAD_BYTES} bytes",
         )
-    if not content.startswith(PDF_SIGNATURE):
+    if not content.startswith(PDF_MAGIC_BYTES):
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="expected a PDF file (starting with %PDF-)",
+            detail=f"expected a PDF file (starting with {PDF_MAGIC_BYTES!r})",
         )
     try:
         service.store_pdf(protocol_id, content)
@@ -353,3 +374,119 @@ def get_compliance_report(
             ),
         )
     return to_compliance_report_response(job.report)
+
+
+def _validate_pdf_upload(file: UploadFile, content: bytes) -> None:
+    """Reject uploads that are not a non-empty PDF.
+
+    Raises:
+        HTTPException: 415 for a wrong type, 422 for an empty file.
+    """
+    filename = file.filename or ""
+    is_pdf_name = filename.lower().endswith(".pdf")
+    is_pdf_type = file.content_type in PDF_CONTENT_TYPES
+    if not (is_pdf_name or is_pdf_type):
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=(
+                "expected a PDF (.pdf or application/pdf), got "
+                f"filename='{filename}' content_type='{file.content_type}'"
+            ),
+        )
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"expected a non-empty PDF, got 0 bytes in '{filename}'",
+        )
+    if not content.startswith(PDF_MAGIC_BYTES):
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=(
+                f"expected file to start with {PDF_MAGIC_BYTES!r}, "
+                f"got {content[:4]!r}"
+            ),
+        )
+
+
+@router.post("/upload-file", response_model=UploadFileResponse)
+async def upload_file(file: UploadFile) -> UploadFileResponse:
+    """Read an uploaded protocol PDF and return the INGEST step."""
+    content = await file.read()
+    _validate_pdf_upload(file, content)
+    filename = file.filename or "protocol.pdf"
+    with tempfile.TemporaryDirectory() as temp_directory:
+        pdf_path = Path(temp_directory) / "upload.pdf"
+        pdf_path.write_bytes(content)
+        try:
+            pages = await asyncio.to_thread(read_pdf_pages, pdf_path)
+        except UnreadablePdfError as error:
+            logger.warning(
+                "upload unreadable: filename=%s error=%s", filename, error
+            )
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=str(error),
+            ) from error
+    document = ProtocolDocument(
+        protocol_id=f"proto-{uuid4().hex[:8]}",
+        title=Path(filename).stem,
+        page_count=len(pages),
+        pages=pages,
+    )
+    _documents[document.protocol_id] = document
+    logger.info(
+        "upload stored: protocol_id=%s page_count=%d",
+        document.protocol_id,
+        document.page_count,
+    )
+    return UploadFileResponse(
+        protocol_id=document.protocol_id,
+        title=document.title,
+        page_count=document.page_count,
+        step=build_ingest_step(document),
+        filename=filename,
+        file_size_bytes=len(content),
+    )
+
+
+def _get_document(protocol_id: str) -> ProtocolDocument:
+    """Return the uploaded document or raise a 404 naming the id."""
+    document = _documents.get(protocol_id)
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Uploaded protocol '{protocol_id}' not found",
+        )
+    return document
+
+
+async def _run_step(
+    request: StepRecommendationRequest,
+    runner: Callable[[ProtocolDocument], Awaitable[StepData]],
+) -> StepData:
+    """Look up the document and run one step's adapter."""
+    return await runner(_get_document(request.protocol_id))
+
+
+@router.post("/checklist-recommendation", response_model=StepData)
+async def checklist_recommendation(
+    request: StepRecommendationRequest,
+) -> StepData:
+    """Return the CHECK step (owner: alex)."""
+    return await _run_step(request, run_checklist_agent)
+
+
+@router.post("/protocol-recommendation", response_model=StepData)
+async def protocol_recommendation(
+    request: StepRecommendationRequest,
+) -> StepData:
+    """Return the PEERS step (owner: theo)."""
+    return await _run_step(request, run_protocol_comparison_agent)
+
+
+@router.post("/cohort-recommendation", response_model=StepData)
+async def cohort_recommendation(
+    request: StepRecommendationRequest,
+) -> StepData:
+    """Return the COHORT step (owner: alvaro)."""
+    return await _run_step(request, run_cohort_agent)

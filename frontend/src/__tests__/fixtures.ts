@@ -1,4 +1,5 @@
 import type { ProtocolSummary, Recommendation } from "@/lib/api";
+import type { StepData } from "@/lib/demo/types";
 
 export const MOCK_PROTOCOL: ProtocolSummary = {
   protocol_id: "prot-001",
@@ -20,3 +21,19 @@ export const MOCK_RECOMMENDATIONS: Recommendation[] = [
     details: {},
   },
 ];
+
+export function makeStep(
+  id: StepData["id"],
+  title: string
+): StepData {
+  return {
+    id,
+    title,
+    summary: `${title} summary`,
+    headline: { label: "items", value: "1", tone: "neutral" },
+    metrics: [],
+    decisions: [],
+  };
+}
+
+export const MOCK_STEP: StepData = makeStep("check", "Completeness");

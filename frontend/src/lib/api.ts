@@ -1,3 +1,9 @@
+import type {
+  RecommendationStepId,
+  StepData,
+  UploadFileResponse,
+} from "@/lib/demo/types";
+
 export const PROTOCOL_STATUSES = ["uploaded", "analyzing", "ready"] as const;
 export type ProtocolStatus = (typeof PROTOCOL_STATUSES)[number];
 
@@ -64,6 +70,23 @@ export interface UpdateRecommendationPayload {
   comment?: string | null;
 }
 
+export interface CreateProtocolPayload {
+  title: string;
+  data?: Record<string, unknown>;
+}
+
+export const PRESELECTED_PROTOCOL: ProtocolSummary = {
+  protocol_id: "prot-t2d-001",
+  title: "Phase III Evaluation of SGLT2 Inhibitor in High-Risk T2D Cohort",
+  status: "ready",
+  data: {
+    indication: "Type 2 Diabetes Mellitus",
+    phase: "Phase 3",
+    target_enrollment: 1200,
+    primary_endpoint: "Mean HbA1c reduction from baseline at Week 24",
+  },
+};
+
 export async function checkHealth(): Promise<HealthCheckResponse> {
   const res = await fetch("/api/health");
   if (!res.ok) {
@@ -89,6 +112,25 @@ export async function getProtocol(id: string): Promise<ProtocolSummary> {
   const res = await fetch(`/api/protocols/${id}`);
   if (!res.ok) {
     throw new Error(`Failed to fetch protocol ${id}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function createProtocol(
+  payload: CreateProtocolPayload
+): Promise<ProtocolSummary> {
+  const res = await fetch("/api/protocols", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      title: payload.title,
+      data: payload.data ?? {},
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to create protocol: ${res.statusText}`);
   }
   return res.json();
 }
@@ -131,3 +173,77 @@ export async function updateRecommendation(
   }
   return res.json();
 }
+
+// Backend errors are FastAPI `{detail}` bodies: a string, or a list of
+// validation errors for 422s.
+async function readErrorDetail(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as { detail?: unknown };
+    if (typeof body.detail === "string") return body.detail;
+    if (body.detail !== undefined) return JSON.stringify(body.detail);
+  } catch {
+    // Body was not JSON; fall back to the status text.
+  }
+  return res.statusText || `HTTP ${res.status}`;
+}
+
+export async function uploadProtocolFile(
+  file: File
+): Promise<UploadFileResponse> {
+  const body = new FormData();
+  body.append("file", file);
+  const res = await fetch("/api/upload-file", { method: "POST", body });
+  if (!res.ok) {
+    throw new Error(`Failed to upload protocol: ${await readErrorDetail(res)}`);
+  }
+  return res.json();
+}
+
+async function postRecommendation(
+  path: string,
+  protocolId: string
+): Promise<StepData> {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ protocol_id: protocolId }),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Failed to fetch recommendation: ${await readErrorDetail(res)}`
+    );
+  }
+  return res.json();
+}
+
+export function fetchChecklistRecommendation(
+  protocolId: string
+): Promise<StepData> {
+  return postRecommendation("/api/checklist-recommendation", protocolId);
+}
+
+export function fetchProtocolRecommendation(
+  protocolId: string
+): Promise<StepData> {
+  return postRecommendation("/api/protocol-recommendation", protocolId);
+}
+
+export function fetchCohortRecommendation(
+  protocolId: string
+): Promise<StepData> {
+  return postRecommendation("/api/cohort-recommendation", protocolId);
+}
+
+export type RecommendationFetcher = (protocolId: string) => Promise<StepData>;
+
+// The steps that follow ingest, each backed by its own agent endpoint.
+export const RECOMMENDATION_ENDPOINTS: Record<
+  RecommendationStepId,
+  RecommendationFetcher
+> = {
+  check: fetchChecklistRecommendation,
+  peers: fetchProtocolRecommendation,
+  cohort: fetchCohortRecommendation,
+};

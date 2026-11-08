@@ -1,14 +1,17 @@
 """Tests for Step 3 Cohort Comparison (Part 1 & Part 2) and Doctor HITL."""
 
 import asyncio
+from pathlib import Path
 
 import pytest
 
 from backend.agents.cohort.agent import (
     CompiledRuleList,
     analyze_protocol_cohort,
+    analyze_protocol_document_cohort,
     compile_rules_with_llm_fallback,
     record_doctor_cohort_decision,
+    to_api_recommendations,
 )
 from backend.agents.cohort.logic import (
     build_cohort_comparison_report,
@@ -23,6 +26,7 @@ from backend.agents.cohort.models import (
     CriterionClassification,
     CriterionType,
     DecisionStatus,
+    DoctorOptionKind,
     EligibilityRule,
     FeasibilityStatus,
     ProtocolCriterionInput,
@@ -31,6 +35,7 @@ from backend.agents.cohort.models import (
 from backend.clients.cohort_data import (
     load_nhanes_diabetes_cohort,
     load_peer_diabetes_protocols,
+    parse_registry_study_to_peer_protocol,
 )
 
 
@@ -221,9 +226,21 @@ def test_part2_separates_normal_criteria_from_bottlenecks() -> None:
     assert "EX-02" not in rec_by_crit
 
     egfr_card = rec_by_crit["EX-01"]
+    option_kinds = {opt.kind for opt in egfr_card.doctor_options}
+    assert DoctorOptionKind.RELAX_TO_PEER_STANDARD in option_kinds
+    assert DoctorOptionKind.RELAX_TO_PEER_MEDIAN in option_kinds
+
     relax_opt = egfr_card.doctor_options[0]
     assert relax_opt.what_if_simulation is not None
     assert relax_opt.what_if_simulation.patients_gained > 50
+
+    peer_med_opt = next(
+        opt
+        for opt in egfr_card.doctor_options
+        if opt.kind == DoctorOptionKind.RELAX_TO_PEER_MEDIAN
+    )
+    assert peer_med_opt.what_if_simulation is not None
+    assert peer_med_opt.what_if_simulation.patients_gained > 50
 
     api_dict = egfr_card.to_api_recommendation_dict()
     assert api_dict["source_step"] == "cohort"
@@ -346,3 +363,139 @@ def test_filter_cohort_supports_fame_d_demo_protocol() -> None:
     fame_d_eligible, _ = filter_cohort(patients, fame_d_rules)
     assert len(fame_d_eligible) > 100
     assert all(p.age >= 18 and p.food_insecure for p in fame_d_eligible)
+
+
+def test_theo_registry_study_parser_and_json_export(tmp_path: Path) -> None:
+    adult_study_payload: dict[str, object] = {
+        "protocolSection": {
+            "identificationModule": {
+                "nctId": "NCT09999999",
+                "briefTitle": "Adult T2D SGLT2 Comparator Trial",
+            },
+            "statusModule": {"overallStatus": "COMPLETED"},
+            "designModule": {
+                "phases": ["PHASE3"],
+                "enrollmentInfo": {"count": 850},
+            },
+            "conditionsModule": {"conditions": ["Type 2 Diabetes"]},
+            "eligibilityModule": {
+                "minimumAge": "18 Years",
+                "maximumAge": "75 Years",
+                "stdAges": ["ADULT", "OLDER_ADULT"],
+                "eligibilityCriteria": (
+                    "Inclusion Criteria:\n"
+                    "* Adults with Type 2 Diabetes Mellitus\n"
+                    "* HbA1c between 7.0% and 10.0%\n"
+                    "Exclusion Criteria:\n"
+                    "* eGFR < 45 mL/min/1.73m2\n"
+                ),
+            },
+        },
+        "derivedSection": {
+            "conditionBrowseModule": {
+                "meshes": [{"term": "Diabetes Mellitus, Type 2"}]
+            }
+        },
+    }
+    parsed_adult = parse_registry_study_to_peer_protocol(adult_study_payload)
+    assert parsed_adult is not None
+    assert parsed_adult.nct_id == "NCT09999999"
+    assert parsed_adult.min_age_years == 18.0
+    assert len(parsed_adult.criteria) == 3
+
+    # Pediatric registry study must be filtered out automatically
+    peds_study_payload: dict[str, object] = {
+        "protocolSection": {
+            "identificationModule": {
+                "nctId": "NCT03170518",
+                "briefTitle": "Pediatric Canagliflozin Trial",
+            },
+            "eligibilityModule": {
+                "minimumAge": "10 Years",
+                "maximumAge": "17 Years",
+                "stdAges": ["CHILD"],
+                "eligibilityCriteria": "Inclusion Criteria:\n* HbA1c >= 7.0%",
+            },
+        }
+    }
+    assert parse_registry_study_to_peer_protocol(peds_study_payload) is None
+
+    # Verify JSON export and API Recommendation conversion
+    out_json = tmp_path / "cohort_recommendations.json"
+    report = asyncio.run(
+        analyze_protocol_cohort(
+            protocol_id="PROTO-EXPORT",
+            protocol_title="Export Test Protocol",
+            criteria=[
+                ProtocolCriterionInput(
+                    criterion_id="EX-01",
+                    kind=CriterionType.EXCLUSION,
+                    text="eGFR < 80 mL/min/1.73m2",
+                    page_number=15,
+                )
+            ],
+            min_age_years=18.0,
+            recommendations_output_path=out_json,
+        )
+    )
+    assert out_json.exists()
+    api_recs = to_api_recommendations(report)
+    assert len(api_recs) == 1
+    assert api_recs[0].source_step.value == "cohort"
+    assert api_recs[0].protocol_id == "PROTO-EXPORT"
+
+
+def test_analyze_protocol_document_cohort_from_parser_output() -> None:
+    from backend.shared.messages import (
+        Citation,
+        CitedValue,
+        CriterionKind,
+        EligibilityCriterion,
+        ProtocolDocument,
+        TrialDesignFacts,
+    )
+
+    doc = ProtocolDocument(
+        protocol_id="NCT04828785",
+        title="FAME-D Trial",
+        page_count=30,
+        pages=[],
+        design=TrialDesignFacts(
+            min_age_years=CitedValue(
+                value=18.0,
+                citation=Citation(
+                    page_number=22,
+                    quote="aged >= 18 years",
+                    is_verified=True,
+                ),
+            ),
+        ),
+        eligibility_criteria=[
+            EligibilityCriterion(
+                criterion_id="IN-01",
+                kind=CriterionKind.INCLUSION,
+                text="HbA1c between 7.0% and 10.5%",
+                citation=Citation(
+                    page_number=22,
+                    quote="HbA1c between 7.0% and 10.5%",
+                    is_verified=True,
+                ),
+            ),
+            EligibilityCriterion(
+                criterion_id="EX-01",
+                kind=CriterionKind.EXCLUSION,
+                text="eGFR < 80 mL/min/1.73m2",
+                citation=Citation(
+                    page_number=23,
+                    quote="eGFR < 80 mL/min/1.73m2",
+                    is_verified=True,
+                ),
+            ),
+        ],
+    )
+
+    report = asyncio.run(analyze_protocol_document_cohort(doc))
+    assert report.protocol_id == "NCT04828785"
+    assert report.base_population_count == 3485
+    assert len(report.recommendations) == 1
+    assert report.recommendations[0].criterion_id == "EX-01"

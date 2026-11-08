@@ -384,11 +384,11 @@ function buildThreeProteinGroup(
 }
 
 export function AsciiProteinViewer() {
-  const [presetId, setPresetId] = useState<ProteinPresetId>("insulin-3i40");
-  const [symbolPresetId, setSymbolPresetId] = useState<string>("simple");
-  const [customChars, setCustomChars] = useState<string>("  .·:+oO#");
-  const [renderStyle, setRenderStyle] = useState<RenderStyle>("ribbon-atoms");
-  const [colorMode, setColorMode] = useState<ColorMode>("chain");
+  // Fixed look for the homepage background; no on-page tuner anymore.
+  const [presetId] = useState<ProteinPresetId>("insulin-3i40");
+  const [customChars] = useState<string>("  .·:+oO#");
+  const [renderStyle] = useState<RenderStyle>("ribbon-atoms");
+  const [colorMode] = useState<ColorMode>("chain");
 
   const [windowDimensions, setWindowDimensions] = useState<{
     cols: number;
@@ -406,8 +406,6 @@ export function AsciiProteinViewer() {
     }
     return { cols: DEFAULT_FALLBACK_COLS, rows: DEFAULT_FALLBACK_ROWS };
   });
-
-  const [colsOverride, setColsOverride] = useState<number | null>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -433,21 +431,11 @@ export function AsciiProteinViewer() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const cols = colsOverride ?? windowDimensions.cols;
-  const rows = colsOverride
-    ? Math.max(
-        35,
-        Math.round(
-          colsOverride * (windowDimensions.rows / windowDimensions.cols)
-        )
-      )
-    : windowDimensions.rows;
+  const { cols, rows } = windowDimensions;
 
-  const [thicknessScale, setThicknessScale] = useState<number>(1.0);
-  const [rotationSpeed, setRotationSpeed] = useState<number>(0.8);
-  const [isAutoRotating, setIsAutoRotating] = useState<boolean>(true);
-  const [isTunerOpen, setIsTunerOpen] = useState<boolean>(false);
-  const [copiedConfig, setCopiedConfig] = useState<boolean>(false);
+  const [thicknessScale] = useState<number>(1.0);
+  const [rotationSpeed] = useState<number>(0.8);
+  const [isAutoRotating] = useState<boolean>(true);
 
   const preRef = useRef<HTMLPreElement | null>(null);
   const rotationRef = useRef<{
@@ -461,37 +449,6 @@ export function AsciiProteinViewer() {
   const activePreset = PROTEIN_PRESETS[presetId];
   const activeChars =
     customChars.length >= 2 ? customChars : SYMBOL_PRESETS[0].chars;
-
-  const handleSymbolPresetSelect = (id: string, chars: string) => {
-    setSymbolPresetId(id);
-    setCustomChars(chars);
-  };
-
-  const handleCopyConfig = async () => {
-    const configPayload = {
-      presetId,
-      chars: activeChars,
-      renderStyle,
-      colorMode,
-      cols,
-      thicknessScale,
-      rotationSpeed,
-    };
-    try {
-      await navigator.clipboard?.writeText(
-        JSON.stringify(configPayload, null, 2)
-      );
-      setCopiedConfig(true);
-    } catch {
-      setCopiedConfig(true);
-    }
-  };
-
-  useEffect(() => {
-    if (!copiedConfig) return;
-    const timer = setTimeout(() => setCopiedConfig(false), 2500);
-    return () => clearTimeout(timer);
-  }, [copiedConfig]);
 
   useEffect(() => {
     // Set up Three.js Scene, Camera, and Lights matching full-screen cell aspect
@@ -760,243 +717,6 @@ export function AsciiProteinViewer() {
           className="font-mono text-[12px] leading-[12px] tracking-normal text-zinc-900 m-0 p-0 overflow-hidden whitespace-pre select-none pointer-events-none"
         />
       </div>
-
-      {/* Floating Tune ASCII / Close Button */}
-      <button
-        type="button"
-        onClick={() => setIsTunerOpen((prev) => !prev)}
-        aria-expanded={isTunerOpen}
-        className="fixed bottom-5 right-5 z-40 px-3.5 py-1.5 rounded-full border border-zinc-200 bg-white/95 hover:bg-zinc-50 text-zinc-800 hover:text-zinc-950 font-mono text-xs backdrop-blur-md shadow-lg transition-all flex items-center gap-2 group pointer-events-auto"
-      >
-        <span className="w-2 h-2 rounded-full bg-emerald-600 group-hover:scale-110 transition-transform" />
-        <span>{isTunerOpen ? "Close" : "Tune ASCII"}</span>
-      </button>
-
-      {/* Floating Tuner Popover */}
-      {isTunerOpen && (
-        <div
-          role="dialog"
-          aria-label="Three.js ASCII Tuner"
-          className="fixed bottom-16 right-5 z-50 w-80 sm:w-96 max-h-[80vh] overflow-y-auto p-4 rounded-xl bg-white/95 border border-zinc-200 backdrop-blur-md shadow-xl space-y-4 text-xs text-zinc-900 pointer-events-auto"
-        >
-          <div className="flex items-center justify-between pb-1.5 border-b border-zinc-200">
-            <div>
-              <span className="font-semibold text-zinc-900 uppercase tracking-wider text-[11px] block">
-                Live Three.js ASCII Studio
-              </span>
-              <span className="text-[10px] font-mono text-zinc-500">
-                {activePreset.name} ({activePreset.pdbCode})
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleCopyConfig}
-                className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-[10px] transition-colors"
-              >
-                {copiedConfig ? "Copied!" : "Copy"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsTunerOpen(false)}
-                className="px-2 py-0.5 rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-800 font-mono text-[10px] transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-
-          {/* Protein Preset Switcher */}
-          <div className="space-y-1.5">
-            <span className="block text-zinc-600 font-medium">
-              Protein Preset:
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {(Object.keys(PROTEIN_PRESETS) as ProteinPresetId[]).map((id) => {
-                const item = PROTEIN_PRESETS[id];
-                const isSelected = id === presetId;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setPresetId(id)}
-                    className={`px-2.5 py-1 rounded font-mono text-[11px] border transition-colors ${
-                      isSelected
-                        ? "border-emerald-600 bg-emerald-50 text-emerald-800 font-semibold"
-                        : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100"
-                    }`}
-                  >
-                    {item.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Symbol Presets + Custom Input */}
-          <div className="space-y-1.5">
-            <label
-              htmlFor="ascii-custom-symbols"
-              className="block text-zinc-600 font-medium"
-            >
-              Symbol Ramp (lightest → densest):
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {SYMBOL_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() =>
-                    handleSymbolPresetSelect(preset.id, preset.chars)
-                  }
-                  className={`px-2 py-1 rounded font-mono text-[11px] border transition-colors ${
-                    symbolPresetId === preset.id &&
-                    customChars === preset.chars
-                      ? "border-emerald-600 bg-emerald-50 text-emerald-800 font-medium"
-                      : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
-                  }`}
-                >
-                  {preset.label} ({preset.chars.trim()})
-                </button>
-              ))}
-            </div>
-            <input
-              id="ascii-custom-symbols"
-              type="text"
-              value={customChars}
-              onChange={(e) => setCustomChars(e.target.value)}
-              placeholder="Type custom symbols (start with space)..."
-              className="w-full mt-1 px-2.5 py-1.5 rounded bg-white border border-zinc-300 font-mono text-xs text-emerald-700 focus:outline-none focus:border-emerald-600"
-            />
-          </div>
-
-          {/* Geometry Style & Color Mode */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <span className="block text-zinc-600 font-medium">
-                3D Geometry Style:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {(
-                  [
-                    { id: "ribbon-atoms", label: "Ribbon + Atoms" },
-                    { id: "tubes-only", label: "Helix Tubes" },
-                    { id: "ball-stick", label: "Ball & Stick" },
-                  ] as const
-                ).map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setRenderStyle(opt.id)}
-                    className={`px-2 py-1 rounded font-mono text-[11px] border transition-colors ${
-                      renderStyle === opt.id
-                        ? "border-emerald-600 bg-emerald-50 text-emerald-800 font-medium"
-                        : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <span className="block text-zinc-600 font-medium">
-                ASCII Color Mode:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {(
-                  [
-                    { id: "chain", label: "Bio Chains" },
-                    { id: "emerald", label: "Deep Emerald" },
-                    { id: "mono", label: "Dark Mono" },
-                  ] as const
-                ).map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setColorMode(opt.id)}
-                    className={`px-2 py-1 rounded font-mono text-[11px] border transition-colors ${
-                      colorMode === opt.id
-                        ? "border-emerald-600 bg-emerald-50 text-emerald-800 font-medium"
-                        : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Sliders for Density, Thickness, and Speed */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-            <label className="space-y-1 block">
-              <div className="flex justify-between text-zinc-600">
-                <span>Grid Columns</span>
-                <span className="font-mono text-zinc-900">{cols}</span>
-              </div>
-              <input
-                type="range"
-                min={100}
-                max={260}
-                step={10}
-                value={cols}
-                onChange={(e) => setColsOverride(Number(e.target.value))}
-                className="w-full accent-emerald-600"
-              />
-            </label>
-
-            <label className="space-y-1 block">
-              <div className="flex justify-between text-zinc-600">
-                <span>3D Thickness</span>
-                <span className="font-mono text-zinc-900">
-                  {thicknessScale.toFixed(1)}x
-                </span>
-              </div>
-              <input
-                type="range"
-                min={0.6}
-                max={1.6}
-                step={0.1}
-                value={thicknessScale}
-                onChange={(e) => setThicknessScale(Number(e.target.value))}
-                className="w-full accent-emerald-600"
-              />
-            </label>
-
-            <label className="space-y-1 block">
-              <div className="flex justify-between text-zinc-600">
-                <span>Rotation Speed</span>
-                <span className="font-mono text-zinc-900">
-                  {rotationSpeed.toFixed(1)}x
-                </span>
-              </div>
-              <input
-                type="range"
-                min={0.1}
-                max={2.4}
-                step={0.1}
-                value={rotationSpeed}
-                onChange={(e) => setRotationSpeed(Number(e.target.value))}
-                className="w-full accent-emerald-600"
-              />
-            </label>
-          </div>
-
-          {/* Spin Toggle */}
-          <div className="pt-2 flex justify-between items-center border-t border-zinc-200">
-            <span className="text-zinc-600 text-[11px]">Auto Rotation:</span>
-            <button
-              type="button"
-              onClick={() => setIsAutoRotating((prev) => !prev)}
-              className="px-2.5 py-1 text-xs font-mono rounded border border-zinc-300 bg-zinc-50 text-zinc-800 hover:bg-zinc-100 transition-colors"
-            >
-              {isAutoRotating ? "Pause Spin" : "Resume Spin"}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from backend.api.protocol_pipeline import AnalysisFailedError
 from backend.api.routes import router
+from backend.clients.document_store import DocumentStoreError
 from backend.clients.protocol_db import ProtocolStoreError
 from backend.shared.config import load_settings
 
@@ -47,6 +48,17 @@ async def answer_store_failure(
     return JSONResponse(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         content={"detail": f"protocol database failed: {error}"},
+    )
+
+
+@app.exception_handler(DocumentStoreError)
+async def answer_document_store_failure(
+    _request: Request, error: DocumentStoreError
+) -> JSONResponse:
+    """Turn a failed document read or write into a 503 the UI can show."""
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"detail": f"document store failed: {error}"},
     )
 
 

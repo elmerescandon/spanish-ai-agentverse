@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from fpdf import FPDF
 from pydantic import BaseModel
+from vercel import blob
 
 from backend.agents.protocol_comparison.agent import (
     ProtocolComparison,
@@ -42,7 +43,12 @@ from backend.api.protocol_pipeline import (
     ProtocolPipeline,
     set_protocol_pipeline,
 )
+from backend.clients import document_store
 from backend.clients.clinicaltrials_gov import PeerSearchQuery, StudyRecord
+from backend.clients.document_store import (
+    MemoryDocumentStore,
+    set_document_store,
+)
 from backend.clients.gemini import (
     GeminiClient,
     JsonGenerator,
@@ -53,6 +59,7 @@ from backend.clients.pdf_reader import read_pdf_pages
 from backend.clients.protocol_db import ProtocolDb, set_protocol_db
 from backend.shared.config import load_settings
 from backend.shared.messages import ProtocolDocument
+from tests.fake_blob import FakeBlobBackend
 
 PDF_FONT_FAMILY = "Helvetica"
 PDF_FONT_SIZE_PT = 10
@@ -301,6 +308,26 @@ async def out_of_line_demo_comparison(*_: object) -> ProtocolComparison:
         draft, DEMO_PROTOCOL_DATE, peers, store
     )
     return as_protocol_comparison(results, cards)
+
+
+@pytest.fixture
+def fake_blob(monkeypatch: pytest.MonkeyPatch) -> FakeBlobBackend:
+    """Replace vercel.blob with shared in-memory storage, no retry waits."""
+    fake = FakeBlobBackend()
+    monkeypatch.setattr(blob, "put_blob", fake.put_blob)
+    monkeypatch.setattr(blob, "get_blob", fake.get_blob)
+    monkeypatch.setattr(blob, "delete_blob", fake.delete_blob)
+    monkeypatch.setattr(blob, "query_blobs", fake.query_blobs)
+    monkeypatch.setattr(document_store, "RETRY_BACKOFF_SECONDS", 0.0)
+    return fake
+
+
+@pytest.fixture(autouse=True)
+def _memory_document_store() -> Generator[None]:
+    """Every test starts with an empty in-memory document store, never Blob."""
+    set_document_store(MemoryDocumentStore())
+    yield
+    set_document_store(None)
 
 
 @pytest.fixture(autouse=True)

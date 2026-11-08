@@ -93,7 +93,7 @@ const PIPELINE_STEPS: readonly StepData[] = [
     phase: "Check",
     title: "Find missing or conflicting parts",
     summary:
-      "Flags gaps and contradictions before they turn into amendments.",
+      "Checks the protocol against regulatory guidance: what must be there, what is vague, and what contradicts itself.",
   },
   {
     id: "step-02",
@@ -101,7 +101,7 @@ const PIPELINE_STEPS: readonly StepData[] = [
     phase: "Compare",
     title: "Compare with similar trials",
     summary:
-      "Flags criteria that fall outside what comparable diabetes trials used.",
+      "Finds registered trials for the same condition and phase, and flags limits that fall outside what they used.",
   },
   {
     id: "step-03",
@@ -109,7 +109,7 @@ const PIPELINE_STEPS: readonly StepData[] = [
     phase: "Simulate",
     title: "Count the patients you would lose",
     summary:
-      "Shows how many real patients each criterion removes from the pool.",
+      "Runs the eligibility criteria on a patient cohort to show how many people each criterion removes. Criteria the data cannot express are flagged, not guessed.",
   },
   {
     id: "step-04",
@@ -117,7 +117,7 @@ const PIPELINE_STEPS: readonly StepData[] = [
     phase: "Decide",
     title: "Doctors make the call",
     summary:
-      "Each finding becomes a card. Nothing changes without physician sign-off.",
+      "Each finding becomes a card with its evidence, reasoning and options. The tool suggests; clinicians decide.",
   },
 ];
 
@@ -128,9 +128,6 @@ export default function HomePage() {
   };
 
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
-  const [decisionAction, setDecisionAction] = useState<"pending" | "approved">(
-    "pending"
-  );
   const pipelineRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -203,7 +200,7 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section: Left-Aligned so the 3D ASCII Protein dominates the Right */}
-      <section className="relative z-10 mx-auto min-h-[calc(100vh-70px)] max-w-7xl px-6 pt-12 pb-24 sm:px-10 sm:pt-20 lg:px-12 flex flex-col justify-center">
+      <section className="relative z-10 mx-auto min-h-[calc(100svh-72px)] max-w-7xl px-6 py-12 sm:px-10 lg:px-12 flex flex-col justify-center">
         <div className="glass-panel max-w-2xl lg:max-w-3xl space-y-8">
           <h1
             style={serifFont}
@@ -214,9 +211,10 @@ export default function HomePage() {
 
           <p className="text-base sm:text-lg text-zinc-600 leading-relaxed font-sans max-w-xl">
             More than half of trial protocols need amendments mid-study.
-            ProtocolAI checks a draft type 2 diabetes protocol against peer
-            trials and real patient data, then gives doctors clear cards to
-            act on.
+            ProtocolAI reads a draft protocol, checks it against regulatory
+            guidance, compares it with similar registered trials and
+            simulates who would qualify, then gives clinicians clear cards to
+            review.
           </p>
 
           <div className="pt-2 flex flex-wrap items-center gap-4">
@@ -228,9 +226,12 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
+      </section>
 
-        {/* 3 Key Problem Metrics (#problem) without box borders */}
-        <div id="problem" className="glass-panel mt-20 sm:mt-28 max-w-4xl">
+      {/* 3 Key Problem Metrics (#problem): below the fold, so the hero
+          fills the first screen on its own. */}
+      <section className="relative z-10 mx-auto max-w-7xl px-6 pb-24 sm:px-10 lg:px-12">
+        <div id="problem" className="glass-panel max-w-4xl">
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
             <div className="space-y-2">
               <span
@@ -301,7 +302,12 @@ export default function HomePage() {
               From draft protocol to doctor-approved changes
             </h2>
             <p className="text-base text-zinc-600 leading-relaxed">
-              Five steps. Each one catches a different kind of problem.
+              Five steps, from PDF to clinician review. The steps are the
+              same for any condition; what changes is the disease-specific
+              guidance, peer trials and patient cohort plugged into them.
+            </p>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Visuals below are illustrative, not output from a real run.
             </p>
           </div>
 
@@ -374,26 +380,35 @@ export default function HomePage() {
                       {step.id === "step-01" && (
                         <div className="p-4 bg-white/70 rounded-xl space-y-2.5 max-w-xl">
                           <span className="text-xs font-semibold text-zinc-700 block">
-                            SPIRIT 2025 Audit Matrix Live Status
+                            Example: rule check results
                           </span>
                           <div className="space-y-1.5 text-xs">
                             <div className="flex justify-between text-zinc-600">
-                              <span>Present & Verified Criteria</span>
+                              <span>Present</span>
                               <span className="font-semibold text-emerald-700">
-                                92% (34 items)
+                                Stated clearly, with a page citation
                               </span>
                             </div>
                             <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-emerald-600 w-[92%]" />
+                              <div className="h-full bg-emerald-600 w-[80%]" />
                             </div>
                             <div className="flex justify-between text-zinc-600 pt-1">
-                              <span>Weak or Ambiguous Definitions</span>
+                              <span>Weak</span>
                               <span className="font-semibold text-amber-700">
-                                8% (3 items)
+                                Mentioned, but vague or incomplete
                               </span>
                             </div>
                             <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-amber-500 w-[8%]" />
+                              <div className="h-full bg-amber-500 w-[12%]" />
+                            </div>
+                            <div className="flex justify-between text-zinc-600 pt-1">
+                              <span>Missing</span>
+                              <span className="font-semibold text-rose-700">
+                                Required, but not found
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-rose-600 w-[8%]" />
                             </div>
                           </div>
                         </div>
@@ -402,8 +417,8 @@ export default function HomePage() {
                       {step.id === "step-02" && (
                         <div className="p-4 bg-white/70 rounded-xl space-y-2 max-w-xl">
                           <span className="text-xs font-semibold text-zinc-700 block">
-                            Historical Peer Trials Distribution (AACT Diabetes
-                            Trials)
+                            Example: one eligibility limit vs peer trials
+                            (same condition and phase)
                           </span>
                           <div className="relative pt-3 pb-2">
                             <div className="h-2 w-full bg-zinc-200/60 rounded-full relative">
@@ -411,10 +426,10 @@ export default function HomePage() {
                               <div className="absolute left-[88%] -top-1 w-4 h-4 rounded-full bg-rose-600 border-2 border-white shadow" />
                             </div>
                             <div className="flex justify-between text-[11px] text-zinc-400 pt-1">
-                              <span>10th Percentile</span>
-                              <span>Peer Median</span>
+                              <span>Peer range</span>
+                              <span>Peer median</span>
                               <span className="text-rose-700 font-semibold">
-                                Draft Protocol (Outlier)
+                                Draft (outside the range)
                               </span>
                             </div>
                           </div>
@@ -424,15 +439,15 @@ export default function HomePage() {
                       {step.id === "step-03" && (
                         <div className="p-4 bg-white/70 rounded-xl space-y-2 max-w-xl">
                           <span className="text-xs font-semibold text-zinc-700 block">
-                            MIMIC-IV Patient Attrition Waterfall Simulation
+                            Example: who is left after each criterion
                           </span>
                           <div className="space-y-1.5 text-xs">
                             <div className="flex justify-between">
                               <span className="text-zinc-600">
-                                Initial T2D Patient Base
+                                Patients with the condition
                               </span>
                               <span className="font-medium text-zinc-900">
-                                12,400 pts (100%)
+                                100%
                               </span>
                             </div>
                             <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
@@ -441,22 +456,22 @@ export default function HomePage() {
 
                             <div className="flex justify-between pt-1">
                               <span className="text-zinc-600">
-                                After HbA1c &gt; 7.5% &amp; eGFR &gt; 45
+                                After age and lab limits
                               </span>
                               <span className="font-medium text-zinc-900">
-                                4,712 pts (38%)
+                                40%
                               </span>
                             </div>
                             <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-emerald-600 w-[38%]" />
+                              <div className="h-full bg-emerald-600 w-[40%]" />
                             </div>
 
                             <div className="flex justify-between pt-1">
                               <span className="text-zinc-600">
-                                After Concomitant Meds Washout
+                                After one strict criterion
                               </span>
                               <span className="font-medium text-rose-700 font-semibold">
-                                2,232 pts (18%)
+                                18%: the steepest drop
                               </span>
                             </div>
                             <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
@@ -470,45 +485,26 @@ export default function HomePage() {
                         <div className="p-4 bg-white/90 rounded-xl space-y-3 max-w-xl shadow-sm">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-semibold text-zinc-900">
-                              Decision Card: Section 6.3 Renal Safety
+                              Example decision card: an eligibility lab limit
                             </span>
                             <span className="text-[11px] px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-medium">
-                              Estimated Accrual: +18%
+                              Needs review
                             </span>
                           </div>
                           <p className="text-xs text-zinc-600 leading-relaxed">
-                            Recommendation: Add quarterly eGFR and uACR checks
-                            for 45–60 mL/min cohort instead of outright
-                            exclusion.
+                            The draft&apos;s limit is stricter than most peer
+                            trials and causes the steepest drop in the
+                            simulated cohort. Evidence: protocol page, peer
+                            trials, cohort counts.
                           </p>
-                          <div className="flex items-center gap-2 pt-1">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDecisionAction("approved");
-                              }}
-                              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                                decisionAction === "approved"
-                                  ? "bg-emerald-700 text-white"
-                                  : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                              }`}
-                            >
-                              {decisionAction === "approved"
-                                ? "✓ Approved by Clinician"
-                                : "Approve Amendment"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDecisionAction("pending");
-                              }}
-                              className="px-3 py-1 rounded text-xs font-medium bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
-                            >
-                              Dismiss with Rationale
-                            </button>
-                          </div>
+                          <ul className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                            <li className="px-3 py-1 rounded font-medium bg-emerald-50 text-emerald-800">
+                              Option: align with the peer median
+                            </li>
+                            <li className="px-3 py-1 rounded font-medium bg-zinc-100 text-zinc-600">
+                              Option: keep, with a written reason
+                            </li>
+                          </ul>
                         </div>
                       )}
                     </div>
@@ -534,14 +530,32 @@ export default function HomePage() {
               style={serifFont}
               className="text-4xl sm:text-5xl md:text-6xl font-normal text-zinc-950 tracking-tight"
             >
-              Every finding points to real data
+              Every finding points to a source
             </h2>
             <p className="text-base text-zinc-600 leading-relaxed">
-              No guessing. Each check is tied to a public source.
+              Each check cites the rule, peer trial or patient data behind
+              it. These three inputs are chosen per condition; the process
+              around them stays the same.
             </p>
           </div>
 
           <div className="glass-panel divide-y divide-zinc-200/40 max-w-4xl py-0 sm:py-0">
+            <div className="py-7 space-y-1.5">
+              <span className="font-sans text-xs font-semibold uppercase tracking-wide text-emerald-800">
+                ICH M11 · ICH E9(R1) · FDA · EMA
+              </span>
+              <h4
+                style={serifFont}
+                className="text-2xl font-normal text-zinc-900"
+              >
+                Protocol rulebook
+              </h4>
+              <p className="text-sm text-zinc-600 leading-relaxed">
+                General rules for what any complete protocol must contain,
+                plus guidance specific to the condition.
+              </p>
+            </div>
+
             <div className="py-7 space-y-1.5">
               <span className="font-sans text-xs font-semibold uppercase tracking-wide text-emerald-800">
                 ClinicalTrials.gov
@@ -553,37 +567,24 @@ export default function HomePage() {
                 Peer trials
               </h4>
               <p className="text-sm text-zinc-600 leading-relaxed">
-                Ten years of type 2 diabetes trials to compare against.
+                Registered trials with the same condition and phase that had
+                started before the draft was written.
               </p>
             </div>
 
             <div className="py-7 space-y-1.5">
               <span className="font-sans text-xs font-semibold uppercase tracking-wide text-emerald-800">
-                SPIRIT 2025 &amp; ICH M11
+                Population health data
               </span>
               <h4
                 style={serifFont}
                 className="text-2xl font-normal text-zinc-900"
               >
-                Clinical guidelines
+                Patient cohort
               </h4>
               <p className="text-sm text-zinc-600 leading-relaxed">
-                A checklist of what a complete protocol must contain.
-              </p>
-            </div>
-
-            <div className="py-7 space-y-1.5">
-              <span className="font-sans text-xs font-semibold uppercase tracking-wide text-emerald-800">
-                MIMIC-IV &amp; Synthea
-              </span>
-              <h4
-                style={serifFont}
-                className="text-2xl font-normal text-zinc-900"
-              >
-                Patient records
-              </h4>
-              <p className="text-sm text-zinc-600 leading-relaxed">
-                Real and synthetic patients to test who would qualify.
+                People with the condition from a public health dataset, such
+                as a national health survey, used to test who would qualify.
               </p>
             </div>
           </div>
@@ -617,7 +618,7 @@ export default function HomePage() {
                 style={serifFont}
                 className="text-2xl sm:text-3xl font-normal text-zinc-950"
               >
-                How we measure accuracy
+                How we plan to validate
               </h3>
               <ul className="space-y-5 text-sm text-zinc-600">
                 <li className="flex items-start gap-3">
@@ -626,9 +627,11 @@ export default function HomePage() {
                   </span>
                   <div>
                     <strong className="text-zinc-900 block font-medium">
-                      Extraction
+                      Amendments that really happened
                     </strong>
-                    Checked against hand-labeled protocols.
+                    Take trials that later loosened their eligibility limits
+                    after slow recruitment, review the original protocol, and
+                    check whether those limits are flagged.
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -637,9 +640,9 @@ export default function HomePage() {
                   </span>
                   <div>
                     <strong className="text-zinc-900 block font-medium">
-                      Amendment hit-rate
+                      Extraction
                     </strong>
-                    Flags compared with amendments that really happened.
+                    Next: compare parsed protocols with hand-labeled ones.
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -650,7 +653,8 @@ export default function HomePage() {
                     <strong className="text-zinc-900 block font-medium">
                       Patient mix
                     </strong>
-                    Simulated cohorts compared with enrolled populations.
+                    Next: compare simulated cohorts with the populations
+                    trials actually enrolled.
                   </div>
                 </li>
               </ul>
@@ -672,7 +676,8 @@ export default function HomePage() {
                     <strong className="text-zinc-900 block font-medium">
                       No silent guesses
                     </strong>
-                    Anything we cannot simulate is labeled as such.
+                    Criteria the patient data cannot express are marked
+                    &ldquo;cannot simulate&rdquo; and left for a clinician.
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -683,7 +688,8 @@ export default function HomePage() {
                     <strong className="text-zinc-900 block font-medium">
                       Visible logic
                     </strong>
-                    Each card shows the query next to the protocol text.
+                    Each card shows its reasoning, the evidence and the
+                    protocol page it comes from.
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -692,9 +698,9 @@ export default function HomePage() {
                   </span>
                   <div>
                     <strong className="text-zinc-900 block font-medium">
-                      Physician sign-off
+                      Clinician sign-off
                     </strong>
-                    Safety criteria are never relaxed automatically.
+                    Nothing in the protocol is changed automatically.
                   </div>
                 </li>
               </ul>
@@ -716,8 +722,7 @@ export default function HomePage() {
               ProtocolAI
             </a>
             <p className="text-sm text-zinc-600 leading-relaxed">
-              Catch protocol problems in type 2 diabetes trials before the first
-              patient is enrolled.
+              Catch protocol problems before the first patient is enrolled.
             </p>
           </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 export type StepBarState = "done" | "running" | "pending";
 
@@ -42,9 +42,25 @@ function neighbourIndex(
   return items[index]?.state === "done" ? index : -1;
 }
 
+function circleClass(
+  state: StepBarState,
+  isActive: boolean,
+  isReached: boolean
+): string {
+  if (isActive) {
+    return "border-emerald-600 bg-emerald-600 text-white ring-4 ring-emerald-100";
+  }
+  if (isReached) return "border-emerald-600 bg-white text-emerald-700";
+  if (state === "done") {
+    return "border-zinc-300 bg-white text-zinc-600 group-hover:border-zinc-900";
+  }
+  if (state === "running") return "border-zinc-200 bg-white text-emerald-600";
+  return "border-zinc-200 bg-white text-zinc-300";
+}
+
 /**
- * Compact progress bar over the sequential flow. Only done steps can be
- * opened; a thin line fills emerald as steps complete.
+ * Circle stepper over the sequential flow. Only done steps can be opened;
+ * circles and connectors fill emerald up to the step being viewed.
  */
 export default function StepBar({
   items,
@@ -54,8 +70,6 @@ export default function StepBar({
   const activeIndex = items.findIndex((item) => item.id === activeId);
   const previousIndex = neighbourIndex(items, activeIndex, -1);
   const nextIndex = neighbourIndex(items, activeIndex, 1);
-  const doneCount = items.filter((item) => item.state === "done").length;
-  const fillPercent = items.length ? (doneCount / items.length) * 100 : 0;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -91,52 +105,69 @@ export default function StepBar({
           <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
         </button>
 
-        <div className="relative flex-1">
-          <div
-            aria-hidden
-            className="absolute inset-x-0 top-0 h-px bg-zinc-200"
-          >
-            <div
-              className="h-px bg-emerald-500 transition-all duration-500"
-              style={{ width: `${fillPercent}%` }}
-            />
-          </div>
-          <ol className="grid grid-cols-4 gap-2 pt-2">
-            {items.map((item, index) => {
-              const isActive = item.id === activeId;
-              return (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    aria-label={item.title}
-                    aria-current={isActive ? "step" : undefined}
-                    disabled={item.state !== "done"}
-                    onClick={() => onSelect(item.id)}
-                    className={`w-full cursor-pointer text-left font-sans transition-colors disabled:cursor-default ${
-                      isActive ? "text-zinc-900" : "text-zinc-500"
+        <ol className="flex flex-1">
+          {items.map((item, index) => {
+            const isActive = index === activeIndex;
+            // Progress follows the tab being viewed, not run completion.
+            const isReached = index <= activeIndex;
+            return (
+              <li key={item.id} className="relative flex-1">
+                {index > 0 && (
+                  <span
+                    aria-hidden
+                    className={`absolute right-1/2 top-3.5 h-px w-full transition-colors duration-500 ${
+                      isReached ? "bg-emerald-500" : "bg-zinc-200"
+                    }`}
+                  />
+                )}
+                <button
+                  type="button"
+                  aria-label={item.title}
+                  aria-current={isActive ? "step" : undefined}
+                  disabled={item.state !== "done"}
+                  onClick={() => onSelect(item.id)}
+                  className="group relative flex w-full cursor-pointer flex-col items-center gap-1.5 font-sans disabled:cursor-default"
+                >
+                  <span
+                    className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs transition-all duration-300 ${circleClass(
+                      item.state,
+                      isActive,
+                      isReached
+                    )}`}
+                  >
+                    {item.state === "running" ? (
+                      <Loader2
+                        className="h-3.5 w-3.5 animate-spin"
+                        strokeWidth={1.5}
+                        aria-hidden
+                      />
+                    ) : isReached && !isActive ? (
+                      <Check
+                        className="h-3.5 w-3.5"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    ) : (
+                      index + 1
+                    )}
+                  </span>
+                  <span
+                    className={`max-w-full truncate px-1 text-xs transition-colors ${
+                      isActive
+                        ? "font-medium text-zinc-900"
+                        : item.state === "done"
+                          ? "text-zinc-500 group-hover:text-zinc-900"
+                          : "text-zinc-300"
                     }`}
                   >
-                    <span className="flex items-baseline gap-1.5 text-xs">
-                      <span className="font-serif text-emerald-800">
-                        {index + 1}
-                      </span>
-                      <span
-                        className={`truncate ${
-                          isActive ? "font-medium" : ""
-                        }`}
-                      >
-                        {item.title}
-                      </span>
-                    </span>
-                    <span className="block text-[11px] text-zinc-400">
-                      {STATE_LABELS[item.state]}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
+                    {item.title}
+                  </span>
+                  <span className="sr-only">{STATE_LABELS[item.state]}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
 
         <button
           type="button"

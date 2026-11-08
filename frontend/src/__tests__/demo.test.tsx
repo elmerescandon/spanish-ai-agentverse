@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DemoPage from "@/app/demo/page";
+import StepBar from "@/components/demo/StepBar";
 import StepView from "@/components/demo/StepView";
 import { MOCK_PROTOCOL_PAGE_COUNT, MOCK_STEPS } from "@/lib/demo/mock";
 import {
@@ -232,5 +233,34 @@ describe("StepView in isolation", () => {
         screen.getByRole("button", { name: new RegExp(decision.title) })
       ).toBeInTheDocument();
     }
+  });
+});
+
+describe("StepBar in isolation", () => {
+  it("marks the viewed step and only lets finished steps be opened", async () => {
+    const user = userEvent.setup();
+    const onSelect = mock();
+    render(
+      <StepBar
+        items={[
+          { id: "ingest", title: "Data Ingestion", state: "done" },
+          { id: "check", title: "Completeness", state: "done" },
+          { id: "peers", title: "Peers", state: "running" },
+          { id: "cohort", title: "Cohort", state: "pending" },
+        ]}
+        activeId="check"
+        onSelect={onSelect}
+      />
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Completeness" })
+    ).toHaveAttribute("aria-current", "step");
+    expect(screen.getByRole("button", { name: "Peers" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cohort" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next step" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Previous step" }));
+    expect(onSelect).toHaveBeenCalledWith("ingest");
   });
 });

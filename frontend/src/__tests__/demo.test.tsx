@@ -21,12 +21,15 @@ import { makeStep } from "./fixtures";
 
 type User = ReturnType<typeof userEvent.setup>;
 
-const SLOW_STEP_TIMEOUT_MS = 4000;
+const SLOW_STEP_TIMEOUT_MS = 6500;
 
 async function loadPreset(user: User) {
   await user.click(
     screen.getByRole("button", { name: "Try the sample protocol" })
   );
+  await waitFor(() => expect(screen.getByRole("navigation", {
+    name: "Pipeline steps",
+  })).toBeInTheDocument(), { timeout: SLOW_STEP_TIMEOUT_MS });
 }
 
 async function waitForAllStepsDone() {
@@ -265,16 +268,16 @@ describe("demo pipeline step bar flow", () => {
       within(screen.getByRole("navigation", { name: "Step navigation" }));
     expect(
       stepNavigation().queryByRole("button", { name: /Previous/ })
-    ).not.toBeInTheDocument();
+    ).toBeDisabled();
 
     const nextButton = () =>
-      stepNavigation().getByRole("button", { name: /^Next:/ });
+      stepNavigation().getByRole("button", { name: "Next step" });
     await waitFor(() => expect(nextButton()).toBeEnabled(), {
       timeout: SLOW_STEP_TIMEOUT_MS,
     });
     await user.click(nextButton());
     expect(
-      stepNavigation().getByRole("button", { name: /^← Previous:/ })
+      stepNavigation().getByRole("button", { name: "Previous step" })
     ).toBeInTheDocument();
   });
 
@@ -291,9 +294,9 @@ describe("demo pipeline step bar flow", () => {
       header().queryByRole("link", { name: "Download report (PDF)" });
     expect(headerReportLink()).not.toBeInTheDocument();
 
-    while (stepNavigation().queryByRole("button", { name: /^Next:/ })) {
+    for (let index = 0; index < 3; index += 1) {
       const nextButton = stepNavigation().getByRole("button", {
-        name: /^Next:/,
+        name: "Next step",
       });
       await waitFor(() => expect(nextButton).toBeEnabled(), {
         timeout: SLOW_STEP_TIMEOUT_MS,
@@ -313,7 +316,7 @@ describe("demo pipeline step bar flow", () => {
     ).toHaveAttribute("href", api.LATEST_REPORT_PDF_URL);
 
     await user.click(
-      stepNavigation().getByRole("button", { name: /^← Previous:/ })
+      stepNavigation().getByRole("button", { name: "Previous step" })
     );
     expect(headerReportLink()).toBeInTheDocument();
   });
@@ -346,6 +349,62 @@ describe("demo pipeline step bar flow", () => {
     await user.click(finding);
     await user.keyboard("{Escape}");
     expect(finding).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("shows inline accept/decline only on actionable recommendations and lets cohort options be chosen", async () => {
+    const user = userEvent.setup();
+    render(<DemoPage />);
+    await loadPreset(user);
+    await waitForAllStepsDone();
+
+    expect(
+      screen.queryByRole("button", { name: /Replay demo/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Your clinical decision/i)
+    ).not.toBeInTheDocument();
+
+    // Informational ingestion finding has no Accept/Decline controls.
+    await user.click(
+      screen.getByRole("button", { name: /Eligibility criteria extracted/ })
+    );
+    expect(
+      screen.queryByRole("button", { name: /Accept/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Decline/i })
+    ).not.toBeInTheDocument();
+
+    // Cohort Comparison finding shows both comparative options and allows accepting either one.
+    await user.click(screen.getByRole("button", { name: "Cohort Comparison" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: /eGFR exclusion removes the most patients/,
+      })
+    );
+
+    const opt1 = screen.getByRole("button", {
+      name: /Accept Relax to clinical standard: lower cut-off to 30 and stratify/,
+    });
+    const opt2 = screen.getByRole("button", {
+      name: /Accept Align with peer trials lower decile: lower cut-off to 30 without stratifying/,
+    });
+    expect(opt1).toBeInTheDocument();
+    expect(opt2).toBeInTheDocument();
+
+    await user.click(opt2);
+    expect(opt2).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByText(/1 of \d+ recommendations reviewed/)
+    ).toBeInTheDocument();
+
+    const declineBtn = screen.getByRole("button", {
+      name: /Decline Align with peer trials lower decile/,
+    });
+    await user.click(declineBtn);
+    expect(
+      declineBtn
+    ).toHaveAttribute("aria-pressed", "true");
   });
 
   it("jumps to the earlier step and opens the finding a finding builds on", async () => {
@@ -536,7 +595,7 @@ describe("live upload fans out to the recommendation agents", () => {
 
     const failed = screen.getByRole("button", { name: "Protocol Comparison" });
     expect(failed).toBeEnabled();
-    expect(failed).toHaveTextContent("Failed");
+    expect(failed).toHaveTextContent("Needs attention");
     await user.click(failed);
     expect(screen.getByRole("alert")).toHaveTextContent("Peer search unavailable");
 

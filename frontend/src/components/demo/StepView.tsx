@@ -10,7 +10,12 @@ import {
   resolveDurationMs,
 } from "@/lib/demo/format";
 import { MAX_STEP_METRICS } from "@/lib/demo/traceability";
-import type { Decision, StepData, StepStatus } from "@/lib/demo/types";
+import type {
+  Decision,
+  ReviewStatus,
+  StepData,
+  StepStatus,
+} from "@/lib/demo/types";
 import ChartView from "./ChartView";
 import Collapsible from "./Collapsible";
 import DataSourceList from "./DataSourceList";
@@ -45,6 +50,7 @@ export interface StepViewProps {
   expandedDecisionIds?: ReadonlySet<string>;
   onToggleDecision: (decisionId: string) => void;
   renderDecision: (decision: Decision) => ReactNode;
+  getReviewStatus?: (decisionId: string) => ReviewStatus | undefined;
 }
 
 /** "Completeness agent · 4.2 s · 10:31:04–10:31:08", empty parts dropped. */
@@ -103,6 +109,7 @@ export default function StepView({
   expandedDecisionIds = new Set<string>(),
   onToggleDecision,
   renderDecision,
+  getReviewStatus,
 }: StepViewProps) {
   const charts = step.charts ?? [];
   const tables = step.tables ?? [];
@@ -171,6 +178,7 @@ export default function StepView({
                 decision.decision_id
               );
               const panelId = `finding-${decision.decision_id}`;
+              const reviewStatus = getReviewStatus?.(decision.decision_id);
               return (
                 <li
                   key={decision.decision_id}
@@ -201,6 +209,14 @@ export default function StepView({
                       )}
                     </span>
                     <span className="shrink-0 space-y-1 text-right font-sans text-sm">
+                      {reviewStatus === "accepted" && (
+                        <span className="block text-emerald-700">
+                          ✓ Accepted
+                        </span>
+                      )}
+                      {reviewStatus === "rejected" && (
+                        <span className="block text-zinc-500">Declined</span>
+                      )}
                       {decision.severity !== "info" && (
                         <span
                           className={`block ${

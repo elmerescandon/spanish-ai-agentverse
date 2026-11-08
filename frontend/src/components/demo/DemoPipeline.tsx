@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ProtocolIngestion from "@/components/ProtocolIngestion";
-import DecisionView from "./DecisionView";
-import StepBar, { type StepBarState } from "./StepBar";
+import DecisionView, { type DecisionReviewState } from "./DecisionView";
+import ProtocolLoading from "./ProtocolLoading";
+import type { StepBarState } from "./StepBar";
 import StepView from "./StepView";
 import {
   LATEST_REPORT_PDF_URL,
@@ -19,6 +20,7 @@ import {
 import type {
   Decision,
   RecommendationStepId,
+  ReviewStatus,
   StepData,
   StepId,
   UploadFileResponse,
@@ -46,10 +48,11 @@ type UploadState =
   | { status: "uploading" }
   | { status: "error"; message: string };
 
+const SAMPLE_LOADING_MS = 1350;
+
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
-
 
 function isTextEntry(target: EventTarget | null): boolean {
   const element = target as HTMLElement | null;
@@ -57,6 +60,13 @@ function isTextEntry(target: EventTarget | null): boolean {
     element?.tagName === "INPUT" ||
     element?.tagName === "TEXTAREA" ||
     element?.isContentEditable === true
+  );
+}
+
+function isActionableDecision(decision: Decision): boolean {
+  return (
+    Boolean(decision.proposed_change) ||
+    Boolean(decision.options?.some((option) => Boolean(option.proposed_change)))
   );
 }
 
@@ -73,10 +83,33 @@ export default function DemoPipeline({
   onReachEnd,
 }: DemoPipelineProps) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [protocolTitle, setProtocolTitle] = useState("");
+  const [isSample, setIsSample] = useState(false);
+  const [isInitialSampleLoad, setIsInitialSampleLoad] = useState(false);
+  const [sampleRevealCount, setSampleRevealCount] = useState(0);
+  useEffect(() => {
+    if (!isSample) return;
+    const timers = [1350, 2350, 3350, 4350].map((delay, index) =>
+      setTimeout(() => setSampleRevealCount(index + 1), delay));
+    return () => timers.forEach(clearTimeout);
+  }, [isSample]);
+  const [reviews, setReviews] = useState<Record<string, DecisionReviewState>>(
+    {}
+  );
   const [liveRun, setLiveRun] = useState<LiveRun | null>(null);
   const [uploadState, setUploadState] = useState<UploadState>({
     status: "idle",
   });
+
+  useEffect(() => {
+    if (!isInitialSampleLoad) return;
+    const timer = setTimeout(
+      () => setIsInitialSampleLoad(false),
+      SAMPLE_LOADING_MS
+    );
+    return () => clearTimeout(timer);
+  }, [isInitialSampleLoad]);
+
   // Until a step's data arrives, the bar still needs its title.
   const steps = useMemo<StepData[]>(
     () =>
@@ -112,6 +145,8 @@ export default function DemoPipeline({
     fetchers: Record<RecommendationStepId, RecommendationFetcher>
   ) => {
     setLiveRun({ results: { ingest: upload.step }, errors: {} });
+    setProtocolTitle(upload.title);
+    setReviews({});
     setIsLoaded(true);
 
     for (const [stepId, fetchStep] of Object.entries(fetchers) as [
@@ -120,23 +155,32 @@ export default function DemoPipeline({
     ][]) {
       fetchStep(upload.protocol_id).then(
         (data) =>
-          setLiveRun((run) =>
-            run && { ...run, results: { ...run.results, [stepId]: data } }
+          setLiveRun(
+            (run) =>
+              run && { ...run, results: { ...run.results, [stepId]: data } }
           ),
         (error: unknown) =>
-          setLiveRun((run) =>
-            run && {
-              ...run,
-              errors: { ...run.errors, [stepId]: toErrorMessage(error) },
-            }
+          setLiveRun(
+            (run) =>
+              run && {
+                ...run,
+                errors: { ...run.errors, [stepId]: toErrorMessage(error) },
+              }
           )
       );
     }
   };
 
-  const loadSample = () => runPipeline(sampleUpload, sampleFetchers);
+  const loadSample = () => {
+    setIsSample(true);
+    setIsInitialSampleLoad(true);
+    runPipeline(sampleUpload, sampleFetchers);
+  };
 
   const startLiveRun = async (file: File) => {
+    if (uploadState.status === "uploading") return;
+    setIsSample(false);
+    setIsInitialSampleLoad(false);
     setUploadState({ status: "uploading" });
     let upload: UploadFileResponse;
     try {
@@ -159,8 +203,10 @@ export default function DemoPipeline({
     return index;
   }, [steps]);
 
-  const barItems = steps.map((step) => {
-    const state: StepBarState = liveRun?.results[step.id]
+  const barItems = steps.map((step, index) => {
+    const state: StepBarState = isSample && index >= sampleRevealCount
+      ? "running"
+      : liveRun?.results[step.id]
       ? "done"
       : liveRun?.errors[step.id]
         ? "error"
@@ -197,6 +243,17 @@ export default function DemoPipeline({
     },
     [activeStepId, steps]
   );
+
+  useEffect(() => {
+    const navigate = (event: KeyboardEvent) => {
+      if (isTextEntry(event.target)) return;
+      const target = event.key === "ArrowRight" ? nextItem :
+        event.key === "ArrowLeft" ? previousItem : null;
+      if (target && target.state !== "running") openStep(target.id);
+    };
+    window.addEventListener("keydown", navigate);
+    return () => window.removeEventListener("keydown", navigate);
+  }, [nextItem, previousItem, openStep]);
 
   const toggleDecision = (decisionId: string) =>
     setExpandedDecisionIds((current) => {
@@ -235,6 +292,10 @@ export default function DemoPipeline({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [hasExpandedDecision]);
 
+  if (uploadState.status === "uploading" || isInitialSampleLoad) {
+    return <ProtocolLoading sample={isSample} />;
+  }
+
   if (!isLoaded) {
     return (
       <div className="mx-auto flex min-h-[80vh] max-w-xl flex-col justify-center space-y-8">
@@ -246,11 +307,6 @@ export default function DemoPipeline({
           onPdfSelected={startLiveRun}
           isCompact
         />
-        {uploadState.status === "uploading" && (
-          <p role="status" className="text-center font-sans text-sm text-zinc-500">
-            Uploading protocol...
-          </p>
-        )}
         {uploadState.status === "error" && (
           <p role="alert" className="text-center font-sans text-sm text-rose-700">
             {uploadState.message}
@@ -262,14 +318,97 @@ export default function DemoPipeline({
 
   const currentStep = steps.find((s) => s.id === activeStepId) ?? steps[0];
   const stepError = liveRun?.errors[currentStep.id];
+  const actionableDecisions = steps
+    .flatMap((step) => step.decisions)
+    .filter(isActionableDecision);
+  const reviewed = actionableDecisions.filter(
+    (item) =>
+      reviews[item.decision_id]?.status &&
+      reviews[item.decision_id].status !== "pending"
+  );
+  const allFinished = steps.every(
+    (step) => liveRun?.results[step.id]?.status === "completed"
+  );
+
+  const handleReview = (
+    decisionId: string,
+    status: ReviewStatus,
+    optionId?: string
+  ) => {
+    setReviews((previous) => {
+      const current = previous[decisionId];
+      // Clicking the already-selected state toggles back to pending.
+      if (
+        current?.status === status &&
+        current?.optionId === optionId
+      ) {
+        return { ...previous, [decisionId]: { status: "pending" } };
+      }
+      return { ...previous, [decisionId]: { status, optionId } };
+    });
+  };
+
+  const exportReview = () => {
+    const payload = {
+      title: protocolTitle,
+      kind: "Clinical review — source PDF not modified",
+      sample: isSample,
+      analysis_complete: allFinished,
+      decisions: actionableDecisions.map((item) => {
+        const state = reviews[item.decision_id];
+        const selectedOption = item.options?.find(
+          (opt) => opt.option_id === state?.optionId
+        );
+        return {
+          ...item,
+          review_status: state?.status ?? "pending",
+          selected_option_id: state?.optionId ?? null,
+          accepted_change:
+            state?.status === "accepted"
+              ? (selectedOption?.proposed_change ?? item.proposed_change ?? null)
+              : null,
+        };
+      }),
+    };
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      })
+    );
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "protocol-clinical-review.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-2">
-      <StepBar
-        items={barItems}
-        activeId={activeStepId}
-        onSelect={openStep}
-      />
+      <nav aria-label="Pipeline steps"
+        className="grid gap-3 pb-6 sm:grid-cols-2 lg:grid-cols-4">
+        {barItems.map((item, index) => (
+          <button key={item.id} type="button"
+            onClick={() => openStep(item.id)}
+            aria-label={item.title}
+            aria-current={item.id === activeStepId ? "step" : undefined}
+            aria-busy={item.state === "running"}
+            disabled={item.state === "running"}
+            data-loading={item.state === "running"}
+            className="review-card analysis-card rounded-xl border p-5 text-left"
+            style={{ animationDelay: `${index * 80}ms` }}>
+            <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-full border border-emerald-600 text-sm text-emerald-700">
+              {index + 1}
+            </span>
+            <span className="text-xs text-emerald-700">
+              {item.state === "running"
+                ? (isSample ? "Demo analysis…" : "Analyzing…")
+                : item.state === "error" ? "Needs attention" : "Ready to review"}
+            </span>
+            <span className="mt-2 block font-serif">{item.title}</span>
+            <div className="review-scanner mt-4" aria-hidden />
+          </button>
+        ))}
+      </nav>
 
       <div
         key={stepChangeCount}
@@ -295,6 +434,7 @@ export default function DemoPipeline({
             step={currentStep}
             expandedDecisionIds={expandedDecisionIds}
             onToggleDecision={toggleDecision}
+            getReviewStatus={(decisionId) => reviews[decisionId]?.status}
             renderDecision={(decision) => (
               <DecisionView
                 decision={decision}
@@ -306,37 +446,55 @@ export default function DemoPipeline({
                 })}
                 onOpenParent={openParentDecision}
                 isInline
+                review={reviews[decision.decision_id]}
+                onReview={(status, optionId) =>
+                  handleReview(decision.decision_id, status, optionId)
+                }
               />
             )}
           />
         )}
       </div>
 
+      {reviewed.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-zinc-200/60 pt-4 font-sans text-xs text-zinc-500">
+          <span aria-live="polite">
+            {reviewed.length} of {actionableDecisions.length} recommendations
+            reviewed
+          </span>
+          <button
+            type="button"
+            onClick={exportReview}
+            className="cursor-pointer text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900"
+          >
+            Download review JSON
+          </button>
+        </div>
+      )}
+
       <nav
         aria-label="Step navigation"
         className="flex items-center justify-between border-t border-zinc-200/60 pb-16 pt-6 font-sans text-sm"
       >
-        {previousItem ? (
           <button
             type="button"
-            onClick={() => openStep(previousItem.id)}
+            aria-label="Previous step"
+            disabled={!previousItem}
+            onClick={() => previousItem && openStep(previousItem.id)}
             className="cursor-pointer text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900"
           >
-            ← Previous: {previousItem.title}
+            ← Previous: {previousItem?.title ?? "Start"}
           </button>
-        ) : (
-          <span />
-        )}
-        {nextItem ? (
           <button
             type="button"
-            disabled={nextItem.state === "running"}
-            onClick={() => openStep(nextItem.id)}
+            aria-label="Next step"
+            disabled={!nextItem || nextItem.state === "running"}
+            onClick={() => nextItem && openStep(nextItem.id)}
             className="cursor-pointer text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900 disabled:cursor-default disabled:no-underline disabled:opacity-40"
           >
-            Next: {nextItem.title} →
+            Next: {nextItem?.title ?? "End"} →
           </button>
-        ) : (
+        {!nextItem && (
           <a
             href={LATEST_REPORT_PDF_URL}
             download

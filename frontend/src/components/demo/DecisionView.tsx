@@ -46,6 +46,11 @@ const LINK_CLASSES =
   "inline-flex items-center gap-1 underline decoration-zinc-300 " +
   "underline-offset-4 transition-colors hover:text-emerald-700";
 
+export interface DecisionReviewState {
+  status: ReviewStatus;
+  optionId?: string;
+}
+
 export interface DecisionViewProps {
   decision: Decision;
   // Titles of the earlier decisions this one builds on, with a way to jump.
@@ -53,6 +58,9 @@ export interface DecisionViewProps {
   onOpenParent: (decisionId: string) => void;
   // Rendered under its finding row, which already shows the title.
   isInline?: boolean;
+  // Optional clinician review state and callback for actionable recommendations.
+  review?: DecisionReviewState;
+  onReview?: (status: ReviewStatus, optionId?: string) => void;
 }
 
 function ExternalAnchor({ href, label }: { href: string; label: string }) {
@@ -172,26 +180,83 @@ function EvidenceItem({ evidence }: { evidence: Evidence }) {
   );
 }
 
-function OptionItem({ option }: { option: DecisionOption }) {
+function OptionItem({
+  option,
+  isAccepted = false,
+  isDeclined = false,
+  onAccept,
+  onDecline,
+}: {
+  option: DecisionOption;
+  isAccepted?: boolean;
+  isDeclined?: boolean;
+  onAccept?: () => void;
+  onDecline?: () => void;
+}) {
   const risks = option.risks ?? [];
   return (
     <li aria-label={option.title} className="space-y-2">
-      <h3 className="font-sans text-sm font-medium text-zinc-900">
-        {option.title}
-        {option.is_recommended && (
-          <span className="ml-2 font-normal text-zinc-600">Recommended</span>
+      <div className="flex flex-wrap items-baseline justify-between gap-4">
+        <h3 className="font-sans text-sm font-medium text-zinc-900">
+          {option.title}
+          {option.is_recommended && (
+            <span className="ml-2 font-normal text-emerald-700">
+              Recommended
+            </span>
+          )}
+        </h3>
+        {onAccept && (
+          <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            aria-pressed={isAccepted}
+            aria-label={`Accept ${option.title}`}
+            onClick={onAccept}
+            className="decision-action decision-accept"
+          >
+            <span aria-hidden="true">✓</span>
+            {isAccepted ? "Accepted" : "Accept"}
+          </button>
+          <button type="button"
+            aria-label={`Decline ${option.title}`}
+            aria-pressed={isDeclined}
+            onClick={onDecline}
+            className="decision-action decision-decline">
+            <span aria-hidden="true">✕</span>
+            {isDeclined ? "Declined" : "Decline"}
+          </button>
+          </div>
         )}
-      </h3>
+      </div>
       {option.rationale && (
         <p className="font-sans text-sm text-zinc-700">{option.rationale}</p>
       )}
       {option.proposed_change && (
         <ChangeDiff change={option.proposed_change} />
       )}
-      <PlainMetrics
-        metrics={option.impact ?? []}
-        ariaLabel={`Impact of ${option.title}`}
-      />
+      {(option.impact ?? []).length > 0 && (
+        <section aria-label={`Impact of ${option.title}`}
+          className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4">
+          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-emerald-800">
+            Expected impact / target
+          </p>
+          <dl className="flex flex-wrap gap-x-8 gap-y-4">
+            {option.impact!.map((metric, index) => (
+              <div key={`${metric.label}-${index}`}>
+                <dt className="text-xs text-zinc-600">{metric.label}</dt>
+                <dd className="mt-1 text-lg font-semibold text-emerald-900">
+                  {metric.value}
+                </dd>
+                {metric.description && (
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {metric.description}
+                  </p>
+                )}
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
       {risks.length > 0 && (
         <div className="space-y-0.5">
           <p className="font-sans text-xs font-medium text-zinc-500">Risks</p>
@@ -217,16 +282,30 @@ export default function DecisionView({
   parents,
   onOpenParent,
   isInline = false,
+  review,
+  onReview,
 }: DecisionViewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const impact = decision.impact ?? [];
-  const options = decision.options ?? [];
+  const allOptions = decision.options ?? [];
+  const actionableOptions = allOptions.filter((option) =>
+    Boolean(option.proposed_change)
+  );
+  const options =
+    onReview && actionableOptions.length > 0 ? actionableOptions : allOptions;
   const references = decision.references ?? [];
   const tables = decision.tables ?? [];
   const charts = decision.charts ?? [];
   const tags = decision.tags ?? [];
   // The same edit is shown once: inside the option that carries it.
   const proposed = decision.proposed_change;
+  const hasRecommendation =
+    Boolean(proposed) || actionableOptions.length > 0;
+  const canReview = Boolean(onReview) && hasRecommendation;
+  const effectiveStatus = review?.status ?? decision.review_status ?? "pending";
+  const acceptedOption = options.find(
+    (option) => option.option_id === review?.optionId
+  );
   const isChangeInOption =
     proposed != null &&
     options.some(
@@ -236,7 +315,7 @@ export default function DecisionView({
     );
   const contexts = decision.evidence.filter((e) => Boolean(e.context));
   const reviewLines = [
-    decision.review_status ? REVIEW_STATUS_LABEL[decision.review_status] : null,
+    effectiveStatus ? REVIEW_STATUS_LABEL[effectiveStatus] : null,
     decision.reviewer_comment
       ? `Reviewer note: ${decision.reviewer_comment}`
       : null,
@@ -284,17 +363,73 @@ export default function DecisionView({
 
       {proposed && !isChangeInOption && (
         <section className={SECTION_CLASSES}>
-          <SectionTitle>Proposed change</SectionTitle>
+          <div className="flex flex-wrap items-baseline justify-between gap-4">
+            <SectionTitle>Proposed change</SectionTitle>
+            {canReview && (
+              <div className="flex items-center gap-4 font-sans text-xs">
+                <button
+                  type="button"
+                  aria-pressed={effectiveStatus === "accepted"}
+                  onClick={() => onReview?.("accepted")}
+                  className="decision-action decision-accept"
+                >
+                  <span aria-hidden="true">✓</span>
+                  {effectiveStatus === "accepted"
+                    ? "Accepted"
+                    : "Accept recommendation"}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={effectiveStatus === "rejected"}
+                  onClick={() => onReview?.("rejected")}
+                  className="decision-action decision-decline"
+                >
+                  <span aria-hidden="true">✕</span>
+                  {effectiveStatus === "rejected" ? "Declined" : "Decline"}
+                </button>
+              </div>
+            )}
+          </div>
           <ChangeDiff change={proposed} />
         </section>
       )}
 
       {options.length > 0 && (
         <section className={SECTION_CLASSES}>
-          <SectionTitle>Options</SectionTitle>
-          <ul className="divide-y divide-zinc-100 [&>li]:py-4 first:[&>li]:pt-0">
+          <div className="flex flex-wrap items-baseline justify-between gap-4">
+            <SectionTitle>
+              {canReview && options.length > 1 ? "Recommendations" : "Options"}
+            </SectionTitle>
+            {canReview && (
+              <div className="flex items-center gap-4 font-sans text-xs">
+                {effectiveStatus === "accepted" && (
+                  <span className="text-emerald-700">
+                    ✓ Accepted
+                    {acceptedOption ? `: ${acceptedOption.title}` : ""}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          <ul className="divide-y divide-zinc-200 [&>li]:py-4 first:[&>li]:pt-0">
             {options.map((option) => (
-              <OptionItem key={option.option_id} option={option} />
+              <OptionItem
+                key={option.option_id}
+                option={option}
+                isAccepted={
+                  effectiveStatus === "accepted" &&
+                  (review?.optionId === option.option_id ||
+                    (!review?.optionId && Boolean(option.is_recommended)))
+                }
+                onAccept={
+                  canReview && Boolean(option.proposed_change)
+                    ? () => onReview?.("accepted", option.option_id)
+                    : undefined
+                }
+                isDeclined={effectiveStatus === "rejected" &&
+                  review?.optionId === option.option_id}
+                onDecline={() => onReview?.("rejected", option.option_id)}
+              />
             ))}
           </ul>
         </section>

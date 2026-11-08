@@ -261,6 +261,122 @@ html {
   scroll-padding-top: 5rem;
 }
 
+.review-card { animation: review-arrive 750ms ease-out both; }
+.analysis-card {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 250ms ease, background 250ms ease;
+}
+.analysis-card[aria-current="step"] {
+  border-color: #059669;
+  background: #ecfdf5;
+}
+.analysis-card:not(:disabled):hover { border-color: #059669; }
+.review-scanner {
+  height: 3px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #d1fae5;
+}
+.review-scanner::after {
+  content: "";
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #059669;
+  transition: width 450ms ease;
+}
+.analysis-card[data-loading="true"] .review-scanner::after {
+  width: 35%;
+  animation: review-scan 1.2s ease-in-out infinite alternate;
+}
+.analysis-card[data-loading="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent, #d1fae580, transparent);
+  animation: analysis-shimmer 1.8s ease-in-out infinite;
+}
+@keyframes analysis-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+@keyframes review-scan {
+  from { transform: translateX(0); }
+  to { transform: translateX(190%); }
+}
+.decision-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .375rem;
+  min-height: 36px;
+  padding: .4rem .75rem;
+  border: 1px solid transparent;
+  border-radius: .5rem;
+  font-size: .8125rem;
+  white-space: nowrap;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 180ms ease, box-shadow 180ms ease;
+}
+.decision-accept {
+  background: rgb(16 185 129 / .09);
+  border-color: rgb(16 185 129 / .2);
+  color: #047857;
+}
+.decision-decline {
+  background: rgb(244 63 94 / .07);
+  border-color: rgb(244 63 94 / .18);
+  color: #be123c;
+}
+.decision-accept:hover,
+.decision-accept[aria-pressed="true"] {
+  background: rgb(16 185 129 / .18);
+}
+.decision-decline:hover,
+.decision-decline[aria-pressed="true"] {
+  background: rgb(244 63 94 / .15);
+}
+.decision-action:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+.protocol-loading {
+  animation: review-arrive 300ms ease-out both;
+}
+.protocol-document {
+  position: relative;
+  color: #52525b;
+  filter: drop-shadow(0 10px 14px #064e3b0d);
+}
+.protocol-scan-line {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 20%;
+  height: 2px;
+  background: #059669;
+  box-shadow: 0 0 12px #34d39980;
+  animation: document-scan 850ms ease-in-out infinite alternate;
+}
+@keyframes document-scan {
+  from { transform: translateY(0); opacity: .3; }
+  to { transform: translateY(85px); opacity: 1; }
+}
+@keyframes review-arrive {
+  from { opacity: 0; transform: translateY(24px) scale(.97); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Homepage intro (src/components/logo-intro.tsx), 1.2s in total: over a
    blurred view of the page, the insulin molecule forms as each chain is
    revealed left to right (0-0.6s), then the molecule fades while the blur

@@ -644,9 +644,10 @@ export const COHORT_STEP: StepData = {
       options: [
         {
           option_id: "o-coh-01-a",
-          title: "Lower the cut-off to 30 and stratify",
+          title: "Relax to clinical standard: lower cut-off to 30 and stratify",
           rationale:
-            "Adds the 30-44 band without hiding its smaller HbA1c effect.",
+            "Aligns with KDIGO Stage 3b clinical standard; adds the 30-44 " +
+            "band without hiding its smaller HbA1c effect.",
           is_recommended: true,
           proposed_change: {
             path: "5.2 Exclusion criteria, E-05",
@@ -658,7 +659,11 @@ export const COHORT_STEP: StepData = {
             page: 25,
           },
           impact: [
-            { label: "Eligible", value: "2,613 (+23.5%)", tone: "good", numeric_value: 2_613 },
+            { label: "Currently eligible", value: "2,115 patients" },
+            { label: "Projected eligible", value: "2,613 patients" },
+            { label: "Additional eligible patients", value: "+498" },
+            { label: "Relative increase", value: "+23.5%", tone: "good",
+              description: "Illustrative simulation, not an enrollment guarantee." },
           ],
           risks: [
             "SGLT2 glucose lowering is weaker at low eGFR.",
@@ -667,8 +672,8 @@ export const COHORT_STEP: StepData = {
         },
         {
           option_id: "o-coh-01-b",
-          title: "Lower the cut-off to 30 without stratifying",
-          rationale: "Same recruitment gain, simplest change.",
+          title: "Align with peer trials lower decile: lower cut-off to 30 without stratifying",
+          rationale: "Matches peer P10 threshold with the simplest protocol edit.",
           proposed_change: {
             path: "5.2 Exclusion criteria, E-05",
             before: "eGFR below 45",
@@ -678,18 +683,13 @@ export const COHORT_STEP: StepData = {
             page: 25,
           },
           impact: [
-            { label: "Eligible", value: "2,613 (+23.5%)", tone: "good", numeric_value: 2_613 },
+            { label: "Currently eligible", value: "2,115 patients" },
+            { label: "Projected eligible", value: "2,613 patients" },
+            { label: "Additional eligible patients", value: "+498" },
+            { label: "Relative increase", value: "+23.5%", tone: "good",
+              description: "Illustrative simulation, not an enrollment guarantee." },
           ],
           risks: ["Uneven eGFR mix across arms could dilute the effect."],
-        },
-        {
-          option_id: "o-coh-01-c",
-          title: "Keep 45",
-          rationale: "Matches the peer median and protects the HbA1c effect.",
-          impact: [
-            { label: "Eligible", value: "2,115", numeric_value: COHORT_ELIGIBLE_COUNT },
-          ],
-          risks: ["Keeps the funnel's largest drop."],
         },
       ],
       references: [REFERENCES.adaStandards, REFERENCES.fdaDiabetes],
@@ -825,8 +825,11 @@ export const COHORT_STEP: StepData = {
       options: [
         {
           option_id: "o-coh-02-a",
-          title: "Monitor enrolment of women against a target",
-          rationale: "Cheap, and works whatever eligibility is chosen.",
+          title: "Set a 45% female enrolment target",
+          rationale:
+            "Moves toward the 46% peer median without changing eligibility " +
+            "rules. This is a recruitment target, not a simulated gain. " +
+            "Actual improvement has not been estimated.",
           is_recommended: true,
           proposed_change: {
             path: "5.4 Recruitment and retention",
@@ -838,15 +841,29 @@ export const COHORT_STEP: StepData = {
             section_title: "5.4 Recruitment and Retention",
             page: 27,
           },
-          impact: [{ label: "Target", value: "45% women", tone: "good" }],
+          impact: [
+            { label: "Current eligible female share", value: "38%" },
+            { label: "Recruitment target", value: "45%" },
+            { label: "Target above current share",
+              value: "+7 percentage points", tone: "neutral" },
+            { label: "Peer benchmark", value: "46%" },
+          ],
           risks: ["Targets alone may not change who sites approach."],
         },
         {
           option_id: "o-coh-02-b",
-          title: "Rely on relaxing the eGFR cut-off",
-          rationale: "Removes the filter that costs the most women.",
-          impact: [{ label: "Women, eligible (projected)", value: "40.6%" }],
-          risks: ["Still 5 points below peers."],
+          title: "Relax to clinical standard: lower eGFR cut-off to recover female share",
+          rationale: "Removes the eGFR < 45 filter that disproportionately excludes women.",
+          proposed_change: {
+            path: "5.2 Exclusion criteria, E-05",
+            before: "eGFR below 45",
+            after: "eGFR below 30",
+            change_type: "modify",
+            section_title: "5.2 Exclusion Criteria",
+            page: 25,
+          },
+          impact: [{ label: "Women, eligible (projected)", value: "40.6%", tone: "good" }],
+          risks: ["Still 5 points below peers without site outreach."],
         },
       ],
       references: [REFERENCES.fdaDiversity, REFERENCES.ichE7],
@@ -963,8 +980,8 @@ export const COHORT_STEP: StepData = {
       options: [
         {
           option_id: "o-coh-03-a",
-          title: "Raise the limit to 80",
-          rationale: "Peer median; modest gain with limited extra risk.",
+          title: "Align with peer trials median: raise upper age limit to 80",
+          rationale: "Peer median threshold; modest gain with limited extra risk.",
           is_recommended: true,
           proposed_change: {
             path: "5.1 Inclusion criteria, I-01",
@@ -981,21 +998,20 @@ export const COHORT_STEP: StepData = {
         },
         {
           option_id: "o-coh-03-b",
-          title: "Remove the upper limit",
-          rationale: "Largest gain; 17 of 42 peers do this.",
+          title: "Relax to clinical standard: remove upper age cap (18 years and older)",
+          rationale: "Matches ICH E7 geriatric guidance and 17 of 42 peer trials.",
+          proposed_change: {
+            path: "5.1 Inclusion criteria, I-01",
+            before: "Aged 18 to 75 years",
+            after: "Aged 18 years and older",
+            change_type: "modify",
+            section_title: "5.1 Inclusion Criteria",
+            page: 24,
+          },
           impact: [
             { label: "Eligible", value: "2,511 (+18.7%)", tone: "good", numeric_value: 2_511 },
           ],
           risks: ["Frailty and polypharmacy need extra safety rules."],
-        },
-        {
-          option_id: "o-coh-03-c",
-          title: "Keep 75",
-          rationale: "No protocol change.",
-          impact: [
-            { label: "Eligible", value: "2,115", numeric_value: COHORT_ELIGIBLE_COUNT },
-          ],
-          risks: ["Results may not apply to patients over 75."],
         },
       ],
       references: [REFERENCES.ichE7],
@@ -1118,8 +1134,8 @@ export const COHORT_STEP: StepData = {
       options: [
         {
           option_id: "o-coh-04-a",
-          title: "Allow short insulin courses of 14 days or less",
-          rationale: "Targets the avoidable part of the drop.",
+          title: "Relax to clinical standard: allow short insulin courses of 14 days or less",
+          rationale: "Targets the avoidable inpatient sliding-scale drop while keeping chronic users out.",
           is_recommended: true,
           proposed_change: {
             path: "5.2 Exclusion criteria, E-07",
@@ -1138,8 +1154,8 @@ export const COHORT_STEP: StepData = {
         },
         {
           option_id: "o-coh-04-b",
-          title: "Shorten the lookback to 3 months",
-          rationale: "Bigger gain, simple to verify.",
+          title: "Align with peer trials median: shorten lookback to 3 months",
+          rationale: "Matches peer trials median washout window; bigger recruitment gain.",
           proposed_change: {
             path: "5.2 Exclusion criteria, E-07",
             before: "within 12 months",
@@ -1152,15 +1168,6 @@ export const COHORT_STEP: StepData = {
             { label: "Eligible", value: "2,602 (+23.0%)", tone: "good", numeric_value: 2_602 },
           ],
           risks: ["Admits more advanced disease, raising HbA1c variance."],
-        },
-        {
-          option_id: "o-coh-04-c",
-          title: "Keep 12 months for any use",
-          rationale: "Cleanest insulin-naive population.",
-          impact: [
-            { label: "Eligible", value: "2,115", numeric_value: COHORT_ELIGIBLE_COUNT },
-          ],
-          risks: ["Excludes patients with one-off inpatient insulin."],
         },
       ],
       references: [REFERENCES.adaStandards],

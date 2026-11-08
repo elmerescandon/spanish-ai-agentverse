@@ -175,29 +175,43 @@ secrets with `NEXT_PUBLIC_`.
 
 ## Extension features
 
-What we would build next, grouped by what it unlocks. The core flow above
-runs end to end today; these extend it.
+The core flow runs end to end today. Each extension below stands alone,
+so they can be picked in any order.
 
-### Sharper comparisons
+### Deeper, actionable findings
 
 | Feature | What it adds |
 | :--- | :--- |
-| **More dimensions** | Washout periods, visit burden, study duration and sample-size assumptions alongside ages, enrollment and lab limits. |
-| **Like-for-like lab limits** | Compare eGFR cut-offs only between trials that use the same equation (CKD-EPI or MDRD). |
+| **Burden score** | Turns the schedule into a visit × procedure matrix weighted by invasiveness and time (weights set with the doctor), compares it with peer trials, and names the visits that could be remote or local. |
+| **Statistical sanity check** | Recomputes the sample size from the protocol's assumptions (effect size, control-arm rate, dropout, power) and flags optimistic ones against results peer trials posted in AACT. |
+| **What-if relaxations** | Re-runs the cohort with each threshold loosened in steps (e.g. eGFR ≥60 → ≥45 → ≥30), precomputed for an instant slider: patients recovered overall and per subgroup, each with the safety question a clinician must answer. |
+| **Amendment-risk model** | Learns from AACT's History of Changes which criteria get amended (criterion type, strictness against peers, phase, sponsor) and gives each criterion a risk score, validated by AUROC on held-out trials. |
 
 ### Closing the loop with clinicians
 
 | Feature | What it adds |
 | :--- | :--- |
-| **Amended protocol out** | Turn accepted Decision Cards into a redlined protocol, then re-run every check on it. |
-| **Reasons for every dismissal** | Require and record why a reviewer rejected a finding, to learn which flags matter. |
-| **Review history** | Store protocols and decisions in a database with a full audit trail, instead of memory. |
+| **Draft amendment text** | For an accepted option, drafts redlined wording and a short rationale citing the evidence; a person edits and approves it. |
+| **Before/after view** | Re-runs the pipeline on the edited protocol and shows the change in eligible pool, subgroup coverage, burden score and findings resolved or created. |
+| **Review history** | Stores every decision, including the reason for each dismissed finding, with a full audit trail. |
 
-### Richer evidence
+### Finding the missing patients
+
+Turns "who is missing" into "where to find them". Every output is an
+estimate at county or center level, never about individual patients.
 
 | Feature | What it adds |
 | :--- | :--- |
-| **Amendment hit rate** | Check our flags against criteria real trials later amended, using AACT's History of Changes. |
+| **Prioritized subgroups** | Ranks missing subgroups by the gap between their share of the disease population and of the eligible pool, with doctor-set weights and a ±20% robustness check. |
+| **Where they are** | Per county: disease cases (CDC PLACES, SEER) × subgroup share (ACS) × the subgroup's simulated pass rate, bootstrapped into a range. |
+| **Which centers** | Ranks hospitals and practices (NPPES, CMS prescribing volume) by eligible patients nearby, with reasons such as "many patients 65+ with CKD within 50 miles, no competing trial". |
+| **Competing trials** | Finds recruiting AACT trials with overlapping criteria and nearby sites, and estimates how saturated each county is. |
+| **Map view** | Counties shaded by missing high-priority patients and centers pinned by score, linked to the what-if slider so the map updates live. |
+
+### Broader evidence
+
+| Feature | What it adds |
+| :--- | :--- |
 | **More patient data** | MIMIC-IV and Synthea cohorts, mapped with OMOP concept sets, alongside NHANES. |
 | **Beyond diabetes** | Rule catalogues and peer criteria for other therapeutic areas. |
 

@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ProtocolIngestion from "@/components/ProtocolIngestion";
 import DecisionView from "./DecisionView";
 import StepBar, { type StepBarState } from "./StepBar";
@@ -48,10 +47,6 @@ function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-interface View {
-  stepId: StepId;
-  decisionId: string | null;
-}
 
 function isTextEntry(target: EventTarget | null): boolean {
   const element = target as HTMLElement | null;
@@ -92,10 +87,13 @@ export default function DemoPipeline({
       ),
     [liveRun]
   );
-  const [view, setView] = useState<View>({
-    stepId: steps[0].id,
-    decisionId: null,
-  });
+  const [activeStepId, setActiveStepId] = useState<StepId>(steps[0].id);
+  // Findings opened in place; kept per id so returning to a step keeps them.
+  const [expandedDecisionIds, setExpandedDecisionIds] = useState<
+    ReadonlySet<string>
+  >(new Set());
+  // Set when a "builds on" link opens a finding, so it scrolls into view.
+  const scrollTargetId = useRef<string | null>(null);
   const [stepChangeCount, setStepChangeCount] = useState(0);
 
   // Ingest comes with the upload; the other agents run in parallel and
@@ -163,42 +161,52 @@ export default function DemoPipeline({
 
   // Only a change of step animates the content; first render and opening a
   // finding within the same step do not.
-  const goTo = useCallback(
-    (next: View) => {
-      if (next.stepId !== view.stepId) {
+  const openStep = useCallback(
+    (id: string) => {
+      if (id !== activeStepId) {
         setStepChangeCount((count) => count + 1);
       }
-      setView(next);
+      setActiveStepId(id as StepId);
     },
-    [view.stepId]
+    [activeStepId]
   );
 
-  const openStep = useCallback(
-    (id: string) => goTo({ stepId: id as StepId, decisionId: null }),
-    [goTo]
-  );
+  const toggleDecision = (decisionId: string) =>
+    setExpandedDecisionIds((current) => {
+      const next = new Set(current);
+      if (!next.delete(decisionId)) next.add(decisionId);
+      return next;
+    });
 
-  const openDecision = (decisionId: string) => {
+  const openParentDecision = (decisionId: string) => {
     const decision = decisionsById.get(decisionId);
     if (!decision) return;
-    goTo({ stepId: decision.step_id, decisionId });
+    openStep(decision.step_id);
+    setExpandedDecisionIds((current) => new Set(current).add(decisionId));
+    scrollTargetId.current = decisionId;
   };
 
-  const closeDecision = useCallback(() => {
-    setView((current) => ({ ...current, decisionId: null }));
-  }, []);
-
-  const hasOpenDecision = view.decisionId !== null;
+  // Runs after the jump renders the target step with the finding open.
   useEffect(() => {
-    if (!hasOpenDecision) return;
+    if (!scrollTargetId.current) return;
+    document
+      .getElementById(`finding-row-${scrollTargetId.current}`)
+      // jsdom has no scrollIntoView.
+      ?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    scrollTargetId.current = null;
+  }, [activeStepId, expandedDecisionIds]);
+
+  const hasExpandedDecision = expandedDecisionIds.size > 0;
+  useEffect(() => {
+    if (!hasExpandedDecision) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !isTextEntry(event.target)) {
-        closeDecision();
+        setExpandedDecisionIds(new Set());
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [hasOpenDecision, closeDecision]);
+  }, [hasExpandedDecision]);
 
   if (!isLoaded) {
     return (
@@ -225,17 +233,14 @@ export default function DemoPipeline({
     );
   }
 
-  const currentStep = steps.find((s) => s.id === view.stepId) ?? steps[0];
+  const currentStep = steps.find((s) => s.id === activeStepId) ?? steps[0];
   const stepError = liveRun?.errors[currentStep.id];
-  const currentDecision = view.decisionId
-    ? (decisionsById.get(view.decisionId) ?? null)
-    : null;
 
   return (
     <div className="space-y-6">
       <StepBar
         items={barItems}
-        activeId={view.stepId}
+        activeId={activeStepId}
         onSelect={openStep}
       />
 
@@ -243,30 +248,7 @@ export default function DemoPipeline({
         key={stepChangeCount}
         className={stepChangeCount > 0 ? "animate-file-change" : undefined}
       >
-        {currentDecision ? (
-          <div className="space-y-4">
-            <button
-              type="button"
-              onClick={closeDecision}
-              aria-label="Back to findings"
-              className="inline-flex cursor-pointer items-center gap-1.5 font-sans text-xs text-zinc-500 transition-colors hover:text-zinc-900"
-            >
-              <ArrowLeft className="h-3 w-3" strokeWidth={1.5} />
-              All findings
-            </button>
-            <DecisionView
-              key={currentDecision.decision_id}
-              decision={currentDecision}
-              parents={(currentDecision.derived_from ?? []).flatMap((id) => {
-                const parent = decisionsById.get(id);
-                return parent
-                  ? [{ decision_id: id, title: parent.title }]
-                  : [];
-              })}
-              onOpenParent={openDecision}
-            />
-          </div>
-        ) : stepError ? (
+        {stepError ? (
           <section aria-label={currentStep.title} className="space-y-2">
             <h1 className="font-serif text-2xl font-normal tracking-tight text-zinc-900">
               {currentStep.title}
@@ -278,7 +260,21 @@ export default function DemoPipeline({
         ) : (
           <StepView
             step={currentStep}
-            onOpenDecision={openDecision}
+            expandedDecisionIds={expandedDecisionIds}
+            onToggleDecision={toggleDecision}
+            renderDecision={(decision) => (
+              <DecisionView
+                decision={decision}
+                parents={(decision.derived_from ?? []).flatMap((id) => {
+                  const parent = decisionsById.get(id);
+                  return parent
+                    ? [{ decision_id: id, title: parent.title }]
+                    : [];
+                })}
+                onOpenParent={openParentDecision}
+                isInline
+              />
+            )}
           />
         )}
       </div>

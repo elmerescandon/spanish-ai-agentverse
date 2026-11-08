@@ -7,6 +7,7 @@ from backend.agents.completeness.checks.common import (
     absence_fired_outcome,
     cannot_assess_outcome,
     extract_all_timepoints_weeks,
+    find_pattern_citation,
     fired_outcome,
     format_offenders,
     location_for_page,
@@ -14,14 +15,40 @@ from backend.agents.completeness.checks.common import (
     parse_duration_to_weeks,
     passed_outcome,
 )
+from backend.agents.completeness.checks.consistency import check_xs_18
 from backend.agents.completeness.logic import CheckOutcome, DeterministicCheck
 from backend.shared.messages import (
     Citation,
+    CitedValue,
     Endpoint,
     EndpointKind,
     M11Heading,
     ProtocolDocument,
     TrialProfile,
+)
+
+# REG-32: an eligibility heading on its own line, optionally numbered
+# ("5.1 Inclusion Criteria"), so running text that merely mentions the
+# criteria does not count as a heading.
+INCLUSION_HEADING_PATTERN = re.compile(
+    r"^[ \t]*(?:\d+(?:\.\d+)*\.?[ \t]+)?inclusion[ \t]+criteria\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+EXCLUSION_HEADING_PATTERN = re.compile(
+    r"^[ \t]*(?:\d+(?:\.\d+)*\.?[ \t]+)?exclusion[ \t]+criteria\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+# REG-35: an explicit sex eligibility statement. "Women of childbearing
+# potential" is a contraception rule, not a sex eligibility statement.
+SEX_ELIGIBILITY_PATTERN = re.compile(
+    r"\b(?:male\s+(?:or|and)\s+female|female\s+(?:or|and)\s+male|"
+    r"men\s+(?:or|and)\s+women|women\s+(?:or|and)\s+men|"
+    r"(?:either|any|both)\s+sex(?:es)?|all\s+sexes|sex\s*:)",
+    re.IGNORECASE,
+)
+POPULATION_HEADINGS = (
+    M11Heading.PROTOCOL_SUMMARY,
+    M11Heading.TRIAL_POPULATION,
 )
 
 # REG-25: Matches two or more distinct clinical or laboratory metrics bundled
@@ -360,6 +387,111 @@ def check_reg_29(
     )
 
 
+def _stated_fact_outcome[ValueT](
+    fact: CitedValue[ValueT] | None, passed_text: str, missing_text: str
+) -> CheckOutcome:
+    """Pass with the fact's quote when it is stated, else an absence flag."""
+    if fact is None:
+        return absence_fired_outcome(missing_text)
+    return passed_outcome(passed_text, evidence=[fact.citation])
+
+
+def check_reg_10(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome:
+    """REG-10: The protocol says whether a DMC exists; either answer passes."""
+    if document.design is None:
+        return cannot_assess_outcome("DESIGN facet did not run.")
+    return _stated_fact_outcome(
+        document.design.has_data_monitoring_committee,
+        "The protocol states whether a data monitoring committee is used.",
+        "No yes/no statement on a data monitoring committee was found.",
+    )
+
+
+def check_reg_23(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome:
+    """REG-23: A target enrolment number must be stated."""
+    if document.design is None:
+        return cannot_assess_outcome("DESIGN facet did not run.")
+    return _stated_fact_outcome(
+        document.design.target_enrollment,
+        "The protocol states a target enrolment.",
+        "No target enrolment number was found.",
+    )
+
+
+def _criteria_heading_citation(
+    document: ProtocolDocument, word: str, pattern: re.Pattern[str]
+) -> Citation | None:
+    for subsection in document.subsections or []:
+        if f"{word} criteria" in subsection.title.lower():
+            return subsection.citation
+    return find_pattern_citation(
+        document, pattern, (M11Heading.TRIAL_POPULATION,)
+    )
+
+
+def check_reg_32(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome:
+    """REG-32: Criteria sit under separate Inclusion and Exclusion headings.
+
+    A heading is a numbered subsection or a line that starts with the
+    heading text; running text mentioning the criteria does not count.
+    """
+    inclusion = _criteria_heading_citation(
+        document, "inclusion", INCLUSION_HEADING_PATTERN
+    )
+    exclusion = _criteria_heading_citation(
+        document, "exclusion", EXCLUSION_HEADING_PATTERN
+    )
+    missing = [
+        name
+        for name, citation in (
+            ("Inclusion Criteria", inclusion),
+            ("Exclusion Criteria", exclusion),
+        )
+        if citation is None
+    ]
+    if missing:
+        return absence_fired_outcome(
+            f"No separate heading found for: {', '.join(missing)}."
+        )
+    assert inclusion is not None and exclusion is not None
+    return passed_outcome(
+        "Criteria are listed under separate Inclusion and Exclusion headings.",
+        evidence=[inclusion, exclusion],
+    )
+
+
+def check_reg_35(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome:
+    """REG-35: Sex eligibility and the healthy-volunteer answer are stated."""
+    if document.design is None:
+        return cannot_assess_outcome("DESIGN facet did not run.")
+    sex_citation = find_pattern_citation(
+        document, SEX_ELIGIBILITY_PATTERN, POPULATION_HEADINGS
+    )
+    healthy_volunteers = document.design.accepts_healthy_volunteers
+    missing = []
+    if sex_citation is None:
+        missing.append("sex eligibility")
+    if healthy_volunteers is None:
+        missing.append("whether healthy volunteers are accepted")
+    if missing:
+        return absence_fired_outcome(
+            f"The protocol does not state: {'; '.join(missing)}."
+        )
+    assert sex_citation is not None and healthy_volunteers is not None
+    return passed_outcome(
+        "Sex eligibility and the healthy-volunteer answer are stated.",
+        evidence=[sex_citation, healthy_volunteers.citation],
+    )
+
+
 REGISTRATION_CHECKS: Mapping[str, DeterministicCheck] = {
     "REG-24": check_reg_24,
     "REG-25": check_reg_25,
@@ -367,4 +499,9 @@ REGISTRATION_CHECKS: Mapping[str, DeterministicCheck] = {
     "REG-27": check_reg_27,
     "REG-28": check_reg_28,
     "REG-29": check_reg_29,
+    "REG-10": check_reg_10,
+    "REG-23": check_reg_23,
+    "REG-32": check_reg_32,
+    "REG-34": check_xs_18,  # same age-bounds comparison as XS-18
+    "REG-35": check_reg_35,
 }

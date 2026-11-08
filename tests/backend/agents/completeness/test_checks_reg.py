@@ -1,22 +1,36 @@
 """Unit tests for Family REG deterministic checks (REG-24 to REG-29)."""
 
+from backend.agents.completeness.checks.consistency import check_xs_18
 from backend.agents.completeness.checks.registration import (
+    REGISTRATION_CHECKS,
+    check_reg_10,
+    check_reg_23,
     check_reg_24,
     check_reg_25,
     check_reg_26,
     check_reg_27,
     check_reg_28,
     check_reg_29,
+    check_reg_32,
+    check_reg_35,
 )
 from backend.shared.messages import (
+    CriterionKind,
+    EligibilityCriterion,
     EndpointKind,
+    M11Heading,
+    PageText,
     RuleStatus,
     ScaleDirection,
+    TrialDesignFacts,
 )
 from tests.backend.agents.completeness.factories import (
+    cited,
     make_document,
     make_endpoint,
     make_profile,
+    make_section,
+    make_subsection,
 )
 
 
@@ -268,3 +282,148 @@ def test_reg_checks_collect_multiple_offenders_and_cap_at_five() -> None:
     assert "Outcome A" in outcome_27.finding
     assert "Outcome B" in outcome_27.finding
     assert len(outcome_27.evidence) == 2
+
+
+def test_reg_10_passes_on_a_stated_committee_answer_either_way() -> None:
+    doc = make_document(
+        design=TrialDesignFacts(
+            has_data_monitoring_committee=cited(False, "No DMC is planned")
+        )
+    )
+
+    outcome = check_reg_10(doc, make_profile())
+
+    assert outcome.status == RuleStatus.PASSED
+    assert outcome.evidence[0].quote == "No DMC is planned"
+
+
+def test_reg_10_fires_for_second_opinion_when_committee_is_not_stated() -> (
+    None
+):
+    outcome = check_reg_10(
+        make_document(design=TrialDesignFacts()), make_profile()
+    )
+
+    assert outcome.status == RuleStatus.FIRED
+    assert outcome.needs_second_opinion is True
+
+
+def test_reg_23_passes_with_target_and_fires_without() -> None:
+    with_target = check_reg_23(make_document(), make_profile())
+    without = check_reg_23(
+        make_document(design=TrialDesignFacts()), make_profile()
+    )
+
+    assert with_target.status == RuleStatus.PASSED
+    assert with_target.evidence
+    assert without.status == RuleStatus.FIRED
+    assert without.needs_second_opinion is True
+
+
+def test_reg_32_passes_when_both_criteria_headings_are_subsections() -> None:
+    doc = make_document(
+        subsections=[
+            make_subsection("5.1", "Inclusion Criteria", 20),
+            make_subsection("5.2", "Exclusion Criteria", 21),
+        ]
+    )
+
+    outcome = check_reg_32(doc, make_profile())
+
+    assert outcome.status == RuleStatus.PASSED
+    assert len(outcome.evidence) == 2
+
+
+def test_reg_32_accepts_headings_found_at_line_start_in_page_text() -> None:
+    pages = [
+        PageText(page_number=1, text="Title page"),
+        PageText(
+            page_number=2,
+            text=(
+                "5.1 Inclusion Criteria\nAdults aged 18 years or older\n"
+                "5.2 Exclusion Criteria\nType 1 diabetes mellitus"
+            ),
+        ),
+    ]
+    doc = make_document(
+        pages=pages,
+        sections=[make_section(M11Heading.TRIAL_POPULATION, "5", 2, 2)],
+    )
+
+    outcome = check_reg_32(doc, make_profile())
+
+    assert outcome.status == RuleStatus.PASSED
+
+
+def test_reg_32_fires_when_criteria_only_mentioned_in_running_text() -> None:
+    pages = [
+        PageText(
+            page_number=1,
+            text=(
+                "Participants who meet all inclusion criteria and none of "
+                "the exclusion criteria may be enrolled."
+            ),
+        )
+    ]
+    doc = make_document(
+        pages=pages,
+        sections=[make_section(M11Heading.TRIAL_POPULATION, "5", 1, 1)],
+    )
+
+    outcome = check_reg_32(doc, make_profile())
+
+    assert outcome.status == RuleStatus.FIRED
+    assert outcome.needs_second_opinion is True
+
+
+def test_reg_34_reuses_the_age_consistency_check() -> None:
+    assert REGISTRATION_CHECKS["REG-34"] is check_xs_18
+
+
+def test_reg_35_passes_when_sex_and_healthy_volunteers_are_stated() -> None:
+    doc = make_document(
+        pages=[
+            PageText(
+                page_number=1,
+                text="Male or female participants aged 18 to 75 years",
+            )
+        ],
+        sections=[make_section(M11Heading.TRIAL_POPULATION, "5", 1, 1)],
+        design=TrialDesignFacts(
+            accepts_healthy_volunteers=cited(False, "No healthy volunteers")
+        ),
+    )
+
+    outcome = check_reg_35(doc, make_profile())
+
+    assert outcome.status == RuleStatus.PASSED
+    assert len(outcome.evidence) == 2
+
+
+def test_reg_35_ignores_childbearing_wording_and_names_what_is_missing() -> (
+    None
+):
+    doc = make_document(
+        pages=[
+            PageText(
+                page_number=1,
+                text="Women of childbearing potential must use contraception",
+            )
+        ],
+        sections=[make_section(M11Heading.TRIAL_POPULATION, "5", 1, 1)],
+        design=TrialDesignFacts(),
+        eligibility_criteria=[
+            EligibilityCriterion(
+                criterion_id="IN-01",
+                kind=CriterionKind.INCLUSION,
+                text="Adults with type 2 diabetes",
+            )
+        ],
+    )
+
+    outcome = check_reg_35(doc, make_profile())
+
+    assert outcome.status == RuleStatus.FIRED
+    assert "sex" in outcome.finding
+    assert "healthy" in outcome.finding
+    assert outcome.needs_second_opinion is True

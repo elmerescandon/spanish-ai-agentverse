@@ -16,9 +16,13 @@ from backend.agents.completeness.checks.prechecks import (
     precheck_est_23,
     precheck_est_24,
     precheck_est_25,
+    precheck_reg_17,
+    precheck_reg_21,
+    precheck_reg_39,
 )
 from backend.agents.completeness.rules import load_rule_catalogue
 from backend.shared.messages import (
+    AllocationType,
     AnalysisPlanExtraction,
     CheckMethod,
     ControlType,
@@ -27,17 +31,27 @@ from backend.shared.messages import (
     EstimandExtraction,
     EstimandStrategy,
     IntercurrentEventType,
+    InterventionExtraction,
+    InterventionModelType,
+    M11Heading,
+    MaskingType,
+    PageText,
+    ProtocolDocument,
     RuleStatus,
     StatisticalAssumptions,
     SynopsisConsistencyExtraction,
+    TrialDesignFacts,
+    TrialPhase,
 )
 from tests.backend.agents.completeness.factories import (
     cited,
+    make_arm,
     make_document,
     make_endpoint,
     make_estimand,
     make_ice,
     make_profile,
+    make_section,
 )
 
 
@@ -50,7 +64,7 @@ def test_judgement_prechecks_only_target_judgement_rules() -> None:
         if rule.check == CheckMethod.JUDGEMENT
     }
     assert set(JUDGEMENT_PRECHECKS) <= judgement_ids
-    assert len(JUDGEMENT_PRECHECKS) == 14
+    assert len(JUDGEMENT_PRECHECKS) == 19
 
 
 def test_precheck_est_07_not_applicable_without_secondary_endpoints() -> None:
@@ -336,3 +350,71 @@ def test_precheck_dm_32_and_dm_43_not_applicable_cases() -> None:
         )
         is None
     )
+
+
+def test_reg_17_fires_on_a_missing_design_field_and_defers_otherwise() -> None:
+    missing_model = make_document(
+        design=TrialDesignFacts(
+            phase=cited(TrialPhase.PHASE3),
+            allocation=cited(AllocationType.RANDOMIZED),
+            masking=cited(MaskingType.DOUBLE),
+            arm_count=cited(2),
+        )
+    )
+    complete = make_document(
+        design=TrialDesignFacts(
+            phase=cited(TrialPhase.PHASE3),
+            allocation=cited(AllocationType.RANDOMIZED),
+            intervention_model=cited(InterventionModelType.PARALLEL),
+            masking=cited(MaskingType.DOUBLE),
+            arm_count=cited(2),
+        )
+    )
+
+    outcome = precheck_reg_17(missing_model, make_profile())
+
+    assert outcome is not None
+    assert outcome.status == RuleStatus.FIRED
+    assert "intervention model" in outcome.finding
+    assert outcome.needs_second_opinion is True
+    assert precheck_reg_17(complete, make_profile()) is None
+
+
+def test_reg_21_fires_on_an_arm_without_dose_and_defers_otherwise() -> None:
+    no_dose = make_document(
+        interventions=InterventionExtraction(
+            arms=[make_arm(), make_arm(name="Placebo", dose_and_regimen=None)]
+        )
+    )
+    dosed = make_document(
+        interventions=InterventionExtraction(arms=[make_arm()])
+    )
+
+    outcome = precheck_reg_21(no_dose, make_profile())
+
+    assert outcome is not None
+    assert outcome.status == RuleStatus.FIRED
+    assert "Placebo" in outcome.finding
+    assert precheck_reg_21(dosed, make_profile()) is None
+
+
+def test_reg_39_fires_on_first_person_but_not_on_the_us_country() -> None:
+    def summary_doc(text: str) -> ProtocolDocument:
+        return make_document(
+            pages=[PageText(page_number=1, text=text)],
+            sections=[make_section(M11Heading.PROTOCOL_SUMMARY, "1", 1, 1)],
+        )
+
+    first_person = summary_doc(
+        "In this trial we will compare the study drug with placebo."
+    )
+    country = summary_doc(
+        "Sites in the US and Canada will enrol adult participants."
+    )
+
+    outcome = precheck_reg_39(first_person, make_profile())
+
+    assert outcome is not None
+    assert outcome.status == RuleStatus.FIRED
+    assert outcome.evidence[0].is_verified
+    assert precheck_reg_39(country, make_profile()) is None

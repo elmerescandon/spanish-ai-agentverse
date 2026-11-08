@@ -1,31 +1,40 @@
 """Tests for the completeness agent: trial profile and full check run."""
 
 import pytest
+from pydantic import BaseModel
 
 from backend.agents.completeness.agent import (
     check_protocol,
     extract_trial_profile,
 )
 from backend.agents.completeness.logic import (
+    CheckOutcome,
     JudgementStatus,
     JudgementVerdict,
     JudgementVerdicts,
+    LibraryItemMatch,
+    LibraryMatches,
     SecondOpinionVerdict,
     SecondOpinionVerdicts,
 )
 from backend.agents.completeness.rules import (
     ApplicabilityCondition,
+    LibraryTag,
     RuleCatalogue,
     RuleDefinition,
+    load_rule_catalogue,
 )
 from backend.clients.gemini import LlmCallFailedError, ThinkingLevel
 from backend.shared.messages import (
+    NON_SCORED_RULE_STATUSES,
     AnalysisPlanExtraction,
     CheckMethod,
     Citation,
     CitedValue,
     ControlType,
+    CriterionKind,
     DiabetesType,
+    EligibilityCriterion,
     Endpoint,
     EndpointKind,
     InterventionType,
@@ -111,6 +120,7 @@ async def test_profile_prompt_lists_allowed_values_and_page_text() -> None:
     assert prompt.startswith("=== PAGE 1 ===")
     assert '"BEHAVIORAL"' in prompt
     assert '"GLP1_RECEPTOR_AGONIST"' in prompt
+    assert "is_amended" in prompt
 
 
 async def test_failed_profile_call_returns_an_empty_profile() -> None:
@@ -121,16 +131,32 @@ async def test_failed_profile_call_returns_an_empty_profile() -> None:
     assert profile == TrialProfile()
 
 
+class _ProfileThenEmptyAnswers:
+    """Answers the profile call, then returns an empty answer to any call."""
+
+    def __init__(self, profile: TrialProfile) -> None:
+        self._profile = profile
+
+    async def generate_json[ModelT: BaseModel](
+        self,
+        prompt: str,
+        response_model: type[ModelT],
+        thinking_level: ThinkingLevel = ThinkingLevel.MEDIUM,
+    ) -> ModelT:
+        if isinstance(self._profile, response_model):
+            return self._profile
+        return response_model()
+
+
 async def test_check_protocol_returns_one_finding_per_catalogue_rule() -> None:
-    llm = FakeJsonGenerator(
-        [_profile_answer(), *(JudgementVerdicts() for _ in range(8))]
-    )
+    llm = _ProfileThenEmptyAnswers(_profile_answer())
 
     report = await check_protocol(_document(), llm)
 
-    assert report.rules_evaluated == len(report.findings) == 72
+    rule_count = len(load_rule_catalogue().rules)
+    assert report.rules_evaluated == len(report.findings) == rule_count
     statuses = {finding.status for finding in report.findings}
-    assert statuses <= {RuleStatus.NOT_APPLICABLE, RuleStatus.CANNOT_ASSESS}
+    assert statuses <= NON_SCORED_RULE_STATUSES
     type_1_rule = next(f for f in report.findings if f.rule_id == "DM-43")
     assert type_1_rule.status == RuleStatus.NOT_APPLICABLE
     assert report.before.registration_gate.is_partial
@@ -357,3 +383,145 @@ async def test_check_protocol_handles_failed_batch_and_second_opinion() -> (
     assert "second opinion unavailable" in by_id["XS-06"].finding
     assert by_id["EST-13"].status == RuleStatus.FIRED
     assert by_id["EST-13"].confidence == pytest.approx(0.5)
+
+
+def _absence_rule(rule_id: str) -> RuleDefinition:
+    return RuleDefinition(
+        id=rule_id,
+        family=RuleFamily.XS,
+        severity=RuleSeverity.S2,
+        detection=("F",),
+        sections=(M11Heading.TRIAL_DESIGN,),
+        check=CheckMethod.DETERMINISTIC,
+        title="Example absence rule",
+        flag_if="Required content is missing.",
+        fix="Add the content.",
+        source="ICH M11 Template, Step 4",
+        source_tier=SourceTier.ICH,
+    )
+
+
+def _fires_on_absence(
+    document: ProtocolDocument, profile: TrialProfile
+) -> CheckOutcome:
+    return CheckOutcome(
+        status=RuleStatus.FIRED,
+        finding="Required content not found.",
+        needs_second_opinion=True,
+    )
+
+
+async def test_second_opinion_runs_in_groups_that_fail_independently() -> None:
+    rule_ids = [f"XS-{index:02d}" for index in range(1, 13)]
+    catalogue = RuleCatalogue(
+        rules=tuple(_absence_rule(rule_id) for rule_id in rule_ids)
+    )
+    second_group = SecondOpinionVerdicts(
+        verdicts=[
+            SecondOpinionVerdict(
+                rule_id=rule_id, confirmed=True, reason="ok", confidence=0.9
+            )
+            for rule_id in rule_ids[10:]
+        ]
+    )
+    llm = FakeJsonGenerator(
+        [
+            _profile_answer(),
+            LlmCallFailedError("first group timed out"),
+            second_group,
+        ]
+    )
+
+    report = await check_protocol(
+        _document(),
+        llm,
+        catalogue=catalogue,
+        checks=dict.fromkeys(rule_ids, _fires_on_absence),
+        prechecks={},
+    )
+
+    by_id = {finding.rule_id: finding for finding in report.findings}
+    assert sum("Flags to verify:" in prompt for prompt in llm.prompts) == 2
+    assert all(by_id[rule_id].confidence == 0.5 for rule_id in rule_ids[:10])
+    assert all(by_id[rule_id].confidence == 0.9 for rule_id in rule_ids[10:])
+    assert all(f.status == RuleStatus.FIRED for f in report.findings)
+
+
+def _library_rule(rule_id: str) -> RuleDefinition:
+    return RuleDefinition(
+        id=rule_id,
+        family=RuleFamily.EX,
+        severity=RuleSeverity.S2,
+        detection=("J",),
+        sections=(M11Heading.TRIAL_POPULATION,),
+        check=CheckMethod.JUDGEMENT,
+        title="Example library item",
+        flag_if="No criterion excludes the example condition.",
+        fix="Exclude the example condition.",
+        source="EMA CPMP/EWP/1080/00 Rev. 2",
+        source_tier=SourceTier.FINAL_GUIDANCE,
+        library_tag=LibraryTag.CORE,
+    )
+
+
+async def test_library_items_are_matched_then_absences_second_checked() -> (
+    None
+):
+    document = _document().model_copy(
+        update={
+            "eligibility_criteria": [
+                EligibilityCriterion(
+                    criterion_id="EX-01",
+                    kind=CriterionKind.EXCLUSION,
+                    text="Type 1 diabetes",
+                    citation=Citation(
+                        page_number=1,
+                        quote=POPULATION_QUOTE,
+                        is_verified=True,
+                    ),
+                )
+            ]
+        }
+    )
+    catalogue = RuleCatalogue(
+        rules=(_library_rule("EX-01"), _library_rule("EX-03"))
+    )
+    matches = LibraryMatches(
+        matches=[
+            LibraryItemMatch(
+                rule_id="EX-01", is_present=True, criterion_ids=["EX-01"]
+            ),
+            LibraryItemMatch(rule_id="EX-03", is_present=False),
+        ]
+    )
+    confirmation = SecondOpinionVerdicts(
+        verdicts=[
+            SecondOpinionVerdict(
+                rule_id="EX-03", confirmed=True, reason="ok", confidence=0.7
+            )
+        ]
+    )
+    llm = FakeJsonGenerator([_profile_answer(), matches, confirmation])
+
+    report = await check_protocol(
+        document, llm, catalogue=catalogue, checks={}, prechecks={}
+    )
+
+    by_id = {finding.rule_id: finding for finding in report.findings}
+    assert "Library items:" in llm.prompts[1]
+    assert by_id["EX-01"].status == RuleStatus.PASSED
+    assert by_id["EX-03"].status == RuleStatus.FIRED
+    assert by_id["EX-03"].confidence == 0.7
+
+
+async def test_library_is_not_assessed_without_extracted_criteria() -> None:
+    catalogue = RuleCatalogue(rules=(_library_rule("EX-03"),))
+    llm = FakeJsonGenerator([_profile_answer()])
+
+    report = await check_protocol(
+        _document(), llm, catalogue=catalogue, checks={}, prechecks={}
+    )
+
+    [finding] = report.findings
+    assert finding.status == RuleStatus.CANNOT_ASSESS
+    assert len(llm.prompts) == 1

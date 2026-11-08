@@ -58,6 +58,24 @@ class ApplicabilityCondition(StrEnum):
     DRUG_CLASS_IS_INSULIN = "DRUG_CLASS_IS_INSULIN"
     IS_RANDOMIZED = "IS_RANDOMIZED"
     IS_BLINDED = "IS_BLINDED"
+    DRUG_CLASS_IS_SGLT2 = "DRUG_CLASS_IS_SGLT2"
+    DRUG_CLASS_IS_INCRETIN = "DRUG_CLASS_IS_INCRETIN"
+    DRUG_CLASS_IS_GLP1_RA = "DRUG_CLASS_IS_GLP1_RA"
+    IS_AMENDED = "IS_AMENDED"
+    IS_PHASE_3 = "IS_PHASE_3"
+    IS_SINGLE_ARM = "IS_SINGLE_ARM"
+
+
+class LibraryTag(StrEnum):
+    """How an exclusion-library item fires (guidelines Part G).
+
+    CORE fires when absent; CLASS fires when absent and the drug class
+    matches; BREADTH fires when present without a stated rationale.
+    """
+
+    CORE = "CORE"
+    CLASS = "CLASS"
+    BREADTH = "BREADTH"
 
 
 class RuleDefinition(BaseModel):
@@ -78,6 +96,7 @@ class RuleDefinition(BaseModel):
     fix: str = Field(min_length=1)
     source: str = Field(min_length=1)
     source_tier: SourceTier
+    library_tag: LibraryTag | None = None
 
     @model_validator(mode="after")
     def _validate_rule_invariants(self) -> Self:
@@ -101,6 +120,13 @@ class RuleDefinition(BaseModel):
             raise ValueError(
                 f"rule '{self.id}' has detection=['J'] only and must use "
                 "check='judgement', got 'deterministic'"
+            )
+        is_library_rule = self.family == RuleFamily.EX
+        if is_library_rule != (self.library_tag is not None):
+            raise ValueError(
+                f"rule '{self.id}' library_tag must be set exactly when "
+                f"family is EX, got family={self.family} "
+                f"library_tag={self.library_tag}"
             )
         return self
 

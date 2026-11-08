@@ -37,6 +37,9 @@ TRIAL_PROFILE_INSTRUCTIONS = (
     "- is_add_on: true if the investigational treatment is added on top of "
     "background glucose-lowering therapy, false if the protocol states "
     "monotherapy or no background therapy.\n"
+    "- is_amended: true if this version amends an earlier protocol version "
+    "(an amendment number or a summary of changes), false if it states it "
+    "is the original version.\n"
     "- phase: leave null.\n\n"
     "Rules:\n"
     "- Every quote is copied verbatim from the cited page (at least 15 "
@@ -60,9 +63,28 @@ JUDGEMENT_BATCH_INSTRUCTIONS = (
     "absent in the protocol text; state a one-line status_reason.\n"
     '- Status "cannot_assess" requires a one-line status_reason.\n'
     "- Never invent facts not present in the protocol pages.\n"
+    "- When a finding concerns specific eligibility criteria, list their "
+    "criterion_id values (from eligibility_criteria) in criterion_ids.\n"
     '- Always cite any FDA draft guidance as "FDA draft guidance '
     '(non-binding)".\n'
     "- Set confidence between 0.0 and 1.0 reflecting your certainty."
+)
+
+LIBRARY_MATCH_INSTRUCTIONS = (
+    "For each library item above, decide whether the protocol's "
+    "eligibility criteria cover it. Return JSON matching the LibraryMatches "
+    "schema with one entry per rule_id.\n\n"
+    "Rules:\n"
+    "- is_present: true when an exclusion criterion (or a mirror-image "
+    "inclusion criterion) covers the item, even with different wording or "
+    "a different threshold.\n"
+    "- criterion_ids: the criterion_id values that cover it, exactly as "
+    "listed; empty when is_present is false.\n"
+    "- is_operable: true when those criteria are answerable yes/no, with a "
+    "threshold, unit, test and look-back window where one is needed.\n"
+    "- has_rationale: true only when the protocol pages state a safety or "
+    "scientific reason for the exclusion.\n"
+    "- Never invent criteria. Set confidence between 0.0 and 1.0."
 )
 
 SECOND_OPINION_INSTRUCTIONS = (

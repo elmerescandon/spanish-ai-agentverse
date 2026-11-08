@@ -13,26 +13,31 @@ from backend.agents.completeness.checks import (
     JudgementPrecheck,
 )
 from backend.agents.completeness.logic import (
+    LIBRARY_ITEMS_PER_CALL,
     DeterministicCheck,
     EvaluatedRule,
     JudgementBatch,
     JudgementVerdicts,
+    LibraryMatches,
     SecondOpinionVerdicts,
     apply_second_opinion,
     apply_second_opinion_failure,
     assemble_report,
     build_judgement_batches,
+    chunk_second_opinion_candidates,
     evaluate_precheck,
     evaluate_rule,
     failed_judgement_batch,
     finding_from_outcome,
     format_judgement_batch_prompt,
+    format_library_prompt,
     format_pages_for_prompt,
     format_second_opinion_prompt,
-    needs_second_opinion_review,
     pre_decide,
     resolve_judgement_batch,
+    resolve_library_batch,
     select_profile_pages,
+    unassessable_batch,
 )
 from backend.agents.completeness.prompts import (
     INSTRUCTIONS_SEPARATOR,
@@ -54,6 +59,7 @@ from backend.shared.messages import (
     CheckMethod,
     ComplianceReport,
     ProtocolDocument,
+    RuleFamily,
     RuleFinding,
     RuleStatus,
     TrialProfile,
@@ -143,26 +149,42 @@ async def _run_judgement_batch(
     return resolve_judgement_batch(batch, response, document)
 
 
-async def _run_second_opinion(
+async def _run_library_batch(
+    batch: JudgementBatch,
     document: ProtocolDocument,
-    catalogue: RuleCatalogue,
-    evaluated: list[EvaluatedRule],
+    profile: TrialProfile,
+    llm: JsonGenerator,
+) -> list[EvaluatedRule]:
+    """Match one group of exclusion-library items against the criteria."""
+    if not document.eligibility_criteria:
+        return unassessable_batch(
+            batch, "no eligibility criteria were extracted"
+        )
+    prompt = format_library_prompt(batch, document)
+    try:
+        response = await llm.generate_json(
+            prompt, LibraryMatches, ThinkingLevel.MEDIUM
+        )
+    except LlmCallFailedError as error:
+        logger.warning(
+            "library batch failed: agent=%s protocol_id=%s rules=%s error=%s",
+            AGENT_NAME,
+            document.protocol_id,
+            [rule.id for rule in batch.rules],
+            error,
+        )
+        return failed_judgement_batch(batch, str(error))
+    return resolve_library_batch(batch, response, document, profile)
+
+
+async def _run_second_opinion_group(
+    document: ProtocolDocument,
+    group: list[EvaluatedRule],
+    rules_by_id: Mapping[str, RuleDefinition],
     llm: JsonGenerator,
 ) -> list[RuleFinding]:
-    """Run one batched second-opinion check over judgement and absence hits."""
-    candidates = [
-        item for item in evaluated if needs_second_opinion_review(item)
-    ]
-    if not candidates:
-        logger.info(
-            "completeness stage=second_opinion protocol_id=%s candidates=0 "
-            "confirmed=0",
-            document.protocol_id,
-        )
-        return [item.finding for item in evaluated]
-
-    rules_by_id = {rule.id: rule for rule in catalogue.rules}
-    prompt = format_second_opinion_prompt(document, candidates, rules_by_id)
+    """Verify one group of flags; a failed call caps only this group."""
+    prompt = format_second_opinion_prompt(document, group, rules_by_id)
     try:
         response = await llm.generate_json(
             prompt, SecondOpinionVerdicts, ThinkingLevel.HIGH
@@ -173,34 +195,44 @@ async def _run_second_opinion(
             "agent=%s protocol_id=%s candidates=%d error=%s",
             AGENT_NAME,
             document.protocol_id,
-            len(candidates),
+            len(group),
             error,
         )
-        findings = apply_second_opinion_failure(evaluated)
-        logger.info(
-            "completeness stage=second_opinion protocol_id=%s candidates=%d "
-            "status=failed",
-            document.protocol_id,
-            len(candidates),
-        )
-        return findings
+        return apply_second_opinion_failure(group)
+    return apply_second_opinion(group, response)
 
-    findings = apply_second_opinion(evaluated, response)
-    candidate_ids = {item.finding.rule_id for item in candidates}
-    confirmed_count = sum(
-        1
-        for finding in findings
-        if finding.rule_id in candidate_ids
-        and finding.status == RuleStatus.FIRED
+
+async def _run_second_opinion(
+    document: ProtocolDocument,
+    catalogue: RuleCatalogue,
+    evaluated: list[EvaluatedRule],
+    llm: JsonGenerator,
+) -> list[RuleFinding]:
+    """Second-check judgement and absence flags, in concurrent groups."""
+    groups = chunk_second_opinion_candidates(evaluated)
+    rules_by_id = {rule.id: rule for rule in catalogue.rules}
+    group_results = await asyncio.gather(
+        *(
+            _run_second_opinion_group(document, group, rules_by_id, llm)
+            for group in groups
+        )
     )
+    reviewed = {
+        finding.rule_id: finding
+        for group_findings in group_results
+        for finding in group_findings
+    }
     logger.info(
-        "completeness stage=second_opinion protocol_id=%s candidates=%d "
-        "confirmed=%d",
+        "completeness stage=second_opinion protocol_id=%s groups=%d "
+        "candidates=%d confirmed=%d",
         document.protocol_id,
-        len(candidates),
-        confirmed_count,
+        len(groups),
+        len(reviewed),
+        sum(1 for f in reviewed.values() if f.status == RuleStatus.FIRED),
     )
-    return findings
+    return [
+        reviewed.get(item.finding.rule_id, item.finding) for item in evaluated
+    ]
 
 
 async def check_protocol(
@@ -215,7 +247,8 @@ async def check_protocol(
 
     Pipeline order:
     profile -> pre_decide -> deterministic checks -> prechecks
-    -> judgement batches -> second opinion -> assemble_report.
+    -> judgement batches and exclusion-library matching (concurrent)
+    -> second opinion -> assemble_report.
 
     Raises:
         ValueError: the catalogue file is invalid (see rules.py).
@@ -290,13 +323,25 @@ async def check_protocol(
         len(unresolved_judgement),
     )
 
-    # 5. Batched Gemini judgement
-    batches = build_judgement_batches(unresolved_judgement)
+    # 5. Batched Gemini judgement and exclusion-library matching
+    library_rules = [
+        r for r in unresolved_judgement if r.family == RuleFamily.EX
+    ]
+    batches = build_judgement_batches(
+        [r for r in unresolved_judgement if r.family != RuleFamily.EX]
+    )
+    library_batches = build_judgement_batches(
+        library_rules, max_rules_per_batch=LIBRARY_ITEMS_PER_CALL
+    )
     batch_results = await asyncio.gather(
         *(
             _run_judgement_batch(batch, document, profile, llm)
             for batch in batches
-        )
+        ),
+        *(
+            _run_library_batch(batch, document, profile, llm)
+            for batch in library_batches
+        ),
     )
     judged_items = [
         item for batch_items in batch_results for item in batch_items
@@ -305,9 +350,10 @@ async def check_protocol(
         evaluated_by_id[item.finding.rule_id] = item
     logger.info(
         "completeness stage=judgement_batches protocol_id=%s batches=%d "
-        "rules=%d fired=%d",
+        "library_batches=%d rules=%d fired=%d",
         document.protocol_id,
         len(batches),
+        len(library_batches),
         len(judged_items),
         sum(1 for e in judged_items if e.finding.status == RuleStatus.FIRED),
     )

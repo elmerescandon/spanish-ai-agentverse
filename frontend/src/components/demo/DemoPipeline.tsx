@@ -6,14 +6,45 @@ import ProtocolIngestion from "@/components/ProtocolIngestion";
 import DecisionView from "./DecisionView";
 import StepBar, { type StepBarState } from "./StepBar";
 import StepView from "./StepView";
+import {
+  RECOMMENDATION_ENDPOINTS,
+  uploadProtocolFile,
+  type RecommendationFetcher,
+} from "@/lib/api";
 import { MOCK_STEPS } from "@/lib/demo/mock";
-import type { Decision, StepData, StepId } from "@/lib/demo/types";
+import type {
+  Decision,
+  StepData,
+  StepId,
+  UploadFileResponse,
+} from "@/lib/demo/types";
 
 // Fake agent latency so the running state is visible in the mock.
 const RUN_DELAY_MS = 700;
 
+type RecommendationStepId = Exclude<StepId, "ingest">;
+
 export interface DemoPipelineProps {
+  // Mock steps played back after the sample protocol is chosen.
   steps?: StepData[];
+  // Injectable so tests can pass fakes; default to the real API calls.
+  uploadFile?: (file: File) => Promise<UploadFileResponse>;
+  recommendationFetchers?: Record<RecommendationStepId, RecommendationFetcher>;
+}
+
+// Results of a real upload; each step fills in as its own call settles.
+interface LiveRun {
+  results: Partial<Record<StepId, StepData>>;
+  errors: Partial<Record<StepId, string>>;
+}
+
+type UploadState =
+  | { status: "idle" }
+  | { status: "uploading" }
+  | { status: "error"; message: string };
+
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 interface View {
@@ -35,9 +66,31 @@ function isTextEntry(target: EventTarget | null): boolean {
  * runs by itself. Steps are presentational and take their data as props.
  */
 export default function DemoPipeline({
-  steps = MOCK_STEPS,
+  steps: presetSteps = MOCK_STEPS,
+  uploadFile = uploadProtocolFile,
+  recommendationFetchers = RECOMMENDATION_ENDPOINTS,
 }: DemoPipelineProps) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [liveRun, setLiveRun] = useState<LiveRun | null>(null);
+  const [uploadState, setUploadState] = useState<UploadState>({
+    status: "idle",
+  });
+  // Until a step's data arrives, the bar still needs its title.
+  const steps = useMemo<StepData[]>(
+    () =>
+      liveRun
+        ? presetSteps.map(
+            (step) =>
+              liveRun.results[step.id] ?? {
+                ...step,
+                summary: "",
+                metrics: [],
+                decisions: [],
+              }
+          )
+        : presetSteps,
+    [liveRun, presetSteps]
+  );
   const [completedCount, setCompletedCount] = useState(0);
   const [view, setView] = useState<View>({
     stepId: steps[0].id,
@@ -47,19 +100,53 @@ export default function DemoPipeline({
 
   // The rest of the steps follow the upload one by one.
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || liveRun) return;
     if (completedCount >= steps.length) return;
     const timer = setTimeout(
       () => setCompletedCount((count) => count + 1),
       RUN_DELAY_MS
     );
     return () => clearTimeout(timer);
-  }, [isLoaded, completedCount, steps.length]);
+  }, [isLoaded, liveRun, completedCount, steps.length]);
 
   // Ingest is the upload itself, so it is done as soon as it loads.
   const loadProtocol = () => {
     setIsLoaded(true);
     setCompletedCount(1);
+  };
+
+  // A real PDF: ingest comes with the upload, the other agents run in
+  // parallel and each settles on its own.
+  const startLiveRun = async (file: File) => {
+    setUploadState({ status: "uploading" });
+    let upload: UploadFileResponse;
+    try {
+      upload = await uploadFile(file);
+    } catch (error) {
+      setUploadState({ status: "error", message: toErrorMessage(error) });
+      return;
+    }
+    setUploadState({ status: "idle" });
+    setLiveRun({ results: { ingest: upload.step }, errors: {} });
+    setIsLoaded(true);
+
+    for (const [stepId, fetchStep] of Object.entries(
+      recommendationFetchers
+    ) as [RecommendationStepId, RecommendationFetcher][]) {
+      fetchStep(upload.protocol_id).then(
+        (data) =>
+          setLiveRun((run) =>
+            run && { ...run, results: { ...run.results, [stepId]: data } }
+          ),
+        (error: unknown) =>
+          setLiveRun((run) =>
+            run && {
+              ...run,
+              errors: { ...run.errors, [stepId]: toErrorMessage(error) },
+            }
+          )
+      );
+    }
   };
 
   const decisionsById = useMemo(() => {
@@ -73,8 +160,13 @@ export default function DemoPipeline({
   }, [steps]);
 
   const barItems = steps.map((step, index) => {
-    const state: StepBarState =
-      index < completedCount
+    const state: StepBarState = liveRun
+      ? liveRun.results[step.id]
+        ? "done"
+        : liveRun.errors[step.id]
+          ? "error"
+          : "running"
+      : index < completedCount
         ? "done"
         : index === completedCount
           ? "running"
@@ -127,12 +219,27 @@ export default function DemoPipeline({
         <h1 className="text-center font-serif text-4xl font-normal tracking-tight text-zinc-900">
           Analyze a draft protocol
         </h1>
-        <ProtocolIngestion onProtocolLoaded={loadProtocol} isCompact />
+        <ProtocolIngestion
+          onProtocolLoaded={loadProtocol}
+          onPdfSelected={startLiveRun}
+          isCompact
+        />
+        {uploadState.status === "uploading" && (
+          <p role="status" className="text-center font-sans text-sm text-zinc-500">
+            Uploading protocol...
+          </p>
+        )}
+        {uploadState.status === "error" && (
+          <p role="alert" className="text-center font-sans text-sm text-rose-700">
+            {uploadState.message}
+          </p>
+        )}
       </div>
     );
   }
 
   const currentStep = steps.find((s) => s.id === view.stepId) ?? steps[0];
+  const stepError = liveRun?.errors[currentStep.id];
   const currentDecision = view.decisionId
     ? (decisionsById.get(view.decisionId) ?? null)
     : null;
@@ -172,6 +279,15 @@ export default function DemoPipeline({
               onOpenParent={openDecision}
             />
           </div>
+        ) : stepError ? (
+          <section aria-label={currentStep.title} className="space-y-2">
+            <h1 className="font-serif text-2xl font-normal tracking-tight text-zinc-900">
+              {currentStep.title}
+            </h1>
+            <p role="alert" className="font-sans text-sm text-rose-700">
+              {stepError}
+            </p>
+          </section>
         ) : (
           <StepView
             step={currentStep}

@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect } from "react";
-import { Check, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
 
-export type StepBarState = "done" | "running" | "pending";
+export type StepBarState = "done" | "running" | "pending" | "error";
 
 export interface StepBarItem {
   id: string;
@@ -21,6 +27,7 @@ const STATE_LABELS: Record<StepBarState, string> = {
   done: "Done",
   running: "Running",
   pending: "Pending",
+  error: "Failed",
 };
 
 function isTextEntry(target: EventTarget | null): boolean {
@@ -32,6 +39,11 @@ function isTextEntry(target: EventTarget | null): boolean {
   );
 }
 
+// A failed step can be opened too, so its error is readable.
+function isOpenable(item: StepBarItem | undefined): boolean {
+  return item?.state === "done" || item?.state === "error";
+}
+
 /** Index of the nearest done step in a direction, or -1 if none. */
 function neighbourIndex(
   items: StepBarItem[],
@@ -39,7 +51,7 @@ function neighbourIndex(
   direction: 1 | -1
 ): number {
   const index = activeIndex + direction;
-  return items[index]?.state === "done" ? index : -1;
+  return isOpenable(items[index]) ? index : -1;
 }
 
 function circleClass(
@@ -51,6 +63,7 @@ function circleClass(
     return "border-emerald-600 bg-emerald-600 text-white ring-4 ring-emerald-100";
   }
   if (isReached) return "border-emerald-600 bg-white text-emerald-700";
+  if (state === "error") return "border-rose-300 bg-white text-rose-600";
   if (state === "done") {
     return "border-zinc-300 bg-white text-zinc-600 group-hover:border-zinc-900";
   }
@@ -124,7 +137,7 @@ export default function StepBar({
                   type="button"
                   aria-label={item.title}
                   aria-current={isActive ? "step" : undefined}
-                  disabled={item.state !== "done"}
+                  disabled={!isOpenable(item)}
                   onClick={() => onSelect(item.id)}
                   className="group relative z-10 flex w-full cursor-pointer flex-col items-center gap-1.5 font-sans disabled:cursor-default"
                 >
@@ -138,6 +151,12 @@ export default function StepBar({
                     {item.state === "running" ? (
                       <Loader2
                         className="h-3.5 w-3.5 animate-spin"
+                        strokeWidth={1.5}
+                        aria-hidden
+                      />
+                    ) : item.state === "error" ? (
+                      <AlertCircle
+                        className="h-3.5 w-3.5"
                         strokeWidth={1.5}
                         aria-hidden
                       />
@@ -155,7 +174,7 @@ export default function StepBar({
                     className={`max-w-full truncate px-1 text-xs transition-colors ${
                       isActive
                         ? "font-medium text-zinc-900"
-                        : item.state === "done"
+                        : item.state === "done" || item.state === "error"
                           ? "text-zinc-500 group-hover:text-zinc-900"
                           : "text-zinc-300"
                     }`}

@@ -185,7 +185,6 @@ runs end to end today; these extend it.
 | **Protocol-specific peer search** | Choose comparison trials from the protocol's own condition, phase, population and date, instead of the demo's fixed search. |
 | **More dimensions** | Washout periods, visit burden, study duration and sample-size assumptions alongside ages, enrollment and lab limits. |
 | **Like-for-like lab limits** | Compare eGFR cut-offs only between trials that use the same equation (CKD-EPI or MDRD). |
-| **Written reasoning on every flag** | Show Gemini's explanation for each comparison flag in the UI (built, turned off for speed). |
 
 ### Closing the loop with clinicians
 

@@ -19,7 +19,7 @@ DEFAULT_ALLOWED_ORIGINS: tuple[str, ...] = (
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 )
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-4-argon"
 ENV_FILE_PATH = ".env"
 ENV_FILE_ENCODING = "utf-8"
 
@@ -91,12 +91,19 @@ class Settings(BaseSettings):
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         """Inject comma-separated list parsers for environment sources."""
+        # Reuse the .env path pydantic-settings resolved, so an explicit
+        # Settings(_env_file=None) (e.g. in tests) really skips the .env file.
+        env_file = (
+            dotenv_settings.env_file
+            if isinstance(dotenv_settings, DotEnvSettingsSource)
+            else ENV_FILE_PATH
+        )
         return (
             init_settings,
             _CommaSeparatedEnvSource(settings_cls),
             _CommaSeparatedDotEnvSource(
                 settings_cls,
-                env_file=ENV_FILE_PATH,
+                env_file=env_file,
                 env_file_encoding=ENV_FILE_ENCODING,
             ),
             file_secret_settings,

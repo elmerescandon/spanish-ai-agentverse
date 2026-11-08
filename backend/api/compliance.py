@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 
+from backend.agents.completeness.logic import SEVERITY_WEIGHTS
 from backend.api.schemas import (
     ComplianceReportResponse,
     FamilySummary,
@@ -21,12 +22,6 @@ from backend.shared.messages import (
 )
 
 MAX_TOP_FINDINGS = 15  # guidelines summary cap on top fired rules
-
-SEVERITY_WEIGHTS: dict[RuleSeverity, int] = {
-    RuleSeverity.S1: 10,
-    RuleSeverity.S2: 4,
-    RuleSeverity.S3: 1,
-}
 
 CARD_SEVERITY_BY_RULE_SEVERITY: dict[RuleSeverity, Severity] = {
     RuleSeverity.S1: Severity.CRITICAL,

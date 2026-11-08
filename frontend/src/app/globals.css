@@ -260,3 +260,135 @@
 html {
   scroll-padding-top: 5rem;
 }
+
+/* Homepage intro (src/components/logo-intro.tsx), 1s in total: over a
+   blurred view of the page, the insulin molecule forms as each chain is
+   revealed left to right (0-0.6s), then grows past the screen edges while
+   the blur fades away, bringing the page into focus (0.6-1s). Only
+   transform and opacity animate, so the GPU runs it without waiting on the
+   page's own start-up work. Shown only while the <head> script has marked
+   <html> with data-intro-play. */
+.logo-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /* A light wash keeps the busy page behind from fighting the molecule. */
+  background: oklch(1 0 0 / 0.3);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  color: oklch(0.141 0.005 285.823); /* zinc-950, the page's ink */
+  will-change: opacity;
+  animation: logo-intro-cover 1s ease-in forwards;
+}
+
+html[data-intro-play] .logo-intro {
+  display: flex;
+}
+
+.logo-intro-molecule {
+  position: relative;
+  width: 6rem;
+  height: 6rem;
+  will-change: transform;
+  animation: logo-intro-grow 1s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+/* A window and its content slide in opposite directions by the same
+   amount: the molecule stays still while the window's edge sweeps across
+   it, revealing one chain left to right. The lower chain follows a beat
+   later. */
+.logo-intro-window {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  will-change: transform;
+  animation: logo-intro-window-open 0.5s cubic-bezier(0.33, 1, 0.68, 1)
+    backwards;
+}
+
+.logo-intro-window-top {
+  top: 0;
+}
+
+.logo-intro-window-bottom {
+  bottom: 0;
+}
+
+.logo-intro-content {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  will-change: transform;
+  animation: logo-intro-content-hold 0.5s cubic-bezier(0.33, 1, 0.68, 1)
+    backwards;
+}
+
+.logo-intro-window-top .logo-intro-content {
+  top: 0;
+}
+
+.logo-intro-window-bottom .logo-intro-content {
+  top: -100%;
+}
+
+.logo-intro-window-bottom,
+.logo-intro-window-bottom .logo-intro-content {
+  animation-delay: 0.1s;
+}
+
+.logo-intro-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes logo-intro-window-open {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes logo-intro-content-hold {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes logo-intro-grow {
+  0%,
+  60% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(40);
+  }
+}
+
+@keyframes logo-intro-cover {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-intro-play] .logo-intro {
+    display: none;
+  }
+}

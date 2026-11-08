@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AsciiProteinViewer } from "@/components/ascii-protein-viewer";
 import { InsulinIcon } from "@/components/insulin-icon";
+import { LogoIntro } from "@/components/logo-intro";
 import type { ProtocolSummary, Recommendation } from "@/lib/api";
 
 export const DEFAULT_PROTOCOL: ProtocolSummary = {
@@ -156,6 +157,8 @@ export default function HomePage() {
 
   return (
     <main className="relative min-h-screen w-screen overflow-x-hidden bg-white text-zinc-900 font-sans selection:bg-emerald-100 selection:text-emerald-900">
+      <LogoIntro />
+
       {/* Fixed 3D Rotating ASCII Protein Background */}
       <AsciiProteinViewer />
 

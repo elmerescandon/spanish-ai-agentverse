@@ -261,7 +261,7 @@ export default function DecisionView({
   };
 
   return (
-    <article aria-label={decision.title} className="max-w-3xl space-y-6">
+    <article aria-label={decision.title} className="max-w-6xl space-y-6">
       <header className="space-y-2">
         {/* Inline, the finding row above already shows the title. */}
         {!isInline && (
@@ -310,9 +310,11 @@ export default function DecisionView({
       {charts.length > 0 && (
         <section className={SECTION_CLASSES}>
           <SectionTitle>Charts</SectionTitle>
-          {charts.map((chart) => (
-            <ChartView key={chart.chart_id} chart={chart} />
-          ))}
+          <div className="grid gap-8 lg:grid-cols-2">
+            {charts.map((chart) => (
+              <ChartView key={chart.chart_id} chart={chart} />
+            ))}
+          </div>
         </section>
       )}
 

@@ -33,7 +33,7 @@ export default function MetricList({
   if (metrics.length === 0) return null;
 
   return (
-    <dl aria-label={ariaLabel} className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3">
+    <dl aria-label={ariaLabel} className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3 lg:grid-cols-4">
       {metrics.map((metric) => {
         const benchmarks = metric.benchmarks ?? [];
         return (

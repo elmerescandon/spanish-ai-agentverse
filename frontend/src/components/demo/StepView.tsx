@@ -119,7 +119,7 @@ export default function StepView({
   return (
     <section
       aria-label={step.title}
-      className="mx-auto max-w-3xl space-y-10 pb-16 pt-4"
+      className="space-y-10 pb-16 pt-4"
     >
       <header className="space-y-3">
         <h1 className="font-serif text-3xl font-normal tracking-tight text-zinc-900">
@@ -252,7 +252,7 @@ export default function StepView({
           count={charts.length}
           isInitiallyOpen
         >
-          <div className="space-y-8">
+          <div className="grid gap-8 lg:grid-cols-2">
             {charts.map((chart) => (
               <ChartView key={chart.chart_id} chart={chart} />
             ))}

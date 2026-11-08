@@ -15,6 +15,7 @@ from backend.agents.completeness.logic import (
     apply_second_opinion_failure,
     assemble_report,
     build_judgement_batches,
+    chunk_second_opinion_candidates,
     compute_run_result,
     condition_holds,
     evaluate_precheck,
@@ -38,6 +39,7 @@ from backend.shared.messages import (
     Citation,
     ControlType,
     DiabetesType,
+    DrugClass,
     GateStatus,
     InterventionType,
     M11Heading,
@@ -51,6 +53,7 @@ from backend.shared.messages import (
     RuleStatus,
     SourceTier,
     TrialDesignFacts,
+    TrialPhase,
     TrialProfile,
 )
 
@@ -175,6 +178,87 @@ def test_randomization_and_blinding_come_from_design_facts() -> None:
 
     assert randomized.holds is True
     assert blinded.holds is False
+
+
+@pytest.mark.parametrize(
+    ("condition", "drug_class", "expected"),
+    [
+        (
+            ApplicabilityCondition.DRUG_CLASS_IS_SGLT2,
+            DrugClass.SGLT2_INHIBITOR,
+            True,
+        ),
+        (ApplicabilityCondition.DRUG_CLASS_IS_SGLT2, DrugClass.INSULIN, False),
+        (
+            ApplicabilityCondition.DRUG_CLASS_IS_INCRETIN,
+            DrugClass.GLP1_RECEPTOR_AGONIST,
+            True,
+        ),
+        (
+            ApplicabilityCondition.DRUG_CLASS_IS_INCRETIN,
+            DrugClass.DPP4_INHIBITOR,
+            True,
+        ),
+        (
+            ApplicabilityCondition.DRUG_CLASS_IS_INCRETIN,
+            DrugClass.METFORMIN,
+            False,
+        ),
+        (
+            ApplicabilityCondition.DRUG_CLASS_IS_GLP1_RA,
+            DrugClass.GLP1_RECEPTOR_AGONIST,
+            True,
+        ),
+        (
+            ApplicabilityCondition.DRUG_CLASS_IS_GLP1_RA,
+            DrugClass.DPP4_INHIBITOR,
+            False,
+        ),
+    ],
+)
+def test_drug_class_conditions_match_their_classes(
+    condition: ApplicabilityCondition, drug_class: DrugClass, expected: bool
+) -> None:
+    value = condition_holds(condition, _profile(drug_class=drug_class), None)
+
+    assert value.holds is expected
+    assert value.citation is not None
+
+
+@pytest.mark.parametrize(
+    ("phase", "expected"),
+    [
+        (TrialPhase.PHASE3, True),
+        (TrialPhase.PHASE2_PHASE3, True),
+        (TrialPhase.PHASE2, False),
+    ],
+)
+def test_phase_3_condition_includes_phase_2_3(
+    phase: TrialPhase, expected: bool
+) -> None:
+    value = condition_holds(
+        ApplicabilityCondition.IS_PHASE_3, _profile(phase=phase), None
+    )
+
+    assert value.holds is expected
+
+
+def test_amended_and_single_arm_conditions() -> None:
+    amended = condition_holds(
+        ApplicabilityCondition.IS_AMENDED, _profile(is_amended=True), None
+    )
+    single_arm = condition_holds(
+        ApplicabilityCondition.IS_SINGLE_ARM,
+        TrialProfile(),
+        _design(arm_count=2),
+    )
+    unknown_arms = condition_holds(
+        ApplicabilityCondition.IS_SINGLE_ARM, TrialProfile(), None
+    )
+
+    assert amended.holds is True
+    assert single_arm.holds is False
+    assert unknown_arms.holds is None
 
 
 # --- pre-decisions: not applicable, missing inputs ---------------------
@@ -767,3 +851,40 @@ def test_second_opinion_confirms_rejects_and_caps_on_failure() -> None:
     assert fallback["EST-01"].status == RuleStatus.FIRED
     assert fallback["EST-01"].confidence == pytest.approx(0.5)
     assert "second opinion unavailable" in fallback["EST-01"].finding
+
+
+def test_second_opinion_candidates_are_split_into_groups() -> None:
+    absence_flags = [
+        EvaluatedRule(
+            finding=_finding(
+                f"XS-{index:02d}",
+                RuleFamily.XS,
+                RuleSeverity.S1,
+                RuleStatus.FIRED,
+            ),
+            needs_second_opinion=True,
+        )
+        for index in range(1, 13)
+    ]
+    plain_pass = EvaluatedRule(
+        finding=_finding(
+            "XS-20", RuleFamily.XS, RuleSeverity.S1, RuleStatus.PASSED
+        )
+    )
+
+    chunks = chunk_second_opinion_candidates(
+        [*absence_flags, plain_pass], batch_size=10
+    )
+
+    assert [len(chunk) for chunk in chunks] == [10, 2]
+    assert plain_pass not in [item for chunk in chunks for item in chunk]
+
+
+def test_no_candidates_means_no_second_opinion_groups() -> None:
+    plain_pass = EvaluatedRule(
+        finding=_finding(
+            "XS-20", RuleFamily.XS, RuleSeverity.S1, RuleStatus.PASSED
+        )
+    )
+
+    assert chunk_second_opinion_candidates([plain_pass]) == []

@@ -51,6 +51,7 @@ from backend.shared.messages import (
     RunResult,
     SearchedLocation,
     TrialDesignFacts,
+    TrialPhase,
     TrialProfile,
 )
 
@@ -77,6 +78,10 @@ GATE_S1_RULE_TOTALS: dict[RuleFamily, int] = {
 DRUG_INTERVENTIONS = frozenset(
     {InterventionType.DRUG, InterventionType.BIOLOGIC}
 )
+INCRETIN_CLASSES = frozenset(
+    {DrugClass.GLP1_RECEPTOR_AGONIST, DrugClass.DPP4_INHIBITOR}
+)
+PHASE_3_PHASES = frozenset({TrialPhase.PHASE3, TrialPhase.PHASE2_PHASE3})
 BLINDED_MASKING = frozenset(
     {
         MaskingType.SINGLE,
@@ -110,6 +115,18 @@ CONDITION_LABELS: dict[ApplicabilityCondition, str] = {
     ),
     ApplicabilityCondition.IS_RANDOMIZED: "participants are randomised",
     ApplicabilityCondition.IS_BLINDED: "the trial is blinded",
+    ApplicabilityCondition.DRUG_CLASS_IS_SGLT2: (
+        "the investigational drug is an SGLT2 inhibitor"
+    ),
+    ApplicabilityCondition.DRUG_CLASS_IS_INCRETIN: (
+        "the investigational drug is a GLP-1 RA or DPP-4 inhibitor"
+    ),
+    ApplicabilityCondition.DRUG_CLASS_IS_GLP1_RA: (
+        "the investigational drug is a GLP-1 receptor agonist"
+    ),
+    ApplicabilityCondition.IS_AMENDED: "the protocol is an amendment",
+    ApplicabilityCondition.IS_PHASE_3: "the trial is phase 3",
+    ApplicabilityCondition.IS_SINGLE_ARM: "the trial has a single arm",
 }
 INPUT_LABELS: dict[RequiredInput, str] = {
     RequiredInput.INVESTIGATORS_BROCHURE: "the Investigator's Brochure",
@@ -124,8 +141,9 @@ SECOND_OPINION_FAILURE_CONFIDENCE_CAP = 0.5
 SECOND_OPINION_FAILURE_NOTE = (
     " (second opinion unavailable; confidence capped at 0.5)"
 )
-MAX_RULES_PER_BATCH = 6
+MAX_RULES_PER_BATCH = 8
 MAX_JUDGEMENT_BATCHES = 8
+SECOND_OPINION_BATCH_SIZE = 10  # flags per call, so one failure stays local
 # Where trial-level facts (intervention, population, control) are stated.
 PROFILE_HEADINGS = frozenset(
     {
@@ -286,6 +304,29 @@ def condition_holds(
             return _evaluate_cited(
                 design.masking if design else None,
                 lambda v: v in BLINDED_MASKING,
+            )
+        case ApplicabilityCondition.DRUG_CLASS_IS_SGLT2:
+            return _evaluate_cited(
+                profile.drug_class, lambda v: v == DrugClass.SGLT2_INHIBITOR
+            )
+        case ApplicabilityCondition.DRUG_CLASS_IS_INCRETIN:
+            return _evaluate_cited(
+                profile.drug_class, lambda v: v in INCRETIN_CLASSES
+            )
+        case ApplicabilityCondition.DRUG_CLASS_IS_GLP1_RA:
+            return _evaluate_cited(
+                profile.drug_class,
+                lambda v: v == DrugClass.GLP1_RECEPTOR_AGONIST,
+            )
+        case ApplicabilityCondition.IS_AMENDED:
+            return _evaluate_cited(profile.is_amended, bool)
+        case ApplicabilityCondition.IS_PHASE_3:
+            return _evaluate_cited(
+                profile.phase, lambda v: v in PHASE_3_PHASES
+            )
+        case ApplicabilityCondition.IS_SINGLE_ARM:
+            return _evaluate_cited(
+                design.arm_count if design else None, lambda v: v == 1
             )
     assert_never(condition)
 
@@ -776,6 +817,20 @@ def needs_second_opinion_review(item: EvaluatedRule) -> bool:
         item.finding.check_method == CheckMethod.JUDGEMENT
         or item.needs_second_opinion
     )
+
+
+def chunk_second_opinion_candidates(
+    evaluated: Sequence[EvaluatedRule],
+    batch_size: int = SECOND_OPINION_BATCH_SIZE,
+) -> list[list[EvaluatedRule]]:
+    """Split the flags that need a second opinion into call-sized groups."""
+    candidates = [
+        item for item in evaluated if needs_second_opinion_review(item)
+    ]
+    return [
+        candidates[start : start + batch_size]
+        for start in range(0, len(candidates), batch_size)
+    ]
 
 
 def select_second_opinion_pages(

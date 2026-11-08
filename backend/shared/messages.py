@@ -715,6 +715,7 @@ class TrialProfile(BaseModel):
     control_type: CitedValue[ControlType] | None = None
     is_non_inferiority: CitedValue[bool] | None = None
     is_add_on: CitedValue[bool] | None = None
+    is_amended: CitedValue[bool] | None = None
 
 
 class ComplianceReport(BaseModel):

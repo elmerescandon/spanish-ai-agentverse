@@ -7,6 +7,7 @@ from backend.agents.completeness.agent import (
     extract_trial_profile,
 )
 from backend.agents.completeness.logic import (
+    CheckOutcome,
     JudgementStatus,
     JudgementVerdict,
     JudgementVerdicts,
@@ -111,6 +112,7 @@ async def test_profile_prompt_lists_allowed_values_and_page_text() -> None:
     assert prompt.startswith("=== PAGE 1 ===")
     assert '"BEHAVIORAL"' in prompt
     assert '"GLP1_RECEPTOR_AGONIST"' in prompt
+    assert "is_amended" in prompt
 
 
 async def test_failed_profile_call_returns_an_empty_profile() -> None:
@@ -357,3 +359,65 @@ async def test_check_protocol_handles_failed_batch_and_second_opinion() -> (
     assert "second opinion unavailable" in by_id["XS-06"].finding
     assert by_id["EST-13"].status == RuleStatus.FIRED
     assert by_id["EST-13"].confidence == pytest.approx(0.5)
+
+
+def _absence_rule(rule_id: str) -> RuleDefinition:
+    return RuleDefinition(
+        id=rule_id,
+        family=RuleFamily.XS,
+        severity=RuleSeverity.S2,
+        detection=("F",),
+        sections=(M11Heading.TRIAL_DESIGN,),
+        check=CheckMethod.DETERMINISTIC,
+        title="Example absence rule",
+        flag_if="Required content is missing.",
+        fix="Add the content.",
+        source="ICH M11 Template, Step 4",
+        source_tier=SourceTier.ICH,
+    )
+
+
+def _fires_on_absence(
+    document: ProtocolDocument, profile: TrialProfile
+) -> CheckOutcome:
+    return CheckOutcome(
+        status=RuleStatus.FIRED,
+        finding="Required content not found.",
+        needs_second_opinion=True,
+    )
+
+
+async def test_second_opinion_runs_in_groups_that_fail_independently() -> None:
+    rule_ids = [f"XS-{index:02d}" for index in range(1, 13)]
+    catalogue = RuleCatalogue(
+        rules=tuple(_absence_rule(rule_id) for rule_id in rule_ids)
+    )
+    second_group = SecondOpinionVerdicts(
+        verdicts=[
+            SecondOpinionVerdict(
+                rule_id=rule_id, confirmed=True, reason="ok", confidence=0.9
+            )
+            for rule_id in rule_ids[10:]
+        ]
+    )
+    llm = FakeJsonGenerator(
+        [
+            _profile_answer(),
+            LlmCallFailedError("first group timed out"),
+            second_group,
+        ]
+    )
+
+    report = await check_protocol(
+        _document(),
+        llm,
+        catalogue=catalogue,
+        checks=dict.fromkeys(rule_ids, _fires_on_absence),
+        prechecks={},
+    )
+
+    by_id = {finding.rule_id: finding for finding in report.findings}
+    assert sum("Flags to verify:" in prompt for prompt in llm.prompts) == 2
+    assert all(by_id[rule_id].confidence == 0.5 for rule_id in rule_ids[:10])
+    assert all(by_id[rule_id].confidence == 0.9 for rule_id in rule_ids[10:])
+    assert all(f.status == RuleStatus.FIRED for f in report.findings)

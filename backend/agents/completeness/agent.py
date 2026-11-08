@@ -22,6 +22,7 @@ from backend.agents.completeness.logic import (
     apply_second_opinion_failure,
     assemble_report,
     build_judgement_batches,
+    chunk_second_opinion_candidates,
     evaluate_precheck,
     evaluate_rule,
     failed_judgement_batch,
@@ -29,7 +30,6 @@ from backend.agents.completeness.logic import (
     format_judgement_batch_prompt,
     format_pages_for_prompt,
     format_second_opinion_prompt,
-    needs_second_opinion_review,
     pre_decide,
     resolve_judgement_batch,
     select_profile_pages,
@@ -143,26 +143,14 @@ async def _run_judgement_batch(
     return resolve_judgement_batch(batch, response, document)
 
 
-async def _run_second_opinion(
+async def _run_second_opinion_group(
     document: ProtocolDocument,
-    catalogue: RuleCatalogue,
-    evaluated: list[EvaluatedRule],
+    group: list[EvaluatedRule],
+    rules_by_id: Mapping[str, RuleDefinition],
     llm: JsonGenerator,
 ) -> list[RuleFinding]:
-    """Run one batched second-opinion check over judgement and absence hits."""
-    candidates = [
-        item for item in evaluated if needs_second_opinion_review(item)
-    ]
-    if not candidates:
-        logger.info(
-            "completeness stage=second_opinion protocol_id=%s candidates=0 "
-            "confirmed=0",
-            document.protocol_id,
-        )
-        return [item.finding for item in evaluated]
-
-    rules_by_id = {rule.id: rule for rule in catalogue.rules}
-    prompt = format_second_opinion_prompt(document, candidates, rules_by_id)
+    """Verify one group of flags; a failed call caps only this group."""
+    prompt = format_second_opinion_prompt(document, group, rules_by_id)
     try:
         response = await llm.generate_json(
             prompt, SecondOpinionVerdicts, ThinkingLevel.HIGH
@@ -173,34 +161,44 @@ async def _run_second_opinion(
             "agent=%s protocol_id=%s candidates=%d error=%s",
             AGENT_NAME,
             document.protocol_id,
-            len(candidates),
+            len(group),
             error,
         )
-        findings = apply_second_opinion_failure(evaluated)
-        logger.info(
-            "completeness stage=second_opinion protocol_id=%s candidates=%d "
-            "status=failed",
-            document.protocol_id,
-            len(candidates),
-        )
-        return findings
+        return apply_second_opinion_failure(group)
+    return apply_second_opinion(group, response)
 
-    findings = apply_second_opinion(evaluated, response)
-    candidate_ids = {item.finding.rule_id for item in candidates}
-    confirmed_count = sum(
-        1
-        for finding in findings
-        if finding.rule_id in candidate_ids
-        and finding.status == RuleStatus.FIRED
+
+async def _run_second_opinion(
+    document: ProtocolDocument,
+    catalogue: RuleCatalogue,
+    evaluated: list[EvaluatedRule],
+    llm: JsonGenerator,
+) -> list[RuleFinding]:
+    """Second-check judgement and absence flags, in concurrent groups."""
+    groups = chunk_second_opinion_candidates(evaluated)
+    rules_by_id = {rule.id: rule for rule in catalogue.rules}
+    group_results = await asyncio.gather(
+        *(
+            _run_second_opinion_group(document, group, rules_by_id, llm)
+            for group in groups
+        )
     )
+    reviewed = {
+        finding.rule_id: finding
+        for group_findings in group_results
+        for finding in group_findings
+    }
     logger.info(
-        "completeness stage=second_opinion protocol_id=%s candidates=%d "
-        "confirmed=%d",
+        "completeness stage=second_opinion protocol_id=%s groups=%d "
+        "candidates=%d confirmed=%d",
         document.protocol_id,
-        len(candidates),
-        confirmed_count,
+        len(groups),
+        len(reviewed),
+        sum(1 for f in reviewed.values() if f.status == RuleStatus.FIRED),
     )
-    return findings
+    return [
+        reviewed.get(item.finding.rule_id, item.finding) for item in evaluated
+    ]
 
 
 async def check_protocol(

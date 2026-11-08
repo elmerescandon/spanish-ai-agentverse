@@ -10,6 +10,7 @@ from backend.agents.completeness.rules import (
     MAX_RULE_TITLE_LENGTH,
     ApplicabilityCondition,
     DetectionCode,
+    LibraryTag,
     RequiredInput,
     RuleCatalogue,
     RuleDefinition,
@@ -260,3 +261,43 @@ def test_loader_rejects_empty_sections_and_blank_strings_with_rule_id(
     )
     with pytest.raises(ValueError, match="XS-09"):
         load_rule_catalogue(blank_fix_path)
+
+
+def test_loader_requires_library_tag_on_exclusion_library_rules(
+    tmp_path: Path,
+) -> None:
+    path = _write_toml(
+        tmp_path,
+        _valid_rule_toml_block(
+            rule_id="EX-03", family="EX", check="judgement"
+        ),
+    )
+    with pytest.raises(ValueError, match="EX-03"):
+        load_rule_catalogue(path)
+
+
+def test_loader_rejects_library_tag_outside_exclusion_library(
+    tmp_path: Path,
+) -> None:
+    path = _write_toml(
+        tmp_path,
+        _valid_rule_toml_block(extra_line='library_tag = "CORE"\n'),
+    )
+    with pytest.raises(ValueError, match="XS-05"):
+        load_rule_catalogue(path)
+
+
+def test_loader_accepts_tagged_exclusion_library_rule(tmp_path: Path) -> None:
+    path = _write_toml(
+        tmp_path,
+        _valid_rule_toml_block(
+            rule_id="EX-03",
+            family="EX",
+            check="judgement",
+            extra_line='library_tag = "CLASS"\n',
+        ),
+    )
+
+    rule = load_rule_catalogue(path).get("EX-03")
+
+    assert rule.library_tag == LibraryTag.CLASS

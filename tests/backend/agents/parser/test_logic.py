@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from backend.agents.parser.logic import (
+from backend.agents.parser.facets import (
     DESIGN_FACET,
     ELIGIBILITY_FACET,
     ENDPOINTS_FACET,
@@ -12,19 +12,22 @@ from backend.agents.parser.logic import (
     SCHEDULE_FACET,
     SECTIONS_FACET,
     STATISTICS_FACET,
+    assign_criterion_ids,
+    normalize_design_facts,
+    sort_sections,
+    sort_visits,
+)
+from backend.agents.parser.logic import (
     Facet,
     FacetOutcome,
     assemble_document,
-    assign_criterion_ids,
     build_repair_prompt,
+    citation_stats,
     collect_citations,
     count_verified,
     derive_protocol_id,
     derive_title,
     format_pages_for_prompt,
-    normalize_design_facts,
-    sort_sections,
-    sort_visits,
     verify_result,
 )
 from backend.shared.messages import (
@@ -715,3 +718,18 @@ def test_derive_title_prefers_official_title_then_file_stem() -> None:
     )
     assert derive_title(TrialDesignFacts(), pdf_path) == "fame_d_protocol"
     assert derive_title(None, pdf_path) == "fame_d_protocol"
+
+
+def test_citation_stats_counts_across_results_and_skips_missing() -> None:
+    verified = verify_result(_nested_result(VERIFIABLE_QUOTE), PAGES)
+
+    stats = citation_stats(verified, None, verified)
+
+    assert (stats.verified, stats.total) == (4, 6)
+    assert stats.verified_share == 4 / 6
+
+
+def test_citation_stats_share_is_zero_without_citations() -> None:
+    stats = citation_stats(None)
+
+    assert (stats.verified, stats.total, stats.verified_share) == (0, 0, 0.0)

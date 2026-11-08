@@ -13,12 +13,12 @@ from backend.agents.parser.agent import (
     extract_facet,
     parse_protocol,
 )
-from backend.agents.parser.logic import (
+from backend.agents.parser.facets import (
     ELIGIBILITY_FACET,
     FACETS,
     SECTIONS_FACET,
-    Facet,
 )
+from backend.agents.parser.logic import Facet
 from backend.clients.gemini import LlmCallFailedError, ThinkingLevel
 from backend.clients.pdf_reader import UnreadablePdfError
 from backend.shared.config import Settings

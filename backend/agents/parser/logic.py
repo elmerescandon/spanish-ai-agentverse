@@ -1,7 +1,7 @@
-"""Pure facet logic for the parser: prompts, citation walks and assembly.
+"""The parser's generic, pure engine: prompts, citation walks, assembly.
 
-A facet is data (instructions, result schema, thinking level, sanity
-rules), so adding a key point to extract never needs new engine code.
+Nothing here knows about a specific facet; the facets themselves live in
+facets.py. No I/O: agent.py does the PDF reading and Gemini calls.
 """
 
 from collections.abc import Callable
@@ -12,23 +12,14 @@ from pydantic import BaseModel
 
 from backend.agents.parser.prompts import (
     COMMON_EXTRACTION_RULES,
-    DESIGN_INSTRUCTIONS,
-    ELIGIBILITY_INSTRUCTIONS,
-    ENDPOINTS_INSTRUCTIONS,
     INSTRUCTIONS_SEPARATOR,
     REPAIR_INSTRUCTIONS,
-    SCHEDULE_INSTRUCTIONS,
-    SECTIONS_INSTRUCTIONS,
-    STATISTICS_INSTRUCTIONS,
 )
 from backend.clients.gemini import ThinkingLevel
-from backend.shared.citations import verify_citation
+from backend.shared.citations import make_citation_verifier
 from backend.shared.messages import (
     Citation,
-    CriterionKind,
-    EligibilityCriterion,
     EligibilityExtraction,
-    EndpointKind,
     EndpointList,
     ExtractionWarning,
     FacetName,
@@ -42,9 +33,6 @@ from backend.shared.messages import (
 
 PAGE_MARKER_TEMPLATE = "=== PAGE {page_number} ==="
 EMPTY_FACET_WARNING = "facet ran but found no items in the document"
-INCLUSION_ID_PREFIX = "IN"
-EXCLUSION_ID_PREFIX = "EX"
-MIN_ARM_COUNT = 1
 
 type SanityRule[ResultT: BaseModel] = Callable[[ResultT, int], list[str]]
 """Takes a facet result and the page count; returns warning messages."""
@@ -144,9 +132,7 @@ def verify_result[ResultT: BaseModel](
     result: ResultT, pages: list[PageText]
 ) -> ResultT:
     """Return a copy of result with every citation checked against pages."""
-    verified = _map_citations(
-        result, lambda citation: verify_citation(citation, pages)
-    )
+    verified = _map_citations(result, make_citation_verifier(pages))
     assert isinstance(verified, type(result))
     return verified
 
@@ -156,6 +142,31 @@ def count_verified(result: BaseModel) -> int:
     return sum(
         1 for citation in collect_citations(result) if citation.is_verified
     )
+
+
+@dataclass(frozen=True)
+class CitationStats:
+    """How many citations passed verification, across one or more results."""
+
+    verified: int
+    total: int
+
+    @property
+    def verified_share(self) -> float:
+        """Fraction of citations verified; 0.0 when there are none."""
+        return self.verified / self.total if self.total else 0.0
+
+
+def citation_stats(*results: BaseModel | None) -> CitationStats:
+    """Count verified citations across results, skipping missing ones."""
+    citations = [
+        citation
+        for result in results
+        if result is not None
+        for citation in collect_citations(result)
+    ]
+    verified = sum(1 for citation in citations if citation.is_verified)
+    return CitationStats(verified=verified, total=len(citations))
 
 
 def unverified_citations(result: BaseModel) -> list[Citation]:
@@ -230,278 +241,6 @@ def _store_facet_result(
         "expected a facet result model defined in messages.py, "
         f"got {type(result).__name__}"
     )
-
-
-def assign_criterion_ids(
-    extraction: EligibilityExtraction,
-) -> EligibilityExtraction:
-    """Renumber eligibility criteria in document order as IN-01 and EX-01."""
-    inclusion_index = 0
-    exclusion_index = 0
-    renumbered: list[EligibilityCriterion] = []
-    for criterion in extraction.criteria:
-        if criterion.kind == CriterionKind.INCLUSION:
-            inclusion_index += 1
-            criterion_id = f"{INCLUSION_ID_PREFIX}-{inclusion_index:02d}"
-        else:
-            exclusion_index += 1
-            criterion_id = f"{EXCLUSION_ID_PREFIX}-{exclusion_index:02d}"
-        renumbered.append(
-            criterion.model_copy(update={"criterion_id": criterion_id})
-        )
-    return extraction.model_copy(update={"criteria": renumbered})
-
-
-def normalize_design_facts(facts: TrialDesignFacts) -> TrialDesignFacts:
-    """Normalize extracted design facts.
-
-    Strips spaces from and uppercases the NCT ID, and clears an age
-    inclusivity flag whose age limit is missing (it would describe nothing).
-    """
-    updates: dict[str, object] = {}
-    if facts.nct_id is not None:
-        cleaned_nct = "".join(facts.nct_id.value.split()).upper()
-        updates["nct_id"] = facts.nct_id.model_copy(
-            update={"value": cleaned_nct}
-        )
-    if facts.min_age_years is None:
-        updates["is_min_age_inclusive"] = None
-    if facts.max_age_years is None:
-        updates["is_max_age_inclusive"] = None
-    return facts.model_copy(update=updates)
-
-
-def _check_has_inclusion_criterion(
-    extraction: EligibilityExtraction, _page_count: int
-) -> list[str]:
-    if any(c.kind == CriterionKind.INCLUSION for c in extraction.criteria):
-        return []
-    return ["eligibility criteria contain no INCLUSION items"]
-
-
-def _check_age_range(facts: TrialDesignFacts, _page_count: int) -> list[str]:
-    if facts.min_age_years is None or facts.max_age_years is None:
-        return []
-    min_age = facts.min_age_years.value
-    max_age = facts.max_age_years.value
-    if min_age >= max_age:
-        message = (
-            f"min_age_years ({min_age}) must be less than "
-            f"max_age_years ({max_age})"
-        )
-        return [message]
-    return []
-
-
-def _check_target_enrollment(
-    facts: TrialDesignFacts, _page_count: int
-) -> list[str]:
-    if facts.target_enrollment is None:
-        return []
-    enrollment = facts.target_enrollment.value
-    if enrollment <= 0:
-        return [f"target_enrollment ({enrollment}) must be positive"]
-    return []
-
-
-def _check_arm_count(facts: TrialDesignFacts, _page_count: int) -> list[str]:
-    if facts.arm_count is None:
-        return []
-    arms = facts.arm_count.value
-    if arms < MIN_ARM_COUNT:
-        return [f"arm_count ({arms}) must be at least {MIN_ARM_COUNT}"]
-    return []
-
-
-def sort_sections(section_map: SectionMap) -> SectionMap:
-    """Order protocol sections by start_page, then title."""
-    ordered = sorted(
-        section_map.sections,
-        key=lambda section: (section.start_page, section.title),
-    )
-    return section_map.model_copy(update={"sections": ordered})
-
-
-def _check_section_page_ranges(
-    section_map: SectionMap, page_count: int
-) -> list[str]:
-    warnings: list[str] = []
-    for section in section_map.sections:
-        if not (1 <= section.start_page <= section.end_page <= page_count):
-            message = (
-                f"section '{section.title}' has invalid page range "
-                f"{section.start_page}..{section.end_page} "
-                f"(document has {page_count} pages)"
-            )
-            warnings.append(message)
-    return warnings
-
-
-def _check_has_sections(
-    section_map: SectionMap, _page_count: int
-) -> list[str]:
-    if section_map.sections:
-        return []
-    return ["section map contains no sections"]
-
-
-def _check_has_primary_endpoint(
-    endpoint_list: EndpointList, _page_count: int
-) -> list[str]:
-    if any(e.kind == EndpointKind.PRIMARY for e in endpoint_list.endpoints):
-        return []
-    return ["endpoints contain no PRIMARY endpoint"]
-
-
-def sort_visits(schedule: ScheduleOfActivities) -> ScheduleOfActivities:
-    """Order scheduled visits by study_day, keeping unknown days last."""
-    ordered = sorted(
-        schedule.visits,
-        key=lambda visit: (visit.study_day is None, visit.study_day or 0),
-    )
-    return schedule.model_copy(update={"visits": ordered})
-
-
-def _check_has_visits(
-    schedule: ScheduleOfActivities, _page_count: int
-) -> list[str]:
-    if schedule.visits:
-        return []
-    return ["schedule of activities contains no visits"]
-
-
-def _check_visits_have_procedures(
-    schedule: ScheduleOfActivities, _page_count: int
-) -> list[str]:
-    return [
-        f"visit '{visit.visit_name}' has no procedures"
-        for visit in schedule.visits
-        if not visit.procedures
-    ]
-
-
-def _check_sample_size(
-    statistics: StatisticalAssumptions, _page_count: int
-) -> list[str]:
-    if statistics.sample_size is None:
-        return []
-    sample_size = statistics.sample_size.value
-    if sample_size <= 0:
-        return [f"sample_size ({sample_size}) must be positive"]
-    return []
-
-
-def _check_power(
-    statistics: StatisticalAssumptions, _page_count: int
-) -> list[str]:
-    if statistics.power is None:
-        return []
-    power = statistics.power.value
-    if not (0.0 < power < 1.0):
-        return [f"power ({power}) must be in (0, 1)"]
-    return []
-
-
-def _check_alpha(
-    statistics: StatisticalAssumptions, _page_count: int
-) -> list[str]:
-    if statistics.alpha is None:
-        return []
-    alpha = statistics.alpha.value
-    if not (0.0 < alpha < 1.0):
-        return [f"alpha ({alpha}) must be in (0, 1)"]
-    return []
-
-
-def _check_dropout_rate(
-    statistics: StatisticalAssumptions, _page_count: int
-) -> list[str]:
-    if statistics.dropout_rate is None:
-        return []
-    dropout_rate = statistics.dropout_rate.value
-    if not (0.0 <= dropout_rate < 1.0):
-        return [f"dropout_rate ({dropout_rate}) must be in [0, 1)"]
-    return []
-
-
-ELIGIBILITY_FACET: Facet[EligibilityExtraction] = Facet(
-    name=FacetName.ELIGIBILITY,
-    instructions=ELIGIBILITY_INSTRUCTIONS,
-    result_model=EligibilityExtraction,
-    thinking_level=ThinkingLevel.HIGH,
-    sanity_rules=(_check_has_inclusion_criterion,),
-    normalize=assign_criterion_ids,
-)
-
-DESIGN_FACET: Facet[TrialDesignFacts] = Facet(
-    name=FacetName.DESIGN,
-    instructions=DESIGN_INSTRUCTIONS,
-    result_model=TrialDesignFacts,
-    thinking_level=ThinkingLevel.MEDIUM,
-    sanity_rules=(
-        _check_age_range,
-        _check_target_enrollment,
-        _check_arm_count,
-    ),
-    normalize=normalize_design_facts,
-)
-
-SECTIONS_FACET: Facet[SectionMap] = Facet(
-    name=FacetName.SECTIONS,
-    instructions=SECTIONS_INSTRUCTIONS,
-    result_model=SectionMap,
-    thinking_level=ThinkingLevel.MEDIUM,
-    sanity_rules=(_check_section_page_ranges, _check_has_sections),
-    normalize=sort_sections,
-)
-
-ENDPOINTS_FACET: Facet[EndpointList] = Facet(
-    name=FacetName.ENDPOINTS,
-    instructions=ENDPOINTS_INSTRUCTIONS,
-    result_model=EndpointList,
-    thinking_level=ThinkingLevel.MEDIUM,
-    sanity_rules=(_check_has_primary_endpoint,),
-)
-
-SCHEDULE_FACET: Facet[ScheduleOfActivities] = Facet(
-    name=FacetName.SCHEDULE,
-    instructions=SCHEDULE_INSTRUCTIONS,
-    result_model=ScheduleOfActivities,
-    thinking_level=ThinkingLevel.HIGH,
-    sanity_rules=(_check_has_visits, _check_visits_have_procedures),
-    normalize=sort_visits,
-)
-
-STATISTICS_FACET: Facet[StatisticalAssumptions] = Facet(
-    name=FacetName.STATISTICS,
-    instructions=STATISTICS_INSTRUCTIONS,
-    result_model=StatisticalAssumptions,
-    thinking_level=ThinkingLevel.MEDIUM,
-    sanity_rules=(
-        _check_sample_size,
-        _check_power,
-        _check_alpha,
-        _check_dropout_rate,
-    ),
-)
-
-type AnyFacet = (
-    Facet[EligibilityExtraction]
-    | Facet[TrialDesignFacts]
-    | Facet[SectionMap]
-    | Facet[EndpointList]
-    | Facet[ScheduleOfActivities]
-    | Facet[StatisticalAssumptions]
-)
-
-FACETS: tuple[AnyFacet, ...] = (
-    ELIGIBILITY_FACET,
-    DESIGN_FACET,
-    SECTIONS_FACET,
-    ENDPOINTS_FACET,
-    SCHEDULE_FACET,
-    STATISTICS_FACET,
-)
 
 
 def derive_protocol_id(design: TrialDesignFacts | None, pdf_path: Path) -> str:

@@ -7,14 +7,16 @@ import asyncio
 import logging
 from collections.abc import Sequence
 from pathlib import Path
-from typing import overload
+from typing import cast
 
 from pydantic import BaseModel
 
-from backend.agents.parser.logic import (
+from backend.agents.parser.facets import (
     ELIGIBILITY_FACET,
     FACETS,
     AnyFacet,
+)
+from backend.agents.parser.logic import (
     Facet,
     FacetOutcome,
     all_facets_failed,
@@ -32,13 +34,9 @@ from backend.clients.pdf_reader import read_pdf_pages
 from backend.shared.messages import (
     EligibilityCriterion,
     EligibilityExtraction,
-    EndpointList,
     FacetName,
     PageText,
     ProtocolDocument,
-    ScheduleOfActivities,
-    SectionMap,
-    StatisticalAssumptions,
     TrialDesignFacts,
 )
 
@@ -50,60 +48,6 @@ MAX_CITATION_REPAIR_ROUNDS = 1  # one re-ask; a third call rarely helps
 
 class AllFacetsFailedError(RuntimeError):
     """Raised when every requested parser facet failed to extract a result."""
-
-
-@overload
-async def extract_facet(
-    facet: Facet[EligibilityExtraction],
-    pages: list[PageText],
-    llm: JsonGenerator,
-) -> FacetOutcome: ...
-
-
-@overload
-async def extract_facet(
-    facet: Facet[TrialDesignFacts],
-    pages: list[PageText],
-    llm: JsonGenerator,
-) -> FacetOutcome: ...
-
-
-@overload
-async def extract_facet(
-    facet: Facet[SectionMap],
-    pages: list[PageText],
-    llm: JsonGenerator,
-) -> FacetOutcome: ...
-
-
-@overload
-async def extract_facet(
-    facet: Facet[EndpointList],
-    pages: list[PageText],
-    llm: JsonGenerator,
-) -> FacetOutcome: ...
-
-
-@overload
-async def extract_facet(
-    facet: Facet[ScheduleOfActivities],
-    pages: list[PageText],
-    llm: JsonGenerator,
-) -> FacetOutcome: ...
-
-
-@overload
-async def extract_facet(
-    facet: Facet[StatisticalAssumptions],
-    pages: list[PageText],
-    llm: JsonGenerator,
-) -> FacetOutcome: ...
-
-
-@overload
-async def extract_facet[ResultT: BaseModel](
-    facet: Facet[ResultT], pages: list[PageText], llm: JsonGenerator
-) -> FacetOutcome: ...
 
 
 async def extract_facet[ResultT: BaseModel](
@@ -195,7 +139,13 @@ async def parse_protocol(
     """
     pages = await asyncio.to_thread(read_pdf_pages, pdf_path)
     outcome_list = await asyncio.gather(
-        *(extract_facet(facet, pages, llm) for facet in facets)
+        # Each facet has its own result type; mypy can't infer one type
+        # for the mixed tuple, and every result is only used as a
+        # BaseModel from here on, so widening is safe.
+        *(
+            extract_facet(cast(Facet[BaseModel], facet), pages, llm)
+            for facet in facets
+        )
     )
     outcomes = {outcome.facet: outcome for outcome in outcome_list}
     if all_facets_failed(outcomes):

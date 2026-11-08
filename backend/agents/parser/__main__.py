@@ -10,7 +10,7 @@ from backend.agents.parser.agent import (
     AllFacetsFailedError,
     parse_protocol,
 )
-from backend.agents.parser.logic import collect_citations, count_verified
+from backend.agents.parser.logic import citation_stats
 from backend.clients.gemini import GeminiClient
 from backend.clients.pdf_reader import UnreadablePdfError
 from backend.shared.config import load_settings
@@ -29,18 +29,16 @@ async def _run_cli(pdf_path: Path) -> str:
         model=settings.gemini_model,
     )
     document = await parse_protocol(pdf_path, llm)
-    citations = collect_citations(document)
-    verified = count_verified(document)
-    verified_share = verified / len(citations) if citations else 0.0
+    stats = citation_stats(document)
     logger.info(
         "cli parse complete: agent=%s review_id=%s protocol_id=%s "
         "verified=%d/%d (%.1f%%) warnings=%d",
         AGENT_NAME,
         document.protocol_id,
         document.protocol_id,
-        verified,
-        len(citations),
-        verified_share * 100.0,
+        stats.verified,
+        stats.total,
+        stats.verified_share * 100.0,
         len(document.extraction_warnings),
     )
     for warning in document.extraction_warnings:

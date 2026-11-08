@@ -7,6 +7,8 @@ sign is not distinguished (`-5` matches `5`), which is acceptable given the
 
 import re
 import unicodedata
+from collections.abc import Callable
+from functools import cache
 
 from backend.shared.messages import Citation, PageText
 
@@ -54,29 +56,52 @@ def normalize_for_matching(text: str) -> str:
     return WHITESPACE_AND_DASH_PATTERN.sub("", straight_quotes)
 
 
-def verify_citation(citation: Citation, pages: list[PageText]) -> Citation:
-    """Return a copy of citation with is_verified set by checking pages."""
+def make_citation_verifier(
+    pages: list[PageText],
+) -> Callable[[Citation], Citation]:
+    """Return a function that verifies citations against these pages.
+
+    Each page is normalized at most once, and only if a citation needs it,
+    so verifying a whole facet result doesn't re-clean the same pages.
+    """
+    text_by_number = {page.page_number: page.text for page in pages}
+
+    @cache
+    def compact_page(page_number: int) -> str | None:
+        text = text_by_number.get(page_number)
+        return None if text is None else normalize_for_matching(text)
+
+    def verify(citation: Citation) -> Citation:
+        is_verified = _is_quote_on_cited_page(citation, compact_page)
+        return citation.model_copy(update={"is_verified": is_verified})
+
+    return verify
+
+
+def _is_quote_on_cited_page(
+    citation: Citation, compact_page: Callable[[int], str | None]
+) -> bool:
     compact_quote = normalize_for_matching(citation.quote)
     if len(compact_quote) < MIN_QUOTE_CHARACTERS:
-        return citation.model_copy(update={"is_verified": False})
+        return False
+    cited = compact_page(citation.page_number)
+    if cited is None:
+        return False
+    if compact_quote in cited:
+        return True
+    # A quote may run onto the next page, but one found entirely on the next
+    # page doesn't count: the citation must name the page it starts on.
+    following = compact_page(citation.page_number + 1)
+    return (
+        following is not None
+        and compact_quote in cited + following
+        and compact_quote not in following
+    )
 
-    page_by_number = {page.page_number: page.text for page in pages}
-    cited_page_text = page_by_number.get(citation.page_number)
-    if cited_page_text is None:
-        return citation.model_copy(update={"is_verified": False})
 
-    compact_page = normalize_for_matching(cited_page_text)
-    if compact_quote in compact_page:
-        return citation.model_copy(update={"is_verified": True})
-
-    next_page_text = page_by_number.get(citation.page_number + 1)
-    if next_page_text is not None:
-        compact_next = normalize_for_matching(next_page_text)
-        compact_span = compact_page + compact_next
-        if compact_quote in compact_span and compact_quote not in compact_next:
-            return citation.model_copy(update={"is_verified": True})
-
-    return citation.model_copy(update={"is_verified": False})
+def verify_citation(citation: Citation, pages: list[PageText]) -> Citation:
+    """Return a copy of citation with is_verified set by checking pages."""
+    return make_citation_verifier(pages)(citation)
 
 
 def verify_citations(
@@ -84,4 +109,5 @@ def verify_citations(
     pages: list[PageText],
 ) -> list[Citation]:
     """Return verified copies for every citation in citations."""
-    return [verify_citation(citation, pages) for citation in citations]
+    verify = make_citation_verifier(pages)
+    return [verify(citation) for citation in citations]

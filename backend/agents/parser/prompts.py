@@ -4,6 +4,8 @@ Facet-specific instructions live next to each facet definition; the rules
 here apply to all of them, so citations can be checked against the PDF.
 """
 
+from enum import StrEnum
+
 from backend.shared.messages import (
     AllocationType,
     CriterionKind,
@@ -16,21 +18,19 @@ from backend.shared.messages import (
 
 INSTRUCTIONS_SEPARATOR = "\n---\n"
 
-ALLOWED_CRITERION_KINDS = ", ".join(
-    f'"{member.value}"' for member in CriterionKind
-)
-ALLOWED_PHASES = ", ".join(f'"{member.value}"' for member in TrialPhase)
-ALLOWED_ALLOCATIONS = ", ".join(
-    f'"{member.value}"' for member in AllocationType
-)
-ALLOWED_INTERVENTION_MODELS = ", ".join(
-    f'"{member.value}"' for member in InterventionModelType
-)
-ALLOWED_MASKING = ", ".join(f'"{member.value}"' for member in MaskingType)
-ALLOWED_M11_HEADINGS = ", ".join(f'"{member.value}"' for member in M11Heading)
-ALLOWED_ENDPOINT_KINDS = ", ".join(
-    f'"{member.value}"' for member in EndpointKind
-)
+
+def quoted_values(enum_class: type[StrEnum]) -> str:
+    """List an enum's values as the JSON strings Gemini must return."""
+    return ", ".join(f'"{member.value}"' for member in enum_class)
+
+
+ALLOWED_CRITERION_KINDS = quoted_values(CriterionKind)
+ALLOWED_PHASES = quoted_values(TrialPhase)
+ALLOWED_ALLOCATIONS = quoted_values(AllocationType)
+ALLOWED_INTERVENTION_MODELS = quoted_values(InterventionModelType)
+ALLOWED_MASKING = quoted_values(MaskingType)
+ALLOWED_M11_HEADINGS = quoted_values(M11Heading)
+ALLOWED_ENDPOINT_KINDS = quoted_values(EndpointKind)
 
 COMMON_EXTRACTION_RULES = (
     "Rules:\n"

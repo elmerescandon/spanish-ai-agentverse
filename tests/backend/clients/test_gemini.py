@@ -1,5 +1,6 @@
 """Unit tests for the Gemini Interactions API client wrapper."""
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any
 
@@ -11,6 +12,7 @@ from pydantic import BaseModel
 
 from backend.clients.gemini import (
     LLM_TIMEOUT_SECONDS,
+    MAX_CONCURRENT_CALLS,
     MAX_RETRIES,
     APITimeoutError,
     BadRequestError,
@@ -317,3 +319,79 @@ async def test_sdk_does_not_retry_on_its_own() -> None:
         await mock_http.aclose()
 
     assert request_count == MAX_RETRIES
+
+
+# Captured at import, before the autouse fixture replaces asyncio.sleep with a
+# no-op: overlapping calls are only observable if a call really yields.
+REAL_SLEEP = asyncio.sleep
+TRACKED_CALL_SECONDS = 0.01
+CAPPED_CONCURRENCY = 2
+CONCURRENT_REQUESTS = 5
+
+
+class _ConcurrencyTrackingInteractions:
+    """Fake interactions.create() recording how many calls overlap."""
+
+    def __init__(self) -> None:
+        self.in_flight = 0
+        self.peak_in_flight = 0
+        self.call_count = 0
+
+    async def create(self, **kwargs: Any) -> _FakeInteraction:
+        self.call_count += 1
+        self.in_flight += 1
+        self.peak_in_flight = max(self.peak_in_flight, self.in_flight)
+        await REAL_SLEEP(TRACKED_CALL_SECONDS)
+        self.in_flight -= 1
+        return _FakeInteraction(output_text='{"label": "ok", "count": 42}')
+
+
+class _TrackingSdkClient:
+    """Test double for google.genai.Client with a tracking create()."""
+
+    def __init__(self, tracker: _ConcurrencyTrackingInteractions) -> None:
+        self.aio = _FakeAio(tracker)  # type: ignore[arg-type]
+
+
+async def _run_concurrently(client: GeminiClient, count: int) -> None:
+    await asyncio.gather(
+        *(
+            client.generate_json(prompt="Overlap", response_model=SampleOutput)
+            for _ in range(count)
+        )
+    )
+
+
+async def test_concurrent_calls_never_exceed_the_cap() -> None:
+    tracker = _ConcurrencyTrackingInteractions()
+    client = GeminiClient(
+        api_key=TEST_API_KEY,
+        model=TEST_MODEL,
+        sdk_client=_TrackingSdkClient(tracker),  # type: ignore[arg-type]
+        max_concurrent_calls=CAPPED_CONCURRENCY,
+    )
+
+    await _run_concurrently(client, CONCURRENT_REQUESTS)
+
+    assert tracker.call_count == CONCURRENT_REQUESTS
+    assert tracker.peak_in_flight == CAPPED_CONCURRENCY
+
+
+async def test_default_cap_lets_one_full_parse_run_in_parallel() -> None:
+    tracker = _ConcurrencyTrackingInteractions()
+    client = GeminiClient(
+        api_key=TEST_API_KEY,
+        model=TEST_MODEL,
+        sdk_client=_TrackingSdkClient(tracker),  # type: ignore[arg-type]
+    )
+
+    await _run_concurrently(client, MAX_CONCURRENT_CALLS + 2)
+
+    assert tracker.peak_in_flight == MAX_CONCURRENT_CALLS
+
+
+def test_cap_below_one_is_rejected() -> None:
+    with pytest.raises(ValueError, match="max_concurrent_calls"):
+        GeminiClient(
+            api_key=TEST_API_KEY, model=TEST_MODEL, max_concurrent_calls=0
+        )

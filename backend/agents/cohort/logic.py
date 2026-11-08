@@ -1142,6 +1142,30 @@ def simulate_what_if_relaxation(
     )
 
 
+def _is_compatible_operator_direction(
+    target_op: ComparisonOperator,
+    peer_op: ComparisonOperator,
+) -> bool:
+    """Return True if peer_op bounds the variable in the same direction."""
+    upper_ops = {
+        ComparisonOperator.LTE,
+        ComparisonOperator.LT,
+        ComparisonOperator.BETWEEN,
+    }
+    lower_ops = {
+        ComparisonOperator.GTE,
+        ComparisonOperator.GT,
+        ComparisonOperator.BETWEEN,
+    }
+    if target_op in {ComparisonOperator.LTE, ComparisonOperator.LT}:
+        return peer_op in upper_ops
+    if target_op in {ComparisonOperator.GTE, ComparisonOperator.GT}:
+        return peer_op in lower_ops
+    if target_op == ComparisonOperator.BETWEEN:
+        return peer_op in (upper_ops | lower_ops)
+    return peer_op == target_op
+
+
 def _select_peer_median_for_rule(
     patients: list[PatientRecord],
     rule: EligibilityRule,
@@ -1149,19 +1173,27 @@ def _select_peer_median_for_rule(
     peer_entries: list[tuple[float, list[AtomicPredicate]]],
     fallback_preds: list[AtomicPredicate],
 ) -> tuple[list[AtomicPredicate], float | None]:
-    """Select exact median peer predicates less restrictive than target."""
+    """Select the pure median peer rule matching the operator direction."""
     if not peer_entries:
         return fallback_preds, None
 
-    relaxing = [
-        (drop, preds) for drop, preds in peer_entries if drop < target_drop_pct
+    target_op = (
+        rule.predicates[0].operator
+        if rule.predicates
+        else ComparisonOperator.GTE
+    )
+    same_dir = [
+        (drop, preds)
+        for drop, preds in peer_entries
+        if preds
+        and _is_compatible_operator_direction(target_op, preds[0].operator)
     ]
-    pool = relaxing if relaxing else peer_entries
+    pool = same_dir if same_dir else peer_entries
     ordered = sorted(pool, key=lambda pair: pair[0])
     mid_idx = (len(ordered) - 1) // 2
     chosen_drop, chosen_preds = ordered[mid_idx]
     _ = patients
-    _ = rule
+    _ = target_drop_pct
     return chosen_preds, chosen_drop
 
 

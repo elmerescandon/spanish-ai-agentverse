@@ -2,7 +2,11 @@
 
 from backend.agents.cohort.agent import (
     analyze_protocol_cohort,
+    analyze_protocol_document_cohort,
+    build_default_cohort_llm_client,
     compile_rules_with_llm_fallback,
+    convert_shared_criterion,
+    criteria_from_protocol_document,
     record_doctor_cohort_decision,
     to_api_recommendations,
 )
@@ -68,12 +72,16 @@ __all__ = [
     "SubgroupDropImpact",
     "WhatIfRelaxationResult",
     "analyze_protocol_cohort",
+    "analyze_protocol_document_cohort",
     "apply_doctor_decision",
     "build_cohort_comparison_report",
+    "build_default_cohort_llm_client",
     "compile_criterion_to_rule",
     "compile_protocol_criteria",
     "compile_rules_with_llm_fallback",
     "compute_cohort_profile",
+    "convert_shared_criterion",
+    "criteria_from_protocol_document",
     "filter_cohort",
     "record_doctor_cohort_decision",
     "run_peer_benchmarks",

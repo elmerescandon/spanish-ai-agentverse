@@ -8,6 +8,7 @@ import pytest
 from backend.agents.cohort.agent import (
     CompiledRuleList,
     analyze_protocol_cohort,
+    analyze_protocol_document_cohort,
     compile_rules_with_llm_fallback,
     record_doctor_cohort_decision,
     to_api_recommendations,
@@ -442,3 +443,59 @@ def test_theo_registry_study_parser_and_json_export(tmp_path: Path) -> None:
     assert len(api_recs) == 1
     assert api_recs[0].source_step.value == "cohort"
     assert api_recs[0].protocol_id == "PROTO-EXPORT"
+
+
+def test_analyze_protocol_document_cohort_from_parser_output() -> None:
+    from backend.shared.messages import (
+        Citation,
+        CitedValue,
+        CriterionKind,
+        EligibilityCriterion,
+        ProtocolDocument,
+        TrialDesignFacts,
+    )
+
+    doc = ProtocolDocument(
+        protocol_id="NCT04828785",
+        title="FAME-D Trial",
+        page_count=30,
+        pages=[],
+        design=TrialDesignFacts(
+            min_age_years=CitedValue(
+                value=18.0,
+                citation=Citation(
+                    page_number=22,
+                    quote="aged >= 18 years",
+                    is_verified=True,
+                ),
+            ),
+        ),
+        eligibility_criteria=[
+            EligibilityCriterion(
+                criterion_id="IN-01",
+                kind=CriterionKind.INCLUSION,
+                text="HbA1c between 7.0% and 10.5%",
+                citation=Citation(
+                    page_number=22,
+                    quote="HbA1c between 7.0% and 10.5%",
+                    is_verified=True,
+                ),
+            ),
+            EligibilityCriterion(
+                criterion_id="EX-01",
+                kind=CriterionKind.EXCLUSION,
+                text="eGFR < 80 mL/min/1.73m2",
+                citation=Citation(
+                    page_number=23,
+                    quote="eGFR < 80 mL/min/1.73m2",
+                    is_verified=True,
+                ),
+            ),
+        ],
+    )
+
+    report = asyncio.run(analyze_protocol_document_cohort(doc))
+    assert report.protocol_id == "NCT04828785"
+    assert report.base_population_count == 3485
+    assert len(report.recommendations) == 1
+    assert report.recommendations[0].criterion_id == "EX-01"

@@ -13,8 +13,10 @@ from backend.agents.parser.prompts import (
     COMMON_EXTRACTION_RULES,
     DESIGN_INSTRUCTIONS,
     ELIGIBILITY_INSTRUCTIONS,
+    ENDPOINTS_INSTRUCTIONS,
     INSTRUCTIONS_SEPARATOR,
     REPAIR_INSTRUCTIONS,
+    SECTIONS_INSTRUCTIONS,
 )
 from backend.clients.gemini import ThinkingLevel
 from backend.shared.citations import verify_citation
@@ -23,6 +25,7 @@ from backend.shared.messages import (
     CriterionKind,
     EligibilityCriterion,
     EligibilityExtraction,
+    EndpointKind,
     EndpointList,
     ExtractionWarning,
     FacetName,
@@ -307,6 +310,46 @@ def _check_arm_count(facts: TrialDesignFacts, _page_count: int) -> list[str]:
     return []
 
 
+def sort_sections(section_map: SectionMap) -> SectionMap:
+    """Order protocol sections by start_page, then title."""
+    ordered = sorted(
+        section_map.sections,
+        key=lambda section: (section.start_page, section.title),
+    )
+    return section_map.model_copy(update={"sections": ordered})
+
+
+def _check_section_page_ranges(
+    section_map: SectionMap, page_count: int
+) -> list[str]:
+    warnings: list[str] = []
+    for section in section_map.sections:
+        if not (1 <= section.start_page <= section.end_page <= page_count):
+            message = (
+                f"section '{section.title}' has invalid page range "
+                f"{section.start_page}..{section.end_page} "
+                f"(document has {page_count} pages)"
+            )
+            warnings.append(message)
+    return warnings
+
+
+def _check_has_sections(
+    section_map: SectionMap, _page_count: int
+) -> list[str]:
+    if section_map.sections:
+        return []
+    return ["section map contains no sections"]
+
+
+def _check_has_primary_endpoint(
+    endpoint_list: EndpointList, _page_count: int
+) -> list[str]:
+    if any(e.kind == EndpointKind.PRIMARY for e in endpoint_list.endpoints):
+        return []
+    return ["endpoints contain no PRIMARY endpoint"]
+
+
 ELIGIBILITY_FACET: Facet[EligibilityExtraction] = Facet(
     name=FacetName.ELIGIBILITY,
     instructions=ELIGIBILITY_INSTRUCTIONS,
@@ -329,7 +372,33 @@ DESIGN_FACET: Facet[TrialDesignFacts] = Facet(
     normalize=normalize_design_facts,
 )
 
-FACETS: tuple[Facet[EligibilityExtraction] | Facet[TrialDesignFacts], ...] = (
+SECTIONS_FACET: Facet[SectionMap] = Facet(
+    name=FacetName.SECTIONS,
+    instructions=SECTIONS_INSTRUCTIONS,
+    result_model=SectionMap,
+    thinking_level=ThinkingLevel.MEDIUM,
+    sanity_rules=(_check_section_page_ranges, _check_has_sections),
+    normalize=sort_sections,
+)
+
+ENDPOINTS_FACET: Facet[EndpointList] = Facet(
+    name=FacetName.ENDPOINTS,
+    instructions=ENDPOINTS_INSTRUCTIONS,
+    result_model=EndpointList,
+    thinking_level=ThinkingLevel.MEDIUM,
+    sanity_rules=(_check_has_primary_endpoint,),
+)
+
+type AnyFacet = (
+    Facet[EligibilityExtraction]
+    | Facet[TrialDesignFacts]
+    | Facet[SectionMap]
+    | Facet[EndpointList]
+)
+
+FACETS: tuple[AnyFacet, ...] = (
     ELIGIBILITY_FACET,
     DESIGN_FACET,
+    SECTIONS_FACET,
+    ENDPOINTS_FACET,
 )

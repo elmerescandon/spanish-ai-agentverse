@@ -5,7 +5,9 @@ from pydantic import BaseModel
 from backend.agents.parser.logic import (
     DESIGN_FACET,
     ELIGIBILITY_FACET,
+    ENDPOINTS_FACET,
     FACETS,
+    SECTIONS_FACET,
     Facet,
     FacetOutcome,
     assemble_document,
@@ -15,6 +17,7 @@ from backend.agents.parser.logic import (
     count_verified,
     format_pages_for_prompt,
     normalize_design_facts,
+    sort_sections,
     verify_result,
 )
 from backend.shared.messages import (
@@ -23,8 +26,14 @@ from backend.shared.messages import (
     CriterionKind,
     EligibilityCriterion,
     EligibilityExtraction,
+    Endpoint,
+    EndpointKind,
+    EndpointList,
     FacetName,
+    M11Heading,
     PageText,
+    ProtocolSection,
+    SectionMap,
     TrialDesignFacts,
 )
 
@@ -371,9 +380,122 @@ def test_design_instructions_explain_age_inclusivity() -> None:
         assert field_name in DESIGN_FACET.instructions
 
 
-def test_registry_contains_eligibility_and_design() -> None:
-    assert FACETS == (ELIGIBILITY_FACET, DESIGN_FACET)
+def _section(
+    title: str,
+    start_page: int,
+    end_page: int,
+    heading: M11Heading = M11Heading.INTRODUCTION,
+) -> ProtocolSection:
+    return ProtocolSection(
+        heading=heading,
+        title=title,
+        start_page=start_page,
+        end_page=end_page,
+        summary="One-sentence summary of the section.",
+        citation=_citation(VERIFIABLE_QUOTE),
+    )
+
+
+def test_section_page_range_outside_document_produces_warning() -> None:
+    sections = SectionMap(
+        sections=[
+            _section("Zero Start Section", start_page=0, end_page=1),
+            _section("Valid Section", start_page=1, end_page=len(PAGES)),
+            _section(
+                "Past End Section", start_page=2, end_page=len(PAGES) + 1
+            ),
+        ]
+    )
+
+    warnings = _run_sanity_rules(SECTIONS_FACET, sections)
+
+    assert len(warnings) == 2
+    assert "Zero Start Section" in warnings[0]
+    assert "Past End Section" in warnings[1]
+
+
+def test_section_start_after_end_produces_warning() -> None:
+    sections = SectionMap(
+        sections=[
+            _section("Inverted Section", start_page=2, end_page=1),
+        ]
+    )
+
+    warnings = _run_sanity_rules(SECTIONS_FACET, sections)
+
+    assert len(warnings) == 1
+    assert "Inverted Section" in warnings[0]
+
+
+def test_no_sections_produces_warning() -> None:
+    warnings = _run_sanity_rules(SECTIONS_FACET, SectionMap(sections=[]))
+
+    assert len(warnings) == 1
+    assert "section" in warnings[0].lower()
+
+
+def test_sections_sorted_by_start_page() -> None:
+    raw = SectionMap(
+        sections=[
+            _section("5 Study Population", start_page=2, end_page=2),
+            _section("2 Introduction", start_page=1, end_page=2),
+            _section("1 Protocol Summary", start_page=1, end_page=1),
+        ]
+    )
+
+    sorted_map = sort_sections(raw)
+
+    assert [s.title for s in sorted_map.sections] == [
+        "1 Protocol Summary",
+        "2 Introduction",
+        "5 Study Population",
+    ]
+    assert [s.title for s in raw.sections] == [
+        "5 Study Population",
+        "2 Introduction",
+        "1 Protocol Summary",
+    ]
+
+
+def test_endpoints_require_at_least_one_primary_or_warn() -> None:
+    only_secondary = EndpointList(
+        endpoints=[
+            Endpoint(
+                kind=EndpointKind.SECONDARY,
+                description="Change in diabetes distress score",
+                time_frame="6 months",
+                citation=_citation(VERIFIABLE_QUOTE),
+            )
+        ]
+    )
+    with_primary = EndpointList(
+        endpoints=[
+            Endpoint(
+                kind=EndpointKind.PRIMARY,
+                description="Change in Hemoglobin A1c",
+                time_frame="6 months",
+                citation=_citation(VERIFIABLE_QUOTE),
+            )
+        ]
+    )
+
+    warnings = _run_sanity_rules(ENDPOINTS_FACET, only_secondary)
+
+    assert len(warnings) == 1
+    assert "primary" in warnings[0].lower()
+    assert _run_sanity_rules(ENDPOINTS_FACET, with_primary) == []
+
+
+def test_registry_contains_all_four_facets() -> None:
+    assert FACETS == (
+        ELIGIBILITY_FACET,
+        DESIGN_FACET,
+        SECTIONS_FACET,
+        ENDPOINTS_FACET,
+    )
     assert [facet.name for facet in FACETS] == [
         FacetName.ELIGIBILITY,
         FacetName.DESIGN,
+        FacetName.SECTIONS,
+        FacetName.ENDPOINTS,
     ]

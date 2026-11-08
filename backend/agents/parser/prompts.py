@@ -7,7 +7,9 @@ here apply to all of them, so citations can be checked against the PDF.
 from backend.shared.messages import (
     AllocationType,
     CriterionKind,
+    EndpointKind,
     InterventionModelType,
+    M11Heading,
     MaskingType,
     TrialPhase,
 )
@@ -25,6 +27,10 @@ ALLOWED_INTERVENTION_MODELS = ", ".join(
     f'"{member.value}"' for member in InterventionModelType
 )
 ALLOWED_MASKING = ", ".join(f'"{member.value}"' for member in MaskingType)
+ALLOWED_M11_HEADINGS = ", ".join(f'"{member.value}"' for member in M11Heading)
+ALLOWED_ENDPOINT_KINDS = ", ".join(
+    f'"{member.value}"' for member in EndpointKind
+)
 
 COMMON_EXTRACTION_RULES = (
     "Rules:\n"
@@ -90,4 +96,44 @@ DESIGN_INSTRUCTIONS = (
     "- country_count: number of participating countries (integer).\n"
     "- has_data_monitoring_committee: true if a DSMB/DMC is used.\n"
     "- nct_id: ClinicalTrials.gov NCT identifier if stated."
+)
+
+SECTIONS_INSTRUCTIONS = (
+    "Extract the top-level sections of the protocol body into JSON matching "
+    "the SectionMap schema.\n"
+    "- Produce one entry per top-level section of the protocol body "
+    "(1, 2, 3, ..., plus a standalone SYNOPSIS if unnumbered), not every "
+    "subsection (do not list 1.1, 1.2, 4.1, etc. as separate entries).\n"
+    "- Skip front and back matter: title page, statement of compliance, "
+    "signature pages, table of contents, list of attachments/tables/figures, "
+    "abbreviation lists, definitions of terms, and references.\n"
+    f"- Classify heading by the section's CONTENT (not by its heading text, "
+    "since sponsors name sections differently) into one of: "
+    f"{ALLOWED_M11_HEADINGS}. For example, a section titled "
+    "'5 TARGET POPULATION AND STUDY SAMPLE' or '4. SUBJECT POPULATION' "
+    "containing inclusion/exclusion criteria must be classified as "
+    '"TRIAL_POPULATION". Use "OTHER" when nothing fits.\n'
+    "- CRITICAL page numbering rule: start_page and end_page MUST be the "
+    "1-based PDF page positions from the === PAGE n === markers, NOT the "
+    "page numbers printed inside the document headers, footers, or Table of "
+    "Contents (for example, if a section starts under === PAGE 22 === even "
+    "though the page header prints '17', start_page is 22).\n"
+    "- Set citation.page_number to start_page and quote the section's "
+    "heading line plus the immediately following words on start_page so the "
+    "verbatim quote is at least 15 non-space, non-hyphen characters.\n"
+    "- Write summary as a single concise sentence."
+)
+
+ENDPOINTS_INSTRUCTIONS = (
+    "Extract every primary, secondary, and exploratory endpoint or outcome "
+    "measure from the protocol, in document order, into JSON matching the "
+    "EndpointList schema.\n"
+    f"- Set kind to one of: {ALLOWED_ENDPOINT_KINDS}.\n"
+    "- Set time_frame to the assessment timepoint if stated (for example, "
+    "'6 months' or '26 weeks'), or null if not stated.\n"
+    "- Quote the endpoint's own wording verbatim from the cited page (at "
+    "least 15 non-space, non-hyphen characters). A protocol may state its "
+    "endpoints inside its Objectives, Aims, or Hypotheses (for example, "
+    "where the Endpoints row says 'As outlined above under aims'): extract "
+    "and quote those endpoint statements directly."
 )

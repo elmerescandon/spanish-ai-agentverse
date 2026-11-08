@@ -3,7 +3,11 @@
 from pydantic import BaseModel
 
 from backend.agents.parser.agent import extract_facet
-from backend.agents.parser.logic import ELIGIBILITY_FACET, Facet
+from backend.agents.parser.logic import (
+    ELIGIBILITY_FACET,
+    SECTIONS_FACET,
+    Facet,
+)
 from backend.clients.gemini import LlmCallFailedError, ThinkingLevel
 from backend.shared.messages import (
     Citation,
@@ -11,7 +15,10 @@ from backend.shared.messages import (
     EligibilityCriterion,
     EligibilityExtraction,
     FacetName,
+    M11Heading,
     PageText,
+    ProtocolSection,
+    SectionMap,
 )
 from tests.conftest import FakeJsonGenerator
 
@@ -252,4 +259,41 @@ async def test_eligibility_facet_end_to_end_with_fake_llm() -> None:
         for c in outcome.result.criteria
         if c.citation is not None
     ] == [True, True]
+    assert outcome.warnings == []
+
+
+async def test_sections_facet_end_to_end_with_fake_llm() -> None:
+    raw_sections = SectionMap(
+        sections=[
+            ProtocolSection(
+                heading=M11Heading.TRIAL_POPULATION,
+                title="5 TARGET POPULATION AND STUDY SAMPLE",
+                start_page=2,
+                end_page=2,
+                summary="Describes the target diabetes study population.",
+                citation=Citation(page_number=2, quote=VERIFIABLE_QUOTE),
+            ),
+            ProtocolSection(
+                heading=M11Heading.PROTOCOL_SUMMARY,
+                title="1 PROTOCOL SUMMARY",
+                start_page=1,
+                end_page=1,
+                summary="Summarizes the FAME-D trial protocol.",
+                citation=Citation(page_number=1, quote=OTHER_VERIFIABLE_QUOTE),
+            ),
+        ]
+    )
+    llm = FakeJsonGenerator([raw_sections])
+
+    outcome = await extract_facet(SECTIONS_FACET, PAGES, llm)
+
+    assert isinstance(outcome.result, SectionMap)
+    assert [s.title for s in outcome.result.sections] == [
+        "1 PROTOCOL SUMMARY",
+        "5 TARGET POPULATION AND STUDY SAMPLE",
+    ]
+    assert [s.citation.is_verified for s in outcome.result.sections] == [
+        True,
+        True,
+    ]
     assert outcome.warnings == []

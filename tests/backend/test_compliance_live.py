@@ -11,6 +11,7 @@ from pathlib import Path
 import httpx
 import pytest
 
+from backend.agents.completeness.rules import load_rule_catalogue
 from backend.api.routes import DEMO_PROTOCOL_ID, reset_mock_state
 from backend.api.schemas import ComplianceReportResponse
 from backend.main import app
@@ -20,7 +21,6 @@ FAME_D_PDF_PATH = Path("data/protocols/demo/NCT04828785_protocol.pdf")
 BASE = f"/api/protocols/{DEMO_PROTOCOL_ID}"
 POLL_INTERVAL_SECONDS = 5.0
 MAX_WAIT_SECONDS = 900.0  # full parse (11 facets) + checks, with margin
-EXPECTED_RULE_COUNT = 72
 
 
 @pytest.fixture(autouse=True)
@@ -63,7 +63,7 @@ async def test_fame_d_upload_produces_an_evidence_backed_report() -> None:
         response = await client.get(f"{BASE}/compliance-report")
         report = ComplianceReportResponse.model_validate(response.json())
 
-    assert report.run.rules_evaluated == EXPECTED_RULE_COUNT
+    assert report.run.rules_evaluated == len(load_rule_catalogue().rules)
     assert 0.0 <= report.before.score <= 100.0
     for finding in report.findings:
         has_support = (

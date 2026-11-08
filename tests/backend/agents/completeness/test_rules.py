@@ -39,13 +39,13 @@ EXPECTED_DM_NUMBERS = (
 EXPECTED_RULE_IDS: frozenset[str] = frozenset(
     [f"XS-{index:02d}" for index in range(1, 23)]
     + [f"EST-{index:02d}" for index in range(1, 27)]
-    + [f"REG-{index:02d}" for index in range(24, 32)]
+    + [f"REG-{index:02d}" for index in range(1, 40)]
     + [f"DM-{index:02d}" for index in EXPECTED_DM_NUMBERS]
 )
 EXPECTED_FAMILY_COUNTS: dict[RuleFamily, int] = {
     RuleFamily.XS: 22,
     RuleFamily.EST: 26,
-    RuleFamily.REG: 8,
+    RuleFamily.REG: 39,
     RuleFamily.DM: 16,
 }
 
@@ -93,7 +93,7 @@ def _valid_rule_toml_block(
     )
 
 
-def test_default_rules_catalogue_loads_exact_seventy_two_rules() -> None:
+def test_default_rules_catalogue_loads_every_expected_rule() -> None:
     catalogue = load_rule_catalogue()
 
     assert isinstance(catalogue, RuleCatalogue)

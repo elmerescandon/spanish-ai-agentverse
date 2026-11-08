@@ -1,11 +1,356 @@
-# Completeness & Consistency Checker — First-Version Rule Catalogue (72 rules)
-# Families: REG (8), EST (26), XS (22), DM (16).
+# Completeness & Consistency Checker — Rule Catalogue
+# Families: REG (39), EST (26), XS (22), DM (16).
 # All titles, triggers (flag_if), and fixes are written in project-own wording
 # and cite public regulatory/registry standards.
 
 # ---------------------------------------------------------------------------
-# Family REG: Outcome-measure registration (REG-24 to REG-31)
+# Family REG: Registration readiness (REG-01 to REG-39)
 # ---------------------------------------------------------------------------
+
+[[rule]]
+id = "REG-01"
+family = "REG"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "No sponsor protocol identifier"
+flag_if = "The title page and summary give no unique protocol number assigned by the sponsor."
+fix = "State the sponsor's unique protocol number on the title page."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-02"
+family = "REG"
+severity = "S1"
+detection = ["F", "J"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Brief title missing or not in plain language"
+flag_if = "There is no short title, or the short title uses technical jargon or codes copied from the full scientific title instead of plain language."
+fix = "Write a short plain-language title a member of the public can understand."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
+
+[[rule]]
+id = "REG-03"
+family = "REG"
+severity = "S1"
+detection = ["F", "J"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Official title missing or incomplete"
+flag_if = "There is no full scientific title, or it does not name the intervention, the population and the design."
+fix = "Rebuild the official title from design, intervention, comparator, population and phase."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-04"
+family = "REG"
+severity = "S3"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Title acronym not defined"
+flag_if = "A title uses an acronym for the trial that is never spelled out or given as the trial acronym."
+fix = "State the trial acronym separately and spell it out once."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
+
+[[rule]]
+id = "REG-05"
+family = "REG"
+severity = "S1"
+detection = ["F", "P"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "Sponsor legal name missing or not an organisation"
+flag_if = "No sponsor is named, or the sponsor is given as a person or a department rather than an organisation's legal name."
+fix = "Name the sponsoring organisation by its legal name."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-06"
+family = "REG"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "Responsible party cannot be identified"
+flag_if = "It is unclear whether the sponsor, a sponsor-investigator or a principal investigator is responsible for registration and results."
+fix = "State which party is responsible for registration and results reporting."
+source = "FDAAA 801 and 42 CFR Part 11; ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-07"
+family = "REG"
+severity = "S1"
+detection = ["F", "X"]
+applies_when = ["INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "IND status missing or inconsistent"
+flag_if = "A drug trial does not say whether it runs under a US IND (or is exempt), or an IND is claimed without a number and grantor."
+fix = "State the IND number and grantor, or state that the trial is IND-exempt."
+source = "FDAAA 801 and 42 CFR Part 11; ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-08"
+family = "REG"
+severity = "S2"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_DESIGN"]
+check = "judgement"
+title = "Applicable-clinical-trial status not derivable"
+flag_if = "The protocol does not give enough facts (phase, US sites, product approval status) to decide whether it is an FDA-regulated applicable clinical trial."
+fix = "State the phase, whether there are US sites, and the product's regulatory status."
+source = "FDAAA 801 and 42 CFR Part 11; ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-09"
+family = "REG"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "No ethics committee oversight statement"
+flag_if = "No statement says that an ethics committee or IRB will review and approve the protocol."
+fix = "Add a statement on ethics committee or IRB review and approval."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-10"
+family = "REG"
+severity = "S2"
+detection = ["F", "X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "REGULATORY_AND_ETHICAL"]
+check = "deterministic"
+title = "No yes/no answer on a data monitoring committee"
+flag_if = "The protocol never says whether a data monitoring committee will oversee the trial."
+fix = "State whether a data monitoring committee is used, taken from the committees section."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-11"
+family = "REG"
+severity = "S3"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Secondary trial identifiers scattered"
+flag_if = "Other identifiers (EU CT number, NCT number, WHO UTN, grant number) appear in the text but are not listed together."
+fix = "Collect every trial identifier into one list on the title page."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-12"
+family = "REG"
+severity = "S3"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "Funder or collaborators not stated"
+flag_if = "The protocol does not say who funds the trial or which organisations collaborate on it."
+fix = "Name the funder type and any collaborating organisations."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-13"
+family = "REG"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_DESIGN"]
+check = "judgement"
+title = "No anticipated start date"
+flag_if = "No planned trial start date (or start-of-trial definition to derive it from) is given."
+fix = "State the anticipated start date, defined by the first consent signed."
+source = "FDAAA 801 and 42 CFR Part 11; ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-14"
+family = "REG"
+severity = "S1"
+detection = ["F", "X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_DESIGN"]
+check = "judgement"
+title = "Primary completion cannot be derived"
+flag_if = "The protocol does not define when the last participant reaches the primary endpoint, so the primary completion date cannot be worked out."
+fix = "Define primary completion as the last participant's primary-endpoint visit and give its expected date."
+source = "FDAAA 801 and 42 CFR Part 11; ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-15"
+family = "REG"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_DESIGN"]
+check = "judgement"
+title = "Study completion before primary completion"
+flag_if = "A stated study completion date falls before the stated primary completion date."
+fix = "Recompute both dates so study completion is on or after primary completion."
+source = "FDAAA 801 and 42 CFR Part 11; ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-16"
+family = "REG"
+severity = "S2"
+detection = ["F", "J"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_DESIGN"]
+check = "judgement"
+title = "Start and end of trial not defined operationally"
+flag_if = "The design section does not define the start of the trial and the end of the trial as concrete events."
+fix = "Define start as the first consent signed and end as the last participant's last visit."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "REG-17"
+family = "REG"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_DESIGN"]
+check = "judgement"
+title = "Design pick-list fields missing"
+flag_if = "Any of study type, primary purpose, phase, allocation, intervention model, masking or number of arms is not stated."
+fix = "State every design field, mapped from the protocol summary's design table."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-18"
+family = "REG"
+severity = "S2"
+detection = ["F", "X"]
+applies_when = ["IS_BLINDED"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_DESIGN", "TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Masked roles not listed"
+flag_if = "The trial is blinded but does not say which roles are masked (participant, care provider, investigator, outcomes assessor)."
+fix = "List each masked role, copied from the blinding section."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-19"
+family = "REG"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_DESIGN", "TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Arm without intervention, or orphan intervention"
+flag_if = "An arm has no intervention assigned, or an intervention (including placebo, background or rescue medication) is not assigned to any arm."
+fix = "Build an arm-by-intervention table and assign every intervention to its arms."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-20"
+family = "REG"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_DESIGN", "TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Arm labels differ across sections"
+flag_if = "Arm names or descriptions differ between the summary, the trial schema and the intervention section."
+fix = "Use one set of arm labels everywhere."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
+
+[[rule]]
+id = "REG-21"
+family = "REG"
+severity = "S2"
+detection = ["F"]
+applies_when = ["INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Intervention lacks dose, route, frequency, duration"
+flag_if = "An intervention is described without its dose, route, frequency or duration."
+fix = "Give dose, route, frequency and duration for every intervention, taken from the intervention section."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-22"
+family = "REG"
+severity = "S3"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Condition not named with a standard term"
+flag_if = "The condition is only given as an abbreviation or informal name rather than a standard term such as the MeSH heading."
+fix = "Name the condition with its standard term, for example 'Diabetes Mellitus, Type 2'."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
+
+[[rule]]
+id = "REG-23"
+family = "REG"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Target enrolment missing"
+flag_if = "No planned number of participants is stated."
+fix = "State the anticipated enrolment, taken from the summary or the sample-size section."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
 
 [[rule]]
 id = "REG-24"
@@ -127,6 +472,126 @@ fix = "Add the measurement method, such as central laboratory analysis with an N
 source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
 source_tier = "registry_qc"
 
+
+[[rule]]
+id = "REG-32"
+family = "REG"
+severity = "S1"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "deterministic"
+title = "Criteria not split under inclusion/exclusion"
+flag_if = "Eligibility criteria are not set out under separate Inclusion Criteria and Exclusion Criteria headings."
+fix = "Restructure eligibility into an Inclusion Criteria list and an Exclusion Criteria list."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
+
+[[rule]]
+id = "REG-33"
+family = "REG"
+severity = "S2"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Several criteria fused into one item"
+flag_if = "A single numbered criterion combines several independent requirements that should each be their own item."
+fix = "Split fused criteria so each item states one requirement."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
+
+[[rule]]
+id = "REG-34"
+family = "REG"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_POPULATION"]
+check = "deterministic"
+title = "Age limits contradict the age criterion"
+flag_if = "The minimum or maximum age in the design summary disagrees with the age stated in the eligibility criteria."
+fix = "Align the age limits with the population age in the protocol summary."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
+
+[[rule]]
+id = "REG-35"
+family = "REG"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_POPULATION"]
+check = "deterministic"
+title = "Sex eligibility or healthy-volunteer answer missing"
+flag_if = "The protocol does not state which sexes are eligible, or whether healthy volunteers are accepted."
+fix = "State the eligible sexes and whether healthy volunteers are accepted."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-36"
+family = "REG"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "No contact or named study official"
+flag_if = "No central contact, site contact or named overall study official is given."
+fix = "Add contact details and a named study official, marked for the sponsor to complete."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-37"
+family = "REG"
+severity = "S2"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "No plan to share protocol and SAP with results"
+flag_if = "The protocol does not commit to posting the full protocol and statistical analysis plan when results are submitted."
+fix = "Add a dissemination statement committing to post the protocol and SAP with the results."
+source = "FDAAA 801 and 42 CFR Part 11; ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-38"
+family = "REG"
+severity = "S3"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "No individual participant data sharing statement"
+flag_if = "The protocol does not say whether individual participant data will be shared, and if so how."
+fix = "Add an IPD sharing statement (yes, no or undecided) with the plan."
+source = "ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-39"
+family = "REG"
+severity = "S3"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "First-person wording or personal names"
+flag_if = "Summary text is written in the first person ('we', 'our'), or sponsor fields name individual people instead of organisations."
+fix = "Rewrite in the third person and name organisations, not people, in sponsor fields."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
 # ---------------------------------------------------------------------------
 # Family EST: Estimands and statistics (EST-01 to EST-26)
 # ---------------------------------------------------------------------------

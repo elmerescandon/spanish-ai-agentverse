@@ -5,7 +5,10 @@ from collections.abc import Iterable, Sequence
 from enum import StrEnum
 from typing import Protocol
 
-from backend.agents.completeness.logic import CheckOutcome
+from backend.agents.completeness.logic import (
+    CheckOutcome,
+    select_batch_pages,
+)
 from backend.shared.citations import make_citation_verifier
 from backend.shared.messages import (
     Citation,
@@ -313,18 +316,7 @@ def section_pages(
     document: ProtocolDocument, headings: Sequence[M11Heading]
 ) -> list[PageText]:
     """Return pages belonging to sections with the given headings, or all."""
-    if not headings or not document.sections:
-        return document.pages
-    wanted_headings = set(headings)
-    wanted_pages = {
-        page_num
-        for sec in document.sections
-        if sec.heading in wanted_headings
-        for page_num in range(sec.start_page, sec.end_page + 1)
-    }
-    if not wanted_pages:
-        return document.pages
-    return [p for p in document.pages if p.page_number in wanted_pages]
+    return select_batch_pages(document, headings)
 
 
 def _extract_verbatim_snippet(text: str, start: int, end: int) -> str:

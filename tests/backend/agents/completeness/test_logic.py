@@ -888,3 +888,22 @@ def test_no_candidates_means_no_second_opinion_groups() -> None:
     )
 
     assert chunk_second_opinion_candidates([plain_pass]) == []
+
+
+def test_summary_batches_also_read_the_title_page_and_front_matter() -> None:
+    document = ProtocolDocument(
+        protocol_id="NCT00000000",
+        title="Example",
+        page_count=6,
+        pages=[PageText(page_number=n, text=f"p{n}") for n in range(1, 7)],
+        sections=[
+            _section(M11Heading.PROTOCOL_SUMMARY, 3, 4),
+            _section(M11Heading.TRIAL_DESIGN, 5, 6),
+        ],
+    )
+
+    summary_pages = select_batch_pages(document, [M11Heading.PROTOCOL_SUMMARY])
+    design_pages = select_batch_pages(document, [M11Heading.TRIAL_DESIGN])
+
+    assert [p.page_number for p in summary_pages] == [1, 2, 3, 4]
+    assert [p.page_number for p in design_pages] == [5, 6]

@@ -1,6 +1,7 @@
 """Tests for the completeness agent: trial profile and full check run."""
 
 import pytest
+from pydantic import BaseModel
 
 from backend.agents.completeness.agent import (
     check_protocol,
@@ -18,6 +19,7 @@ from backend.agents.completeness.rules import (
     ApplicabilityCondition,
     RuleCatalogue,
     RuleDefinition,
+    load_rule_catalogue,
 )
 from backend.clients.gemini import LlmCallFailedError, ThinkingLevel
 from backend.shared.messages import (
@@ -123,14 +125,30 @@ async def test_failed_profile_call_returns_an_empty_profile() -> None:
     assert profile == TrialProfile()
 
 
+class _ProfileThenEmptyAnswers:
+    """Answers the profile call, then returns an empty answer to any call."""
+
+    def __init__(self, profile: TrialProfile) -> None:
+        self._profile = profile
+
+    async def generate_json[ModelT: BaseModel](
+        self,
+        prompt: str,
+        response_model: type[ModelT],
+        thinking_level: ThinkingLevel = ThinkingLevel.MEDIUM,
+    ) -> ModelT:
+        if isinstance(self._profile, response_model):
+            return self._profile
+        return response_model()
+
+
 async def test_check_protocol_returns_one_finding_per_catalogue_rule() -> None:
-    llm = FakeJsonGenerator(
-        [_profile_answer(), *(JudgementVerdicts() for _ in range(8))]
-    )
+    llm = _ProfileThenEmptyAnswers(_profile_answer())
 
     report = await check_protocol(_document(), llm)
 
-    assert report.rules_evaluated == len(report.findings) == 72
+    rule_count = len(load_rule_catalogue().rules)
+    assert report.rules_evaluated == len(report.findings) == rule_count
     statuses = {finding.status for finding in report.findings}
     assert statuses <= {RuleStatus.NOT_APPLICABLE, RuleStatus.CANNOT_ASSESS}
     type_1_rule = next(f for f in report.findings if f.rule_id == "DM-43")

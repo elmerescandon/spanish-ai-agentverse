@@ -575,7 +575,11 @@ def build_judgement_batches(
 def select_batch_pages(
     document: ProtocolDocument, headings: Sequence[M11Heading]
 ) -> list[PageText]:
-    """Return pages in the union of headings, or all pages if unmapped."""
+    """Return pages in the union of headings, or all pages if unmapped.
+
+    The protocol summary also covers the title page and front matter before
+    the first mapped section, where IDs, sponsor and titles are stated.
+    """
     if not headings or not document.sections:
         return list(document.pages)
     wanted_headings = set(headings)
@@ -585,6 +589,9 @@ def select_batch_pages(
         if sec.heading in wanted_headings
         for page_num in range(sec.start_page, sec.end_page + 1)
     }
+    if M11Heading.PROTOCOL_SUMMARY in wanted_headings:
+        first_section_page = min(sec.start_page for sec in document.sections)
+        wanted_pages.update(range(1, first_section_page))
     if not wanted_pages:
         return list(document.pages)
     return [
@@ -615,7 +622,10 @@ def rule_extracted_context(
         context["estimands"] = document.estimands.model_dump(
             mode="json", exclude_none=True
         )
-    if M11Heading.TRIAL_DESIGN in headings and document.design is not None:
+    if (
+        headings & {M11Heading.TRIAL_DESIGN, M11Heading.PROTOCOL_SUMMARY}
+        and document.design is not None
+    ):
         context["design"] = document.design.model_dump(
             mode="json", exclude_none=True
         )

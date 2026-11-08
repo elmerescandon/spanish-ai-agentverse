@@ -6,6 +6,7 @@ from collections.abc import Callable, Mapping
 from backend.agents.completeness.checks.common import (
     absence_fired_outcome,
     extract_all_timepoints_weeks,
+    find_pattern_citation,
     fired_outcome,
     not_applicable_outcome,
     passed_outcome,
@@ -18,6 +19,7 @@ from backend.shared.messages import (
     EndpointKind,
     EpochType,
     EstimandStrategy,
+    M11Heading,
     ProtocolDocument,
     TrialProfile,
 )
@@ -39,6 +41,10 @@ HBA1C_PATTERN = re.compile(
 HYPOGLYCEMIA_ENDPOINT_PATTERN = re.compile(
     r"\bhypoglyc(?:a?emia|emic)\b", re.IGNORECASE
 )
+
+# REG-39: first-person wording. Case-sensitive so "US" (the country) does
+# not match the pronoun "us".
+FIRST_PERSON_PATTERN = re.compile(r"\b(?:[Ww]e|[Oo]ur|us)\b")
 
 MIN_SIX_MONTH_WEEKS = 25.0
 MAX_THREE_MONTH_WEEKS = 13.0
@@ -353,6 +359,71 @@ def precheck_dm_43(
     return None
 
 
+def precheck_reg_17(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """REG-17: Fires when a design pick-list field is missing.
+
+    When all five are stated, Gemini judges study type and primary purpose,
+    which the parser does not extract.
+    """
+    design = document.design
+    if design is None:
+        return None
+    fields = {
+        "phase": design.phase,
+        "allocation": design.allocation,
+        "intervention model": design.intervention_model,
+        "masking": design.masking,
+        "number of arms": design.arm_count,
+    }
+    missing = [name for name, value in fields.items() if value is None]
+    if not missing:
+        return None
+    return absence_fired_outcome(
+        f"Design fields not stated: {', '.join(missing)}."
+    )
+
+
+def precheck_reg_21(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """REG-21: Fires when an arm has no dose or regimen; else Gemini."""
+    if document.interventions is None:
+        return None
+    undosed = [
+        arm
+        for arm in document.interventions.arms
+        if arm.dose_and_regimen is None or not arm.dose_and_regimen.strip()
+    ]
+    if not undosed:
+        return None
+    names = ", ".join(arm.name for arm in undosed)
+    return fired_outcome(
+        f"No dose, route, frequency or duration found for: {names}.",
+        evidence=[arm.citation for arm in undosed],
+        needs_second_opinion=True,
+    )
+
+
+def precheck_reg_39(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """REG-39: Fires on first-person summary wording; else Gemini decides.
+
+    Gemini still checks the sponsor fields for personal names.
+    """
+    citation = find_pattern_citation(
+        document, FIRST_PERSON_PATTERN, (M11Heading.PROTOCOL_SUMMARY,)
+    )
+    if citation is None:
+        return None
+    return fired_outcome(
+        "The protocol summary is written in the first person.",
+        evidence=[citation],
+    )
+
+
 JUDGEMENT_PRECHECKS: Mapping[str, JudgementPrecheck] = {
     "EST-07": precheck_est_07,
     "EST-08": precheck_est_08,
@@ -368,4 +439,7 @@ JUDGEMENT_PRECHECKS: Mapping[str, JudgementPrecheck] = {
     "DM-20": precheck_dm_20,
     "DM-32": precheck_dm_32,
     "DM-43": precheck_dm_43,
+    "REG-17": precheck_reg_17,
+    "REG-21": precheck_reg_21,
+    "REG-39": precheck_reg_39,
 }

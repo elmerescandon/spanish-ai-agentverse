@@ -1,0 +1,1100 @@
+# Completeness & Consistency Checker — First-Version Rule Catalogue (72 rules)
+# Families: REG (8), EST (26), XS (22), DM (16).
+# All titles, triggers (flag_if), and fixes are written in project-own wording
+# and cite public regulatory/registry standards.
+
+# ---------------------------------------------------------------------------
+# Family REG: Outcome-measure registration (REG-24 to REG-31)
+# ---------------------------------------------------------------------------
+
+[[rule]]
+id = "REG-24"
+family = "REG"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "Missing registry-ready primary outcome measure"
+flag_if = "No primary endpoint is defined with both a clear measurement variable and an assessment time frame."
+fix = "Specify at least one primary outcome measure with its metric and assessment timepoint."
+source = "FDAAA 801 and 42 CFR Part 11; ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-25"
+family = "REG"
+severity = "S1"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "Single outcome entry combines multiple variables or units"
+flag_if = "An endpoint definition bundles two or more distinct clinical variables or units (such as HbA1c and FPG) into a single outcome."
+fix = "Separate combined variables into individual outcome measures, each with one metric and unit."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
+
+[[rule]]
+id = "REG-26"
+family = "REG"
+severity = "S2"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "Outcome title uses directional wording instead of neutral"
+flag_if = "An outcome measure title uses directional terms such as 'improvement' or 'reduction' rather than neutral 'change'."
+fix = "Reword the outcome title using neutral language such as 'Change from baseline in...'."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
+
+[[rule]]
+id = "REG-27"
+family = "REG"
+severity = "S1"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "Outcome assessment time frame is vague"
+flag_if = "An outcome time frame uses non-specific phrases like 'during the study' or 'end of treatment' without a concrete timepoint from baseline."
+fix = "State the exact assessment timepoint relative to baseline, such as 'Baseline and Week 26'."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
+
+[[rule]]
+id = "REG-28"
+family = "REG"
+severity = "S1"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "Change outcome omits baseline/post timepoint or bundles many"
+flag_if = "A change-from-baseline outcome omits either the baseline or post-baseline timepoint, or packs several assessment timepoints into one measure."
+fix = "Define one outcome measure per assessment timepoint and state both baseline and the target visit."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
+
+[[rule]]
+id = "REG-29"
+family = "REG"
+severity = "S2"
+detection = ["P", "F"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "ASSESSMENTS_AND_PROCEDURES"]
+check = "deterministic"
+title = "Scale outcome lacks instrument name, range, or direction"
+flag_if = "Triggered when an endpoint uses a rating scale or questionnaire; fires if the scale name, minimum-to-maximum score range, or direction of better scores is omitted."
+fix = "Include the full instrument name, numeric score bounds, and whether higher or lower scores indicate better outcomes."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
+
+[[rule]]
+id = "REG-30"
+family = "REG"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = ["registry_record"]
+sections = ["PROTOCOL_SUMMARY", "OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "Protocol secondary endpoints omitted from registry outcomes"
+flag_if = "One or more secondary endpoints in the protocol objectives section are absent from the ClinicalTrials.gov secondary outcome list."
+fix = "Synchronise the registry secondary outcome entries with all secondary endpoints in Section 3."
+source = "FDAAA 801 and 42 CFR Part 11; ClinicalTrials.gov Protocol Data Element Definitions"
+source_tier = "law"
+
+[[rule]]
+id = "REG-31"
+family = "REG"
+severity = "S2"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Outcome description states rationale instead of measurement"
+flag_if = "An outcome description explains why the endpoint matters clinically without specifying how it is measured (assay, laboratory type, or device)."
+fix = "Add the measurement method, such as central laboratory analysis with an NGSP-certified assay."
+source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
+source_tier = "registry_qc"
+
+# ---------------------------------------------------------------------------
+# Family EST: Estimands and statistics (EST-01 to EST-26)
+# ---------------------------------------------------------------------------
+
+[[rule]]
+id = "EST-01"
+family = "EST"
+severity = "S1"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "judgement"
+title = "Primary objective not phrased as a treatment effect"
+flag_if = "The primary objective is not expressed in clear natural language as a clinical treatment effect."
+fix = "Rewrite the primary objective to state the specific treatment effect being estimated."
+source = "ICH E9(R1) Estimands and Sensitivity Analysis"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-02"
+family = "EST"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "Primary estimand omits core ICH E9(R1) attributes"
+flag_if = "The primary estimand specification is missing any of: target population, treatment condition, variable/endpoint, or population-level summary measure."
+fix = "Populate all four core estimand attributes (population, treatment, endpoint, and population-level summary) in Section 3."
+source = "ICH E9(R1) Estimands and Sensitivity Analysis"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-03"
+family = "EST"
+severity = "S1"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "Estimand endpoint lacks a specific assessment timepoint"
+flag_if = "The endpoint attribute of the estimand names a variable (such as change in HbA1c) without stating its evaluation timepoint (such as Week 26)."
+fix = "Append the exact assessment timepoint to the estimand endpoint definition."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-04"
+family = "EST"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "Intercurrent events missing or lack handling strategies"
+flag_if = "The primary estimand lists no intercurrent events or omits the ICH E9(R1) strategy (treatment policy, hypothetical, composite, while-on-treatment, or principal stratum) for a listed event."
+fix = "List each anticipated intercurrent event and pair it with an explicit ICH E9(R1) handling strategy."
+source = "ICH E9(R1) Estimands and Sensitivity Analysis"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-05"
+family = "EST"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "TRIAL_DESIGN"]
+check = "judgement"
+title = "Intercurrent-event strategy lacks design rationale"
+flag_if = "An intercurrent-event strategy is chosen in Section 3 without a corresponding scientific justification in the Section 4.2.1 design rationale."
+fix = "Add a rationale in Section 4.2.1 explaining why each intercurrent-event strategy was selected."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-06"
+family = "EST"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "Secondary objectives lack structured estimand specifications"
+flag_if = "Triggered when secondary objectives are present; fires if secondary objectives have no structured estimand table or omit the endpoint attribute."
+fix = "Provide an estimand specification (at minimum the endpoint and timepoint) for each secondary objective."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-07"
+family = "EST"
+severity = "S3"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "judgement"
+title = "Exploratory endpoints mixed into secondary endpoint list"
+flag_if = "Hypothesis-generating or exploratory outcomes are grouped under secondary endpoints instead of a separate exploratory tier."
+fix = "Move exploratory measures into a dedicated exploratory objectives and endpoints subsection."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-08"
+family = "EST"
+severity = "S2"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "judgement"
+title = "Dichotomous responder rate used as primary endpoint"
+flag_if = "A binary responder threshold (such as achieving HbA1c < 7.0%) is designated as the primary endpoint when a continuous change measure is available."
+fix = "Use continuous change from baseline as the primary endpoint and demote the responder threshold to a secondary endpoint."
+source = "FDA draft guidance (non-binding): Diabetes Mellitus: Efficacy Endpoints (May 2023)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "EST-09"
+family = "EST"
+severity = "S1"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "judgement"
+title = "Population-level summary mismatches endpoint scale type"
+flag_if = "The estimand's population-level summary measure is mathematically incompatible with the endpoint type (for example, a hazard ratio for a continuous change variable)."
+fix = "Replace the population-level summary with one matching the variable scale, such as difference in means."
+source = "ICH E9(R1) Estimands and Sensitivity Analysis"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-10"
+family = "EST"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Statistical analysis sets are not defined"
+flag_if = "The statistical section does not define the core analysis populations (randomised, full analysis, per-protocol, and safety sets)."
+fix = "Define the randomised, full analysis, per-protocol, and safety analysis sets in Section 10."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-11"
+family = "EST"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Primary statistical model and covariates are unnamed"
+flag_if = "The primary efficacy analysis does not name the statistical model, covariates, and baseline adjustment."
+fix = "Specify the primary statistical estimator (such as ANCOVA or MMRM), baseline adjustment, and stratification covariates."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-12"
+family = "EST"
+severity = "S1"
+detection = ["X", "J"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "STATISTICAL_CONSIDERATIONS"]
+check = "judgement"
+title = "Primary statistical estimator contradicts estimand strategy"
+flag_if = "The statistical analysis model in Section 10 handles post-intercurrent-event data in a way that contradicts the strategy stated in Section 3 (for example, censoring post-rescue observations under a treatment-policy strategy)."
+fix = "Align the primary statistical model and data-inclusion rules in Section 10 with the Section 3 estimand strategy."
+source = "ICH E9(R1) Estimands and Sensitivity Analysis"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-13"
+family = "EST"
+severity = "S1"
+detection = ["F", "J"]
+applies_when = []
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS"]
+check = "judgement"
+title = "Missing-data imputation absent or assumes unjustified MAR"
+flag_if = "The statistical plan omits missing-data handling or relies on a missing-at-random (MAR) assumption without justification."
+fix = "Specify a missing-data imputation method aligned with the estimand (such as retrieved-dropout or jump-to-reference multiple imputation)."
+source = "ICH E9(R1) Estimands and Sensitivity Analysis"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-14"
+family = "EST"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "No sensitivity analysis for primary estimand assumptions"
+flag_if = "Section 10 includes no sensitivity analysis (such as a tipping-point analysis) testing robustness of the primary estimand to departures from model assumptions."
+fix = "Add a pre-specified sensitivity analysis (such as tipping-point multiple imputation) targeting the primary estimand."
+source = "ICH E9(R1) Estimands and Sensitivity Analysis"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-15"
+family = "EST"
+severity = "S2"
+detection = ["J"]
+applies_when = ["IS_NON_INFERIORITY"]
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "STATISTICAL_CONSIDERATIONS"]
+check = "judgement"
+title = "Non-inferiority trial lacks supplementary estimand"
+flag_if = "A non-inferiority protocol does not specify a supplementary or per-protocol estimand to evaluate the impact of protocol deviations and non-adherence."
+fix = "Add a supplementary estimand and analysis assessing robustness to protocol deviations and treatment non-adherence."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "EST-16"
+family = "EST"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Multiple confirmatory hypotheses lack multiplicity control"
+flag_if = "Triggered when the protocol defines multiple primary or key secondary confirmatory hypotheses; fires if Section 10 specifies no familywise Type I error control (such as hierarchical or graphical testing)."
+fix = "Add a pre-specified multiplicity adjustment procedure controlling overall Type I error across all confirmatory hypotheses."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-17"
+family = "EST"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_DESIGN", "STATISTICAL_CONSIDERATIONS", "REGULATORY_AND_ETHICAL"]
+check = "deterministic"
+title = "Interim analysis lacks alpha spending or DMC firewall"
+flag_if = "Triggered when an interim analysis is planned; fires if Section 10 omits an alpha-spending function or lacks a firewall isolating unblinded DMC results from study leadership."
+fix = "Specify the alpha-spending function for interim looks and document the independent DMC operational firewall."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-18"
+family = "EST"
+severity = "S2"
+detection = ["X"]
+applies_when = ["IS_RANDOMIZED"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_INTERVENTION", "STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Randomisation strata omitted from primary analysis model"
+flag_if = "Triggered when randomisation is stratified; fires if the stratification variables used for randomisation are not included as covariates in the primary statistical model."
+fix = "Include all randomisation stratification factors as covariates in the primary analysis model in Section 10."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-19"
+family = "EST"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Subgroup analyses are not pre-specified"
+flag_if = "The statistical section does not pre-specify subgroup analyses across key baseline characteristics (sex, age, race, ethnicity, baseline HbA1c, and diabetes duration)."
+fix = "Pre-specify subgroup analyses for sex, age, race, ethnicity, baseline HbA1c, and diabetes duration in Section 10."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-20"
+family = "EST"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Safety statistical analysis plan is missing"
+flag_if = "Section 10 lacks a safety analysis plan covering exposure-adjusted adverse event rates and hypoglycaemia incidence and event rates."
+fix = "Add a safety statistical analysis subsection specifying exposure-adjusted event rates and hypoglycaemia incidence/rate summaries."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-21"
+family = "EST"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Sample-size calculation is absent"
+flag_if = "The protocol provides a target enrolment figure without showing a sample-size justification or power calculation in Section 10.11."
+fix = "Include the explicit sample-size calculation and formula in Section 10.11."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-22"
+family = "EST"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Sample-size calculation omits required input assumptions"
+flag_if = "The sample-size section omits one or more required calculation inputs: assumed effect size, standard deviation, alpha and sidedness, power, dropout rate, or allocation ratio."
+fix = "List effect size, standard deviation, alpha (with sidedness), power, anticipated dropout rate, and allocation ratio."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-23"
+family = "EST"
+severity = "S2"
+detection = ["J", "C"]
+applies_when = []
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS"]
+check = "judgement"
+title = "Assumed effect size or SD lacks cited empirical source"
+flag_if = "The assumed treatment effect size or standard deviation in the sample-size calculation has no cited empirical basis (such as an earlier clinical trial or meta-analysis)."
+fix = "Cite the prior trial or meta-analysis that supports the assumed treatment effect and standard deviation."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-24"
+family = "EST"
+severity = "S1"
+detection = ["J"]
+applies_when = ["IS_NON_INFERIORITY"]
+needs_inputs = []
+sections = ["TRIAL_DESIGN", "STATISTICAL_CONSIDERATIONS"]
+check = "judgement"
+title = "Non-inferiority margin stated without historical rationale"
+flag_if = "A non-inferiority margin is specified without statistical and clinical justification grounded in historical placebo-controlled trials."
+fix = "Add a justification for the non-inferiority margin (typically 0.3% for HbA1c) citing historical active-versus-placebo evidence."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-25"
+family = "EST"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "STATISTICAL_CONSIDERATIONS"]
+check = "judgement"
+title = "Sample-size dropout inflation contradicts treatment policy"
+flag_if = "Triggered when the primary estimand uses a treatment-policy strategy; fires if Section 10.11 inflates sample size as though treatment discontinuations are excluded rather than attenuating the treatment effect."
+fix = "Reconcile the sample-size calculation with the treatment-policy strategy by accounting for diluted treatment effect or retrieved-dropout variance."
+source = "ICH E9(R1) Estimands and Sensitivity Analysis"
+source_tier = "ich"
+
+[[rule]]
+id = "EST-26"
+family = "EST"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Stated sample size differs by >5% from recomputed value"
+flag_if = "Recomputing total sample size from the protocol's stated alpha, power, effect size, standard deviation, allocation ratio, and dropout rate yields a number differing by >5% from the stated N."
+fix = "Recompute and reconcile the stated target sample size with the stated statistical assumptions."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+# ---------------------------------------------------------------------------
+# Family XS: Cross-section consistency (XS-01 to XS-22)
+# ---------------------------------------------------------------------------
+
+[[rule]]
+id = "XS-01"
+family = "XS"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "TRIAL_POPULATION"]
+check = "judgement"
+title = "Estimand population disagrees with eligibility criteria"
+flag_if = "The target population described in the Section 3 estimand contradicts the inclusion or exclusion criteria in Section 5 (for example, different HbA1c or age bounds)."
+fix = "Reconcile the Section 3 estimand population description and Section 5 eligibility criteria to identical thresholds."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-02"
+family = "XS"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Estimand treatment attribute differs from Section 6 regimen"
+flag_if = "The investigational or comparator treatment regimen named in the Section 3 estimand differs in drug, dose, or frequency from the interventions described in Section 6."
+fix = "Align the estimand treatment attribute in Section 3 with the doses and regimens in Section 6."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-03"
+family = "XS"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "TRIAL_INTERVENTION"]
+check = "deterministic"
+title = "Rescue intercurrent event has no Section 6 rescue criteria"
+flag_if = "Triggered when rescue medication is listed as an intercurrent event in Section 3; fires if Section 6.9.2 defines no glycaemic rescue thresholds or regimen."
+fix = "Add explicit glycaemic rescue thresholds and permitted rescue medications in Section 6.9.2."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-04"
+family = "XS"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "DISCONTINUATION"]
+check = "deterministic"
+title = "Treatment-policy estimand contradicted by withdrawal rules"
+flag_if = "Triggered when Section 3 specifies a treatment-policy strategy; fires if Section 7 withdraws participants who stop study drug from ongoing trial follow-up."
+fix = "Revise Section 7 so participants who discontinue study medication remain in the trial and complete scheduled outcome visits."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-05"
+family = "XS"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "ASSESSMENTS_AND_PROCEDURES"]
+check = "deterministic"
+title = "Primary endpoint timepoint has no scheduled visit"
+flag_if = "The assessment timepoint of the primary endpoint in Section 3 has no matching visit in the Schedule of Activities."
+fix = "Add a scheduled visit at the primary endpoint timepoint in the Schedule of Activities."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-06"
+family = "XS"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Schedule of Activities procedures mismatch Section 8 text"
+flag_if = "The Schedule of Activities table lists procedures not described in Section 8, or Section 8 describes required assessments absent from the Schedule of Activities."
+fix = "Synchronise every procedure row in the Schedule of Activities with the assessment descriptions in Section 8."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-07"
+family = "XS"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_DESIGN", "STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Synopsis enrolment, arms, duration, or blinding contradicts"
+flag_if = "Sample size, number of study arms, treatment duration, or masking level in the Section 1 synopsis disagrees with the protocol body."
+fix = "Harmonise sample size, arm count, duration, and blinding across the synopsis, design, and statistics sections."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-08"
+family = "XS"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_DESIGN", "ASSESSMENTS_AND_PROCEDURES"]
+check = "deterministic"
+title = "Trial schema epochs disagree with Schedule of Activities"
+flag_if = "The study periods/epochs shown in the trial schema (such as screening, run-in, treatment, and follow-up) do not match the columns or visit timings in the Schedule of Activities."
+fix = "Align epoch names and durations between the trial schema figure and the Schedule of Activities columns."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-09"
+family = "XS"
+severity = "S2"
+detection = ["X"]
+applies_when = ["IS_RANDOMIZED"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_INTERVENTION", "STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Stratification factors differ across synopsis, §6, and §10"
+flag_if = "Triggered when randomisation is stratified; fires if the stratification variables listed in Section 1.1.2, Section 6.7.2, and Section 10 do not match."
+fix = "Use one identical list of randomisation stratification factors in Section 1.1.2, Section 6.7.2, and Section 10."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-10"
+family = "XS"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "deterministic"
+title = "Prohibited medication is also listed as background or rescue"
+flag_if = "A medication or drug class prohibited in Section 6.10.1 is simultaneously permitted as background therapy or rescue medication."
+fix = "Remove the overlap between prohibited concomitant medications and permitted background or rescue therapies."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-11"
+family = "XS"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION", "TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Eligibility medication washout contradicts Section 6 rules"
+flag_if = "Prior or concomitant medication restrictions in Section 5 exclusion criteria conflict with the prohibited/permitted medication rules or washout windows in Section 6."
+fix = "Align medication classes and washout durations between Section 5 eligibility criteria and Section 6.10."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-12"
+family = "XS"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "REGULATORY_AND_ETHICAL"]
+check = "deterministic"
+title = "Oversight committees in synopsis mismatch governance section"
+flag_if = "Oversight or adjudication committees named in Section 1.1.2 are absent from Section 11.4, or committees described in Section 11.4 are omitted from the synopsis."
+fix = "Ensure every oversight committee (DMC, endpoint adjudication) appears in both Section 1.1.2 and Section 11.4."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-13"
+family = "XS"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_DESIGN", "STATISTICAL_CONSIDERATIONS", "REGULATORY_AND_ETHICAL"]
+check = "deterministic"
+title = "Interim analysis in §10 not reflected in stopping rules/DMC"
+flag_if = "Triggered when an interim analysis is described in Section 10.9; fires if corresponding trial stopping rules in Section 4.3 or DMC responsibilities in Section 11 are missing or inconsistent."
+fix = "Align the interim analysis schedule and stopping criteria across Section 4.3, Section 10.9, and the DMC charter summary."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-14"
+family = "XS"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES", "OTHER"]
+check = "judgement"
+title = "Adverse events of special interest lack collection schedule"
+flag_if = "Triggered when adverse events of special interest (AESIs) are defined in Section 9; fires if no corresponding assessment procedure appears in Section 8 or the Schedule of Activities."
+fix = "Add assessment procedures and Schedule of Activities rows for every AESI listed in Section 9."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-15"
+family = "XS"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES", "REGULATORY_AND_ETHICAL"]
+check = "deterministic"
+title = "Biospecimen retention period mismatches consent statement"
+flag_if = "Triggered when biological samples are retained; fires if the sample storage duration in Section 8 disagrees with the informed-consent retention statement in Section 11.3."
+fix = "Harmonise the biological sample retention duration between Section 8 and Section 11.3."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-16"
+family = "XS"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES", "OTHER"]
+check = "judgement"
+title = "Laboratory appendix analytes differ from SoA lab rows"
+flag_if = "Clinical laboratory tests listed in the Section 12.1 appendix do not match the laboratory assessment rows in the Schedule of Activities."
+fix = "Reconcile the clinical laboratory panel in Section 12.1 with the laboratory rows in the Schedule of Activities."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-17"
+family = "XS"
+severity = "S1"
+detection = ["X"]
+applies_when = ["INTERVENTION_IS_DRUG"]
+needs_inputs = ["investigators_brochure"]
+sections = ["TRIAL_POPULATION", "TRIAL_INTERVENTION"]
+check = "deterministic"
+title = "Contraception follow-up shorter than 5 drug half-lives"
+flag_if = "The required post-treatment contraception duration is shorter than 5 elimination half-lives (or the Investigator's Brochure reproductive toxicology window) after the final dose."
+fix = "Extend post-treatment contraception duration to cover at least 5 half-lives after the last dose per the Investigator's Brochure."
+source = "Investigator's Brochure and ICH M11 Template, Step 4"
+source_tier = "product_evidence"
+
+[[rule]]
+id = "XS-18"
+family = "XS"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_POPULATION"]
+check = "deterministic"
+title = "Participant age bounds differ between synopsis and criteria"
+flag_if = "Minimum or maximum participant age limits differ across the Section 1.1.2 synopsis, Section 5.1 population text, and the inclusion criteria."
+fix = "Use identical minimum and maximum age limits (and inclusivity wording) across the synopsis and Section 5."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-19"
+family = "XS"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = ["registry_record"]
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "Registry outcome measures differ from Section 3 endpoints"
+flag_if = "Outcomes listed in the clinical trial registry record omit, add, or reword endpoints defined in Section 3 of the protocol."
+fix = "Synchronise the registry outcome list with Section 3 endpoints so titles and time frames match."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-20"
+family = "XS"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_DESIGN"]
+check = "deterministic"
+title = "Synopsis participant duration mismatches sum of epochs"
+flag_if = "The total per-participant trial duration stated in the synopsis does not equal the sum of screening, run-in, treatment, and follow-up epoch durations in the schema."
+fix = "Recalculate total per-participant duration so the synopsis matches the sum of all trial epochs."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-21"
+family = "XS"
+severity = "S3"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OTHER"]
+check = "deterministic"
+title = "Abbreviations used before expansion or omitted from glossary"
+flag_if = "Acronyms or abbreviations appear in the protocol text before being defined or are missing from the glossary/abbreviations list."
+fix = "Expand each abbreviation at first use and include all abbreviations in the protocol glossary."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "XS-22"
+family = "XS"
+severity = "S3"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OTHER"]
+check = "deterministic"
+title = "Internal section cross-references point to missing headings"
+flag_if = "In-text references (such as 'see Section X.Y') point to section numbers that do not exist or have different topics."
+fix = "Update broken internal section numbers to match the actual protocol headings."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+# ---------------------------------------------------------------------------
+# Family DM: Diabetes S1 blockers (16 rules)
+# ---------------------------------------------------------------------------
+
+[[rule]]
+id = "DM-01"
+family = "DM"
+severity = "S1"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "judgement"
+title = "Primary endpoint is not change from baseline in HbA1c"
+flag_if = "Triggered when the trial targets a glycaemic-control claim; fires if the primary efficacy endpoint is not change from baseline in HbA1c."
+fix = "Designate change from baseline in HbA1c as the primary efficacy endpoint."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-02"
+family = "DM"
+severity = "S1"
+detection = ["P", "J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "TRIAL_DESIGN"]
+check = "judgement"
+title = "Primary HbA1c timepoint shorter than 6 months (Week 26)"
+flag_if = "The primary efficacy assessment occurs before 6 months (Week 26) of randomised treatment without an explicit scientific justification."
+fix = "Set the primary HbA1c evaluation at Week 26 (6 months) or justify the shorter treatment duration."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-06"
+family = "DM"
+severity = "S1"
+detection = ["P"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "CGM time-in-range used as primary glycaemic endpoint"
+flag_if = "Continuous glucose monitoring (CGM) time-in-range is designated as the primary efficacy endpoint for a glycaemic-control trial."
+fix = "Demote CGM time-in-range to a secondary endpoint and use HbA1c change from baseline as primary."
+source = "FDA draft guidance (non-binding): Diabetes Mellitus: Efficacy Endpoints (May 2023)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-11"
+family = "DM"
+severity = "S1"
+detection = ["X"]
+applies_when = ["DIABETES_TYPE_T2D", "CONTROL_IS_PLACEBO"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION", "TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Placebo monotherapy >3 months in advanced or high-HbA1c T2D"
+flag_if = "Triggered when a placebo monotherapy arm lasts > 3 months; fires if eligibility permits participants beyond early-stage disease or with high baseline HbA1c."
+fix = "Limit placebo monotherapy duration to <= 3 months or restrict eligibility to early-stage T2D with moderate baseline HbA1c."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-12"
+family = "DM"
+severity = "S1"
+detection = ["P"]
+applies_when = ["DIABETES_TYPE_T2D", "CONTROL_IS_PLACEBO"]
+needs_inputs = []
+sections = ["TRIAL_DESIGN", "TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Placebo control exposure exceeds 6 months unadjusted"
+flag_if = "Participants in a placebo arm remain on placebo for > 6 months without justification or transition to active treatment."
+fix = "Cap placebo exposure at 6 months (26 weeks) or switch placebo participants to active comparator thereafter."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-13"
+family = "DM"
+severity = "S1"
+detection = ["F"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "deterministic"
+title = "Pre-defined glycaemic rescue algorithm is missing"
+flag_if = "Section 6 lacks a pre-specified glycaemic rescue algorithm defining period-specific FPG/HbA1c thresholds, confirmatory testing, and rescue agents."
+fix = "Add a tiered glycaemic rescue algorithm specifying FPG/HbA1c trigger thresholds by study period, retest confirmation, and permitted rescue therapy."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-14"
+family = "DM"
+severity = "S1"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "CONTROL_IS_ACTIVE", "INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Active-control trial lacks symmetric titration algorithms"
+flag_if = "Triggered when investigational or active-comparator drugs are titratable; fires if the protocol omits a treat-to-target titration algorithm with equivalent glycaemic targets in both arms."
+fix = "Specify symmetric treat-to-target dose-titration algorithms and matching glycaemic targets for both treatment arms."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-15"
+family = "DM"
+severity = "S1"
+detection = ["P"]
+applies_when = ["DIABETES_TYPE_T2D", "IS_NON_INFERIORITY"]
+needs_inputs = []
+sections = ["STATISTICAL_CONSIDERATIONS"]
+check = "judgement"
+title = "HbA1c non-inferiority margin exceeds 0.3% (3 mmol/mol)"
+flag_if = "The non-inferiority margin for HbA1c is wider than 0.3% (3 mmol/mol) or is stated without clinical/statistical justification."
+fix = "Set the HbA1c non-inferiority upper confidence bound margin to 0.3% (3 mmol/mol) with supporting rationale."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-17"
+family = "DM"
+severity = "S1"
+detection = ["P"]
+applies_when = ["DIABETES_TYPE_T2D", "IS_ADD_ON"]
+needs_inputs = []
+sections = ["TRIAL_POPULATION", "TRIAL_INTERVENTION"]
+check = "deterministic"
+title = "Add-on trial lacks 8-12 week stable background therapy"
+flag_if = "An add-on diabetes trial does not require stable background glucose-lowering therapy at a constant dose for at least 8–12 weeks before randomisation."
+fix = "Require participants to maintain stable background antidiabetic therapy for 8–12 weeks prior to randomisation."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-20"
+family = "DM"
+severity = "S1"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D", "DRUG_CLASS_IS_INSULIN"]
+needs_inputs = []
+sections = ["TRIAL_DESIGN", "TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Insulin trial assigns insulin-dependent patients to placebo"
+flag_if = "Triggered when the trial enrols insulin-dependent participants; fires if a placebo comparator arm is used instead of an active insulin control."
+fix = "Replace the placebo arm with an active insulin comparator for insulin-dependent participants."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-21"
+family = "DM"
+severity = "S1"
+detection = ["F"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS"]
+check = "deterministic"
+title = "Diabetes estimand omits rescue, discontinuation, or add-on"
+flag_if = "The primary estimand fails to list all three core diabetes intercurrent events: initiation of glycaemic rescue therapy, treatment discontinuation, and changes to background antidiabetic medication."
+fix = "Add intercurrent-event rows and strategies for rescue medication, treatment discontinuation, and background-therapy modification."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-23"
+family = "DM"
+severity = "S1"
+detection = ["X"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "DISCONTINUATION", "ASSESSMENTS_AND_PROCEDURES"]
+check = "deterministic"
+title = "HbA1c data not collected after treatment discontinuation"
+flag_if = "Participants who stop study medication early do not continue scheduled HbA1c assessments through the primary endpoint visit."
+fix = "Require continued HbA1c collection at scheduled visits after treatment discontinuation to support the estimand analysis."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-28"
+family = "DM"
+severity = "S1"
+detection = ["P"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "deterministic"
+title = "Hypoglycaemia not classified by ADA/IHSG Level 1-3 cut-offs"
+flag_if = "Hypoglycaemia assessments do not define the three standard ADA/IHSG tiers: Level 1 (< 70 and >= 54 mg/dL), Level 2 (< 54 mg/dL), and Level 3 (severe event requiring external assistance)."
+fix = "Define hypoglycaemia using the ADA/IHSG classification: Level 1 (< 70 and >= 54 mg/dL), Level 2 (< 54 mg/dL), and Level 3 (requiring third-party assistance)."
+source = "FDA draft guidance (non-binding): Diabetes Mellitus: Efficacy Endpoints (May 2023)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-32"
+family = "DM"
+severity = "S1"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T2D"]
+needs_inputs = []
+sections = ["OBJECTIVES_AND_ESTIMANDS", "STATISTICAL_CONSIDERATIONS"]
+check = "judgement"
+title = "Hypoglycaemia-reduction claim lacks HbA1c non-inferiority"
+flag_if = "Triggered when the protocol plans a superiority claim on hypoglycaemia reduction; fires if it does not require demonstrating comparable HbA1c control (non-inferiority upper bound <= 0.3% and point estimate <= 0.1%)."
+fix = "Gate the hypoglycaemia-reduction claim on demonstrating HbA1c non-inferiority with an upper confidence bound <= 0.3% and point estimate <= 0.1%."
+source = "FDA draft guidance (non-binding): Diabetes Mellitus: Efficacy Endpoints (May 2023)"
+source_tier = "draft_guidance"
+
+[[rule]]
+id = "DM-43"
+family = "DM"
+severity = "S1"
+detection = ["J"]
+applies_when = ["DIABETES_TYPE_T1D"]
+needs_inputs = []
+sections = ["TRIAL_DESIGN", "TRIAL_INTERVENTION"]
+check = "judgement"
+title = "T1D non-insulin adjunct lacks run-in, 26w primary, or 6m ext"
+flag_if = "Triggered when evaluating a non-insulin adjunct in Type 1 diabetes; fires if the design omits an insulin-optimisation run-in, an approximately 26-week primary endpoint, or a 6-month extension."
+fix = "Include a pre-randomisation insulin-optimisation run-in, a 26-week primary efficacy timepoint, and a 6-month safety extension."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"
+
+[[rule]]
+id = "DM-45"
+family = "DM"
+severity = "S1"
+detection = ["F"]
+applies_when = ["DIABETES_TYPE_T1D"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION", "ASSESSMENTS_AND_PROCEDURES"]
+check = "deterministic"
+title = "Type 1 diabetes protocol omits DKA ketone monitoring"
+flag_if = "A Type 1 diabetes protocol lacks diabetic ketoacidosis (DKA) monitoring and mitigation procedures (blood/urine ketone testing and sick-day management rules)."
+fix = "Add blood ketone monitoring thresholds, sick-day insulin/hydration rules, and DKA evaluation triggers."
+source = "EMA CPMP/EWP/1080/00 Rev. 2"
+source_tier = "final_guidance"

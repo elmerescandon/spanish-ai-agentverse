@@ -22,6 +22,7 @@ from backend.agents.completeness.logic import (
     evaluate_rule,
     failed_judgement_batch,
     finding_from_outcome,
+    format_judgement_batch_prompt,
     pre_decide,
     resolve_judgement_batch,
     select_batch_pages,
@@ -38,8 +39,10 @@ from backend.shared.messages import (
     CheckMethod,
     Citation,
     ControlType,
+    CriterionKind,
     DiabetesType,
     DrugClass,
+    EligibilityCriterion,
     GateStatus,
     InterventionType,
     M11Heading,
@@ -714,17 +717,49 @@ def test_evaluate_precheck_records_deterministic_or_returns_none() -> None:
     )
 
 
-def test_build_judgement_batches_groups_by_sections_and_caps_counts() -> None:
+def test_build_judgement_batches_never_merges_unrelated_sections() -> None:
     headings = list(M11Heading)
     rules = [
         _judgement_rule(f"EST-{idx:02d}", (headings[idx % len(headings)],))
         for idx in range(1, 28)
     ]
     batches = build_judgement_batches(rules)
-    assert 1 <= len(batches) <= 8
-    assert all(1 <= len(batch.rules) <= 6 for batch in batches)
+
+    # Each rule has one section and no two sections overlap, so every
+    # batch keeps to a single section and reads only its pages.
+    assert all(len(batch.headings) == 1 for batch in batches)
+    assert len(batches) == len({rule.sections for rule in rules})
+    assert all(1 <= len(batch.rules) <= 8 for batch in batches)
     batched_ids = [r.id for batch in batches for r in batch.rules]
     assert sorted(batched_ids) == sorted(r.id for r in rules)
+
+
+def test_judgement_prompt_sends_shared_facts_once_without_citations() -> None:
+    criteria = [
+        EligibilityCriterion(
+            criterion_id=f"IN-{index}",
+            kind=CriterionKind.INCLUSION,
+            text=f"Inclusion criterion number {index}",
+            citation=Citation(page_number=1, quote=QUOTE),
+        )
+        for index in range(1, 4)
+    ]
+    document = _document().model_copy(
+        update={"eligibility_criteria": criteria}
+    )
+    rules = [
+        _judgement_rule(f"ELQ-0{index}", (M11Heading.TRIAL_POPULATION,))
+        for index in range(1, 4)
+    ]
+    [batch] = build_judgement_batches(rules)
+
+    prompt = format_judgement_batch_prompt(batch, document, TrialProfile())
+
+    facts = prompt.split("Extracted facts")[1].split("Rules to evaluate:")[0]
+    assert facts.count('"criterion_id":"IN-1"') == 1
+    assert '"citation"' not in facts
+    uses = '"uses_facts":["eligibility_criteria","trial_profile"]'
+    assert prompt.count(uses) == len(rules)
 
 
 def test_select_batch_pages_uses_union_of_sections_or_falls_back() -> None:

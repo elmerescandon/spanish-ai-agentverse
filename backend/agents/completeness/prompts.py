@@ -39,8 +39,9 @@ TRIAL_PROFILE_INSTRUCTIONS = (
 
 JUDGEMENT_BATCH_INSTRUCTIONS = (
     "Evaluate each clinical trial protocol rule listed above against the "
-    "provided protocol pages and extracted JSON context. Return JSON "
-    "matching the JudgementVerdicts schema with one entry per rule_id.\n\n"
+    "provided protocol pages and the extracted facts JSON (each rule's "
+    "uses_facts names the facts relevant to it). Return JSON matching the "
+    "JudgementVerdicts schema with one entry per rule_id.\n\n"
     "Rules:\n"
     "- Every quote in evidence must be copied verbatim from the cited page "
     "(at least 15 characters) and use the === PAGE n === marker's page "
@@ -53,7 +54,8 @@ JUDGEMENT_BATCH_INSTRUCTIONS = (
     '- Status "cannot_assess" requires a one-line status_reason.\n'
     "- Never invent facts not present in the protocol pages.\n"
     "- When a finding concerns specific eligibility criteria, list their "
-    "criterion_id values (from eligibility_criteria) in criterion_ids.\n"
+    "criterion_id values (from the eligibility_criteria fact) in "
+    "criterion_ids.\n"
     '- Always cite any FDA draft guidance as "FDA draft guidance '
     '(non-binding)".\n'
     "- Set confidence between 0.0 and 1.0 reflecting your certainty."

@@ -208,5 +208,5 @@ def test_library_prompt_lists_criteria_and_items_with_their_tags() -> None:
     prompt = format_library_prompt(batch, _document())
 
     assert DKA_TEXT in prompt
-    assert '"tag": "CORE"' in prompt
+    assert '"tag":"CORE"' in prompt
     assert "EX-03" in prompt

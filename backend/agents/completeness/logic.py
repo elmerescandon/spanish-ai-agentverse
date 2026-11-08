@@ -546,7 +546,12 @@ def build_judgement_batches(
     max_rules_per_batch: int = MAX_RULES_PER_BATCH,
     max_batches: int = MAX_JUDGEMENT_BATCHES,
 ) -> list[JudgementBatch]:
-    """Group judgement rules by section, capped at max rules and batches."""
+    """Group judgement rules by section, capped at max rules per batch.
+
+    Small batches that share a section are merged towards max_batches;
+    batches with no section in common never are, so each call reads only
+    its own part of the protocol.
+    """
     if not rules:
         return []
     groups: dict[frozenset[M11Heading], list[RuleDefinition]] = {}
@@ -576,6 +581,10 @@ def build_judgement_batches(
                 set_i = set(batches[i].headings)
                 set_j = set(batches[j].headings)
                 overlap = len(set_i & set_j)
+                # Merging unrelated sections makes the call read both
+                # sections' pages, so only batches sharing one merge.
+                if overlap == 0:
+                    continue
                 union_size = len(set_i | set_j)
                 score = (overlap, -union_size, -combined_rules)
                 if best_score is None or score > best_score:
@@ -697,30 +706,59 @@ def rule_extracted_context(
     return context
 
 
+def compact_json(value: object) -> str:
+    """JSON without indentation: prompts are read by the model, not people,
+    and every character is input Gemini has to read."""
+    return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+
+
+def _without_citations(value: object) -> object:
+    """Drop citation blocks; the pages they quote are already in the prompt."""
+    if isinstance(value, dict):
+        return {
+            key: _without_citations(item)
+            for key, item in value.items()
+            if key != "citation"
+        }
+    if isinstance(value, list):
+        return [_without_citations(item) for item in value]
+    return value
+
+
 def format_judgement_batch_prompt(
     batch: JudgementBatch,
     document: ProtocolDocument,
     profile: TrialProfile,
 ) -> str:
-    """Build the Gemini prompt for one judgement batch."""
+    """Build the Gemini prompt for one judgement batch.
+
+    The extracted facts the batch's rules need are sent once, shared, and
+    each rule names the facts it uses; repeating them under every rule
+    made the facts larger than the pages themselves.
+    """
     pages = select_batch_pages(document, batch.headings)
-    rules_payload = [
-        {
-            "rule_id": rule.id,
-            "title": rule.title,
-            "flag_if": rule.flag_if,
-            "sections": [h.value for h in rule.sections],
-            "extracted_context": rule_extracted_context(
-                rule, document, profile
-            ),
-        }
-        for rule in batch.rules
-    ]
+    facts: dict[str, object] = {}
+    rules_payload = []
+    for rule in batch.rules:
+        context = rule_extracted_context(rule, document, profile)
+        facts.update(context)
+        rules_payload.append(
+            {
+                "rule_id": rule.id,
+                "title": rule.title,
+                "flag_if": rule.flag_if,
+                "sections": [h.value for h in rule.sections],
+                "uses_facts": sorted(context),
+            }
+        )
     return (
         format_pages_for_prompt(pages)
         + INSTRUCTIONS_SEPARATOR
+        + "Extracted facts (shared by the rules below):\n"
+        + compact_json(_without_citations(facts))
+        + INSTRUCTIONS_SEPARATOR
         + "Rules to evaluate:\n"
-        + json.dumps(rules_payload, indent=2)
+        + compact_json(rules_payload)
         + INSTRUCTIONS_SEPARATOR
         + JUDGEMENT_BATCH_INSTRUCTIONS
     )
@@ -903,10 +941,10 @@ def format_library_prompt(
         format_pages_for_prompt(pages)
         + INSTRUCTIONS_SEPARATOR
         + "Eligibility criteria:\n"
-        + json.dumps(criteria_payload, indent=2)
+        + compact_json(criteria_payload)
         + INSTRUCTIONS_SEPARATOR
         + "Library items:\n"
-        + json.dumps(items_payload, indent=2)
+        + compact_json(items_payload)
         + INSTRUCTIONS_SEPARATOR
         + LIBRARY_MATCH_INSTRUCTIONS
     )
@@ -1102,7 +1140,7 @@ def format_second_opinion_prompt(
         format_pages_for_prompt(pages)
         + INSTRUCTIONS_SEPARATOR
         + "Flags to verify:\n"
-        + json.dumps(flags_payload, indent=2)
+        + compact_json(flags_payload)
         + INSTRUCTIONS_SEPARATOR
         + SECOND_OPINION_INSTRUCTIONS
     )

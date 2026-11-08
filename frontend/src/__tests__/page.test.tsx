@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import HomePage from "@/app/page";
 
@@ -17,12 +17,15 @@ describe("HomePage ProtocolAI editorial presentation with Three.js ASCII backgro
     expect(mainElement).toHaveClass("text-zinc-900");
 
     // Product title "ProtocolAI" is in the header link
-    const headerTitle = screen.getByRole("link", { name: "ProtocolAI" });
+    const headerTitle = within(screen.getByRole("banner")).getByRole(
+      "link",
+      { name: "ProtocolAI" }
+    );
     expect(headerTitle).toBeInTheDocument();
 
     // Main hero thesis heading is rendered as h1
     const mainHeading = screen.getByRole("heading", {
-      name: /Catching avoidable clinical trial amendments/i,
+      name: /Find protocol problems before the first patient/i,
     });
     expect(mainHeading).toBeInTheDocument();
 
@@ -45,30 +48,30 @@ describe("HomePage ProtocolAI editorial presentation with Three.js ASCII backgro
 
     // Multi-Agent Pipeline Architecture Steps
     expect(
-      screen.getByText("End-to-End Multi-Agent Architecture")
+      screen.getByText("From draft protocol to doctor-approved changes")
     ).toBeInTheDocument();
     expect(
-      screen.getByText("ICH M11 Document Structuring")
+      screen.getByText("Understand the protocol")
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Completeness & Consistency")
+      screen.getByText("Find missing or conflicting parts")
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Historical Peer Trial Comparison")
+      screen.getByText("Compare with similar trials")
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Cohort Attrition & Diversity")
+      screen.getByText("Count the patients you would lose")
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Clinician-Facing Decision Cards")
+      screen.getByText("Doctors make the call")
     ).toBeInTheDocument();
 
     // Foundational Clinical Data & Validation Guardrails
     expect(
-      screen.getByText("Grounded in Regulatory Standards & Real-World Evidence")
+      screen.getByText("Every finding points to real data")
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Validation Rigor & Clinical Safety Guardrails")
+      screen.getByText("Built so doctors stay in control")
     ).toBeInTheDocument();
   });
 
@@ -85,70 +88,5 @@ describe("HomePage ProtocolAI editorial presentation with Three.js ASCII backgro
     expect(
       screen.getByRole("button", { name: /Approved by Clinician/i })
     ).toBeInTheDocument();
-  });
-
-  it("provides a floating Tune ASCII button that toggles the studio popover", async () => {
-    const user = userEvent.setup();
-    render(<HomePage />);
-
-    // Floating Tune ASCII button is visible, tuner popover initially closed
-    const tuneButton = screen.getByRole("button", { name: "Tune ASCII" });
-    expect(tuneButton).toBeInTheDocument();
-    expect(
-      screen.queryByText("Live Three.js ASCII Studio")
-    ).not.toBeInTheDocument();
-
-    // Clicking opens the floating tuner popover
-    await user.click(tuneButton);
-    expect(
-      screen.getByText("Live Three.js ASCII Studio")
-    ).toBeInTheDocument();
-
-    // The floating button now offers close
-    const closeButton = screen.getByRole("button", { name: "Close" });
-    expect(closeButton).toBeInTheDocument();
-
-    // Clicking closes the floating tuner popover
-    await user.click(closeButton);
-    expect(
-      screen.queryByText("Live Three.js ASCII Studio")
-    ).not.toBeInTheDocument();
-  });
-
-  it("allows switching protein presets and adjusting parameters via the floating tuner popover", async () => {
-    const user = userEvent.setup();
-    render(<HomePage />);
-
-    // Open tuner
-    await user.click(screen.getByRole("button", { name: "Tune ASCII" }));
-    expect(
-      screen.getByText("Live Three.js ASCII Studio")
-    ).toBeInTheDocument();
-
-    // Switch structure preset to SGLT2 Cotransporter Pocket
-    await user.click(
-      screen.getByRole("button", { name: "SGLT2 Cotransporter Pocket" })
-    );
-
-    // Verify the rotating 3D ASCII protein viewer updates its active structure
-    expect(
-      screen.getByRole("img", {
-        name: /Rotating 3D ASCII structure of SGLT2 Cotransporter Pocket/i,
-      })
-    ).toBeInTheDocument();
-
-    // Toggle Auto Rotation
-    const pauseButton = screen.getByRole("button", { name: "Pause Spin" });
-    await user.click(pauseButton);
-    expect(
-      screen.getByRole("button", { name: "Resume Spin" })
-    ).toBeInTheDocument();
-
-    // Close via header close button
-    const headerCloseButton = screen.getByRole("button", { name: "✕" });
-    await user.click(headerCloseButton);
-    expect(
-      screen.queryByText("Live Three.js ASCII Studio")
-    ).not.toBeInTheDocument();
   });
 });

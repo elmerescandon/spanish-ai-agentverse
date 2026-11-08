@@ -8,6 +8,7 @@ raised as ProtocolStoreError, never swallowed.
 
 import asyncio
 import logging
+import os
 import sqlite3
 from collections.abc import Callable, Sequence
 from contextlib import closing
@@ -16,6 +17,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Protocol
 
+from backend.clients.document_store import BLOB_TOKEN_ENV_VAR
 from backend.shared.config import load_settings
 
 logger = logging.getLogger(__name__)
@@ -443,10 +445,23 @@ _protocol_db: ReviewStore | None = None
 
 
 def get_protocol_db() -> ReviewStore:
-    """The app's database, at the configured path, created on first use."""
+    """Blob when the token is set (Vercel), else SQLite; made on first use.
+
+    Blob is shared by every serverless instance; the SQLite file at the
+    configured path is the local fallback.
+    """
     global _protocol_db
     if _protocol_db is None:
-        _protocol_db = ProtocolDb(load_settings().protocol_db_path)
+        if os.environ.get(BLOB_TOKEN_ENV_VAR):
+            # Imported here: protocol_blob_store imports this module.
+            from backend.clients.protocol_blob_store import BlobProtocolStore
+
+            _protocol_db = BlobProtocolStore()
+        else:
+            _protocol_db = ProtocolDb(load_settings().protocol_db_path)
+        logger.info(
+            "protocol store chosen: store=%s", type(_protocol_db).__name__
+        )
     return _protocol_db
 
 

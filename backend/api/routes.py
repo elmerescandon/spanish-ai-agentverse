@@ -372,28 +372,6 @@ async def _run_step(
     return await runner(await _get_document(request.protocol_id))
 
 
-async def _ensure_protocol_in_database(document: ProtocolDocument) -> None:
-    """Seed this instance's database with a protocol uploaded elsewhere.
-
-    The database is a local file, so an instance that did not handle the
-    upload has no row for the protocol, and offers need one. A row that
-    already exists is left alone: re-saving would overwrite the fields a
-    reviewer accepted.
-    """
-    protocol_db = get_protocol_db()
-    if await protocol_db.has_protocol(document.protocol_id):
-        return
-    await protocol_db.save_protocol(
-        ProtocolRecord(
-            protocol_id=document.protocol_id,
-            title=document.title,
-            page_count=document.page_count,
-            uploaded_at=datetime.now(UTC),
-        ),
-        document_fields(document),
-    )
-
-
 @router.post("/checklist-recommendation", response_model=StepData)
 async def checklist_recommendation(
     request: StepRecommendationRequest,
@@ -417,7 +395,6 @@ async def protocol_recommendation(
     """
     document = await _get_document(request.protocol_id)
     run = await run_protocol_comparison_agent(document)
-    await _ensure_protocol_in_database(document)
     await get_protocol_db().save_offers(
         document.protocol_id,
         starting_comparison_fields(run.comparison.results),

@@ -9,7 +9,7 @@ const TONE_CLASSES: Record<MetricTone, string> = {
 };
 
 const VALUE_SIZE_CLASSES = {
-  large: "text-lg",
+  large: "text-2xl",
   small: "text-base",
 } as const;
 
@@ -33,15 +33,18 @@ export default function MetricList({
   if (metrics.length === 0) return null;
 
   return (
-    <dl aria-label={ariaLabel} className="flex flex-wrap gap-x-8 gap-y-3">
+    <dl aria-label={ariaLabel} className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3">
       {metrics.map((metric) => {
         const benchmarks = metric.benchmarks ?? [];
         return (
           <div
             key={metric.metric_id ?? metric.label}
-            className="max-w-[16rem] space-y-0.5"
+            className="space-y-0.5"
           >
-            <div className="flex flex-wrap items-baseline gap-x-1.5">
+            <dt className="font-sans text-sm text-zinc-500">
+              {metric.label}
+            </dt>
+            <div>
               <dd
                 className={`font-serif font-normal ${
                   VALUE_SIZE_CLASSES[size]
@@ -54,12 +57,9 @@ export default function MetricList({
                   </span>
                 )}
               </dd>
-              <dt className="font-sans text-xs text-zinc-500">
-                {metric.label}
-              </dt>
             </div>
             {benchmarks.length > 0 && (
-              <dd className="font-sans text-[11px] text-zinc-400">
+              <dd className="font-sans text-xs text-zinc-500">
                 {benchmarks
                   .map(
                     (benchmark) =>
@@ -72,7 +72,7 @@ export default function MetricList({
               </dd>
             )}
             {metric.description && (
-              <dd className="font-sans text-[11px] leading-snug text-zinc-400">
+              <dd className="font-sans text-xs leading-snug text-zinc-500">
                 {metric.description}
               </dd>
             )}

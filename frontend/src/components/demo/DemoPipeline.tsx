@@ -237,7 +237,7 @@ export default function DemoPipeline({
   const stepError = liveRun?.errors[currentStep.id];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <StepBar
         items={barItems}
         activeId={activeStepId}

@@ -60,14 +60,14 @@ function circleClass(
   isReached: boolean
 ): string {
   if (isActive) {
-    return "border-emerald-600 bg-emerald-600 text-white ring-4 ring-emerald-100";
+    return "border-zinc-900 bg-zinc-900 text-white";
   }
-  if (isReached) return "border-emerald-600 bg-white text-emerald-700";
+  if (isReached) return "border-zinc-400 bg-white text-zinc-700";
   if (state === "error") return "border-rose-300 bg-white text-rose-600";
   if (state === "done") {
     return "border-zinc-300 bg-white text-zinc-600 group-hover:border-zinc-900";
   }
-  if (state === "running") return "border-zinc-200 bg-white text-emerald-600";
+  if (state === "running") return "border-zinc-200 bg-white text-zinc-500";
   return "border-zinc-200 bg-white text-zinc-300";
 }
 
@@ -105,7 +105,7 @@ export default function StepBar({
   return (
     <nav
       aria-label="Pipeline steps"
-      className="sticky top-18 z-20 -mx-2 bg-white/95 px-2 pb-3 pt-2 backdrop-blur-sm"
+      className="sticky top-18 z-20 -mx-2 border-b border-zinc-100 bg-white/95 px-2 pb-3 pt-2 backdrop-blur-sm"
     >
       <div className="flex items-center gap-2">
         <button
@@ -129,7 +129,7 @@ export default function StepBar({
                   <span
                     aria-hidden
                     className={`absolute right-1/2 top-3.5 z-0 h-px w-full transition-colors duration-500 ${
-                      isReached ? "bg-emerald-500" : "bg-zinc-200"
+                      isReached ? "bg-zinc-400" : "bg-zinc-200"
                     }`}
                   />
                 )}

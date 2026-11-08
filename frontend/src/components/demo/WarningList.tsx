@@ -28,14 +28,14 @@ export default function WarningList({
   if (warnings.length === 0) return null;
 
   return (
-    <ul aria-label="Run warnings" className="space-y-1.5">
+    <ul aria-label="Run warnings" className="space-y-2">
       {warnings.map((warning, index) => {
         const style = SEVERITY_STYLES[warning.severity];
         const Icon = style.icon;
         return (
           <li
             key={`${warning.code}-${index}`}
-            className="flex items-start gap-2 font-sans text-xs"
+            className="flex items-start gap-2 font-sans text-sm"
           >
             <Icon
               className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${style.className}`}
@@ -45,7 +45,7 @@ export default function WarningList({
             />
             <span className="text-zinc-700">
               {warning.message}{" "}
-              <code className="text-[11px] text-zinc-400">
+              <code className="text-xs text-zinc-400">
                 {warning.code}
               </code>
             </span>

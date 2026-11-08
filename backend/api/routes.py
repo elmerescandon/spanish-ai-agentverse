@@ -17,6 +17,11 @@ from backend.api.agent_runners import (
     run_cohort_agent,
     run_protocol_comparison_agent,
 )
+from backend.api.decision_reviews import (
+    REVIEW_FIELD_PREFIX,
+    reviewed_output,
+    saved_decisions,
+)
 from backend.api.protocol_fields import (
     ChangeRejectedError,
     document_fields,
@@ -40,6 +45,7 @@ from backend.api.schemas import (
     ProtocolSummary,
     Recommendation,
     RecommendationDecisionRequest,
+    SavedDecisionReview,
     Severity,
     StepData,
     StepRecommendationRequest,
@@ -50,6 +56,7 @@ from backend.clients.pdf_reader import UnreadablePdfError
 from backend.clients.protocol_db import (
     ProtocolRecord,
     ProtocolReview,
+    ReviewSource,
     StoredField,
     get_protocol_db,
 )
@@ -480,7 +487,44 @@ async def get_protocol_fields(protocol_id: str) -> ProtocolFieldsResponse:
     return _fields_response(review)
 
 
+@router.get("/protocols/{protocol_id}/reviews")
+async def get_decision_reviews(protocol_id: str) -> list[SavedDecisionReview]:
+    review = await get_protocol_db().load_review(protocol_id)
+    if review is None:
+        raise _protocol_not_found(protocol_id)
+    return saved_decisions(review)
+
+
+@router.post("/protocols/{protocol_id}/reviews")
+async def save_decision_review(
+    protocol_id: str, request: SavedDecisionReview
+) -> SavedDecisionReview:
+    """Persist a reviewer-submitted amendment and its current decision.
+
+    This records review text, not a validated numeric PEERS field update.
+    Repeated identical requests are idempotent in the review store.
+    """
+    database = get_protocol_db()
+    if not await database.has_protocol(protocol_id):
+        raise _protocol_not_found(protocol_id)
+    await database.apply_change(
+        protocol_id,
+        StoredField(
+            field=REVIEW_FIELD_PREFIX + request.decision_id,
+            value=request.model_dump_json(),
+        ),
+        ReviewSource(
+            decision_id=request.decision_id,
+            option_id=request.option_id or "",
+            rationale=f"Reviewer decision: {request.status}",
+        ),
+        datetime.now(UTC),
+    )
+    return request
+
+
 def _fields_response(review: ProtocolReview) -> ProtocolFieldsResponse:
+    review = reviewed_output(review)
     return ProtocolFieldsResponse(
         protocol_id=review.protocol.protocol_id,
         title=review.protocol.title,
@@ -543,7 +587,7 @@ async def download_latest_report() -> Response:
         ProtocolStoreError: the database failed (answered with 503).
     """
     review = await _load_latest_review()
-    pdf_bytes = render_review_pdf(review, datetime.now(UTC))
+    pdf_bytes = render_review_pdf(reviewed_output(review), datetime.now(UTC))
     logger.info(
         "report pdf built: protocol_id=%s bytes=%d",
         review.protocol.protocol_id,

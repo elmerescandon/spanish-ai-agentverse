@@ -42,6 +42,17 @@ export function makeStep(
 
 export const MOCK_STEP: StepData = makeStep("check", "Completeness");
 
+export const MOCK_SAVED_REVIEW: import("@/lib/api").SavedDecisionReview = {
+  decision_id: "review-1",
+  option_id: "target",
+  status: "accepted",
+  proposed_change: {
+    path: "5.4 Recruitment",
+    before: "No target",
+    after: "Review enrolment against a 45% target.",
+  },
+};
+
 export const MOCK_PROTOCOL_FIELDS: ProtocolFieldsResponse = {
   protocol_id: "proto-001",
   title: "Test Protocol",

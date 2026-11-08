@@ -43,6 +43,21 @@ async def test_same_content_is_checked_once_and_relabelled() -> None:
     assert len(first.report.findings) == len(load_rule_catalogue().rules)
 
 
+async def test_check_joins_the_run_started_after_upload() -> None:
+    single_check_llm = UnavailableLlm()
+    await ProtocolPipeline(llm=single_check_llm).check(
+        _document("proto-ref", "Reference")
+    )
+    llm = UnavailableLlm()
+    pipeline = ProtocolPipeline(llm=llm)
+
+    pipeline.start_check(_document("proto-a", "Upload"))
+    run = await pipeline.check(_document("proto-a", "Upload"))
+
+    assert llm.call_count == single_check_llm.call_count > 0
+    assert run.report.protocol_id == "proto-a"
+
+
 async def test_missing_api_key_fails_with_a_clear_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

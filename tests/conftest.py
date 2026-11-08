@@ -112,6 +112,10 @@ class OfflineProtocolPipeline(ProtocolPipeline):
             pages=pages,
         )
 
+    def start_check(self, document: ProtocolDocument) -> None:
+        """Skip: TestClient runs each request on its own event loop, so a
+        background check would be cancelled when the upload returns."""
+
 
 @pytest.fixture(autouse=True)
 def _offline_protocol_pipeline(

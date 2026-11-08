@@ -48,9 +48,10 @@ RETRY_BASE_DELAY_SECONDS = (
 LLM_TIMEOUT_SECONDS = 300  # upper bound for 100k+ token protocol calls
 MILLISECONDS_PER_SECOND = 1000
 SDK_SINGLE_ATTEMPT = 1  # disables the SDK's built-in retry loop
-# One full protocol parse (six facets) runs in parallel; anything beyond
-# that queues instead of tripping Gemini's rate limit (HTTP 429).
-MAX_CONCURRENT_CALLS = 6
+# Enough for a full parse (six facets) alongside about a dozen completeness
+# batches; anything beyond that queues instead of tripping Gemini's rate
+# limit (HTTP 429, retried with backoff).
+MAX_CONCURRENT_CALLS = 12
 HTTP_RATE_LIMIT_STATUS = 429
 HTTP_SERVER_ERROR_MIN_STATUS = 500
 

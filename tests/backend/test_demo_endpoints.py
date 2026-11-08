@@ -141,6 +141,28 @@ def test_upload_parse_failure_returns_503_with_the_reason(
     assert "protocol analysis failed" in response.json()["detail"]
 
 
+class _RecordingPipeline(OfflineProtocolPipeline):
+    """Offline pipeline that records which documents a check started for."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.started_protocol_ids: list[str] = []
+
+    def start_check(self, document: ProtocolDocument) -> None:
+        self.started_protocol_ids.append(document.protocol_id)
+
+
+def test_upload_starts_the_check_for_the_stored_protocol(
+    client: TestClient, tmp_path: Path
+) -> None:
+    pipeline = _RecordingPipeline()
+    set_protocol_pipeline(pipeline)
+
+    protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
+
+    assert pipeline.started_protocol_ids == [protocol_id]
+
+
 def test_upload_over_the_size_limit_is_rejected(
     client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

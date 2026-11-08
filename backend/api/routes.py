@@ -265,6 +265,8 @@ async def upload_file(file: UploadFile) -> UploadFileResponse:
 
     The first upload of a PDF takes minutes (one Gemini call per parser
     facet); the same file uploaded again is served from the parse cache.
+    The completeness check then starts in the background, so the CHECK
+    step is ready sooner.
 
     Raises:
         HTTPException: 413 for a file over MAX_UPLOAD_BYTES, 415 for a
@@ -280,11 +282,12 @@ async def upload_file(file: UploadFile) -> UploadFileResponse:
         )
     _validate_pdf_upload(file, content)
     filename = file.filename or "protocol.pdf"
+    pipeline = get_protocol_pipeline()
     with tempfile.TemporaryDirectory() as temp_directory:
         pdf_path = Path(temp_directory) / "upload.pdf"
         pdf_path.write_bytes(content)
         try:
-            parsed = await get_protocol_pipeline().parse(pdf_path)
+            parsed = await pipeline.parse(pdf_path)
         except UnreadablePdfError as error:
             logger.warning(
                 "upload unreadable: filename=%s error=%s", filename, error
@@ -300,6 +303,7 @@ async def upload_file(file: UploadFile) -> UploadFileResponse:
         }
     )
     _documents[document.protocol_id] = document
+    pipeline.start_check(document)
     logger.info(
         "upload stored: protocol_id=%s page_count=%d",
         document.protocol_id,

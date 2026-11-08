@@ -22,7 +22,7 @@ from backend.agents.parser.agent import (
 from backend.clients.gemini import GeminiClient, JsonGenerator
 from backend.shared.config import load_settings
 from backend.shared.messages import ComplianceReport, ProtocolDocument
-from backend.shared.task_cache import SharedTaskCache
+from backend.shared.task_cache import JobFactory, SharedTaskCache
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +109,17 @@ class ProtocolPipeline:
         except AllFacetsFailedError as error:
             raise AnalysisFailedError(str(error)) from error
 
+    def start_check(self, document: ProtocolDocument) -> None:
+        """Start checking a parsed protocol in the background.
+
+        The upload calls this so the check runs while the user reads the
+        INGEST step; check() on the same content then joins this run.
+
+        Raises:
+            AnalysisFailedError: Gemini is not configured.
+        """
+        self._checks.run_in_background(*self._check_job(document))
+
     async def check(self, document: ProtocolDocument) -> CheckRun:
         """Check a parsed protocol against every completeness rule.
 
@@ -119,11 +130,7 @@ class ProtocolPipeline:
             AnalysisFailedError: Gemini is not configured.
             ValueError: the rule catalogue is invalid.
         """
-        llm = self._client()
-        run = await self._checks.get_or_run(
-            _document_content_key(document),
-            lambda: _run_check(document, llm),
-        )
+        run = await self._checks.get_or_run(*self._check_job(document))
         report = run.report.model_copy(
             update={
                 "protocol_id": document.protocol_id,
@@ -131,6 +138,16 @@ class ProtocolPipeline:
             }
         )
         return dataclasses.replace(run, report=report)
+
+    def _check_job(
+        self, document: ProtocolDocument
+    ) -> tuple[str, JobFactory[CheckRun]]:
+        """The cache key and job that check one document's content."""
+        llm = self._client()
+        return (
+            _document_content_key(document),
+            lambda: _run_check(document, llm),
+        )
 
 
 _pipeline: ProtocolPipeline | None = None

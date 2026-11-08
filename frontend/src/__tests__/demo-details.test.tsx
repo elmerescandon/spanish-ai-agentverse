@@ -308,37 +308,37 @@ describe("StepView rich step details", () => {
 });
 
 describe("DecisionView rich finding details", () => {
-  it("shows the meta line and tags", () => {
+  it("shows the meta line, with review state and tags on expand", async () => {
+    const user = userEvent.setup();
     renderDecision(RICH_DECISION);
 
-    for (const text of [
-      "Eligibility",
-      "92% confidence",
-      "§ 5.1 Inclusion",
-      "pp. 12–13",
-      "IC-3",
-      "Owner: Clinical lead",
-      "Awaiting review",
-    ]) {
-      expect(screen.getByText(text)).toBeInTheDocument();
-    }
-    const tags = screen.getByRole("list", { name: "Tags" });
-    expect(within(tags).getByText("recruitment")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Eligibility, 92% confidence, .*IC-3, Owner: Clinical lead/
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Awaiting review")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Expand" }));
+    expect(screen.getByText("Awaiting review")).toBeInTheDocument();
+    expect(screen.getByText(/recruitment/)).toBeInTheDocument();
   });
 
-  it("highlights the quote inside its context, else shows context below", () => {
+  it("shows the verbatim quote, and its context only on expand", async () => {
+    const user = userEvent.setup();
     renderDecision(RICH_DECISION);
 
-    const highlighted = screen.getByText(RICH_DECISION.evidence[0].quote);
-    expect(highlighted.tagName).toBe("MARK");
-    expect(highlighted.closest("blockquote")).toHaveTextContent(
-      "Participants must have HbA1c between 7.0% and 7.5% at screening."
+    const quote = screen.getByText(RICH_DECISION.evidence[0].quote);
+    expect(quote.closest("blockquote")).toHaveTextContent(
+      `“${RICH_DECISION.evidence[0].quote}”`
     );
+    expect(
+      screen.queryByText(
+        "Across 40 peer trials the inclusion range was wider."
+      )
+    ).toBeNull();
 
-    const standalone = screen.getByText("Median HbA1c 8.1%");
-    expect(standalone.closest("blockquote")).not.toHaveTextContent(
-      "peer trials"
-    );
+    await user.click(screen.getByRole("button", { name: "Expand" }));
     expect(
       screen.getByText("Across 40 peer trials the inclusion range was wider.")
     ).toBeInTheDocument();
@@ -347,7 +347,7 @@ describe("DecisionView rich finding details", () => {
   it("shows evidence section, match confidence and source link", () => {
     renderDecision(RICH_DECISION);
 
-    expect(screen.getByText("Inclusion criteria")).toBeInTheDocument();
+    expect(screen.getByText(/Inclusion criteria/)).toBeInTheDocument();
     expect(screen.getByText("88% match")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Open source" })
@@ -386,8 +386,10 @@ describe("DecisionView rich finding details", () => {
     expect(within(other).getByText("Add rescue arm")).toBeInTheDocument();
   });
 
-  it("links references and shows their quotes", () => {
+  it("links references and shows their quotes on expand", async () => {
+    const user = userEvent.setup();
     renderDecision(RICH_DECISION);
+    await user.click(screen.getByRole("button", { name: "Expand" }));
 
     expect(
       screen.getByRole("link", { name: "ADA Standards of Care 2026" })
@@ -414,7 +416,7 @@ describe("DecisionView rich finding details", () => {
     ).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole("button", { name: "Show reasoning (1 steps)" })
+      screen.getByRole("button", { name: "Expand" })
     );
     expect(screen.getByText("1.3 s")).toBeInTheDocument();
   });

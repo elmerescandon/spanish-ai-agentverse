@@ -11,7 +11,7 @@ export default function DataSourceList({
   if (sources.length === 0) return null;
 
   return (
-    <ul className="divide-y divide-zinc-200/60">
+    <ul className="space-y-3">
       {sources.map((source) => {
         const meta = [
           source.source.toUpperCase(),
@@ -21,7 +21,7 @@ export default function DataSourceList({
             : null,
         ].filter(Boolean);
         return (
-          <li key={`${source.source}-${source.name}`} className="py-2">
+          <li key={`${source.source}-${source.name}`}>
             <p className="flex flex-wrap items-baseline gap-x-2 font-sans text-sm text-zinc-900">
               {source.url ? (
                 <a
@@ -36,7 +36,7 @@ export default function DataSourceList({
               ) : (
                 <span>{source.name}</span>
               )}
-              <span className="text-xs text-zinc-400">
+              <span className="text-xs text-zinc-500">
                 {meta.join(" · ")}
               </span>
             </p>

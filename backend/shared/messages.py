@@ -146,6 +146,11 @@ class TrialDesignFacts(BaseModel):
     arm_count: CitedValue[int] | None = None
     min_age_years: CitedValue[float] | None = None
     max_age_years: CitedValue[float] | None = None
+    # Whether each age limit includes its endpoint: True for ">=18" or
+    # "18 and older", False for "<18" or "under 18". None when the
+    # limit or its wording is absent; consumers must not assume either.
+    is_min_age_inclusive: bool | None = None
+    is_max_age_inclusive: bool | None = None
     accepts_healthy_volunteers: CitedValue[bool] | None = None
     site_count: CitedValue[int] | None = None
     country_count: CitedValue[int] | None = None

@@ -1,4 +1,4 @@
-.PHONY: install dev run format lint test test-live check demo
+.PHONY: install dev run format lint test test-extended test-live check demo
 
 install:
 	uv sync
@@ -21,8 +21,11 @@ lint:
 test:
 	uv run pytest
 
+test-extended:
+	uv run pytest -m 'not live'
+
 test-live:
-	uv run pytest -m live
+	uv run pytest -m live -o log_cli=true --log-cli-level=INFO
 
 check: format lint test
 

@@ -1,6 +1,9 @@
 """Unit tests for deterministic citation normalization and verification."""
 
-from backend.shared.citations import verify_citation
+from backend.shared.citations import (
+    replace_symbol_font_characters,
+    verify_citation,
+)
 from backend.shared.messages import Citation, PageText
 
 PAGE_ONE = 1
@@ -222,3 +225,11 @@ def test_page_out_of_range_is_not_verified() -> None:
     verified = verify_citation(citation, pages)
 
     assert verified.is_verified is False
+
+
+def test_symbol_font_greek_and_math_characters_are_replaced() -> None:
+    extracted = "\uf061=0.05, \uf062-hCG, PPAR\uf067, 0-\uf0a5, \uf0b14 days"
+
+    assert replace_symbol_font_characters(extracted) == (
+        "α=0.05, β-hCG, PPARγ, 0-∞, ±4 days"
+    )

@@ -3,12 +3,18 @@
 from pydantic import BaseModel
 
 from backend.agents.parser.logic import (
+    DESIGN_FACET,
+    ELIGIBILITY_FACET,
+    FACETS,
+    Facet,
     FacetOutcome,
     assemble_document,
+    assign_criterion_ids,
     build_repair_prompt,
     collect_citations,
     count_verified,
     format_pages_for_prompt,
+    normalize_design_facts,
     verify_result,
 )
 from backend.shared.messages import (
@@ -189,3 +195,185 @@ def test_assemble_document_empty_facet_is_empty_list_with_warning() -> None:
     assert document.eligibility_criteria == []
     assert len(document.extraction_warnings) == 1
     assert "no items" in document.extraction_warnings[0].message
+
+
+def _run_sanity_rules[ResultT: BaseModel](
+    facet: Facet[ResultT], result: ResultT
+) -> list[str]:
+    return [
+        warning
+        for rule in facet.sanity_rules
+        for warning in rule(result, len(PAGES))
+    ]
+
+
+def test_criterion_ids_follow_kind_and_document_order() -> None:
+    raw = EligibilityExtraction(
+        criteria=[
+            EligibilityCriterion(
+                criterion_id="x",
+                kind=CriterionKind.INCLUSION,
+                text="Aged 18 years or older",
+                citation=_citation(VERIFIABLE_QUOTE),
+            ),
+            EligibilityCriterion(
+                criterion_id="y",
+                kind=CriterionKind.EXCLUSION,
+                text="Prior bariatric surgery",
+                citation=_citation(VERIFIABLE_QUOTE),
+            ),
+            EligibilityCriterion(
+                criterion_id="z",
+                kind=CriterionKind.INCLUSION,
+                text="HbA1c at least 8.0%",
+                citation=_citation(VERIFIABLE_QUOTE),
+            ),
+            EligibilityCriterion(
+                criterion_id="w",
+                kind=CriterionKind.EXCLUSION,
+                text="Active malignancy",
+                citation=_citation(VERIFIABLE_QUOTE),
+            ),
+        ]
+    )
+
+    normalized = assign_criterion_ids(raw)
+
+    assert [c.criterion_id for c in normalized.criteria] == [
+        "IN-01",
+        "EX-01",
+        "IN-02",
+        "EX-02",
+    ]
+    assert [c.criterion_id for c in raw.criteria] == ["x", "y", "z", "w"]
+
+
+def test_missing_inclusion_criteria_produces_warning() -> None:
+    only_exclusion = EligibilityExtraction(
+        criteria=[
+            EligibilityCriterion(
+                criterion_id="EX-01",
+                kind=CriterionKind.EXCLUSION,
+                text="Prior bariatric surgery",
+                citation=_citation(VERIFIABLE_QUOTE),
+            )
+        ]
+    )
+
+    warnings = _run_sanity_rules(ELIGIBILITY_FACET, only_exclusion)
+
+    assert len(warnings) == 1
+    assert "inclusion" in warnings[0].lower()
+
+
+def test_min_age_above_max_age_produces_warning() -> None:
+    inverted_ages = TrialDesignFacts(
+        min_age_years=CitedValue[float](
+            value=65.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        max_age_years=CitedValue[float](
+            value=18.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+    )
+    equal_ages = TrialDesignFacts(
+        min_age_years=CitedValue[float](
+            value=18.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        max_age_years=CitedValue[float](
+            value=18.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+    )
+
+    assert len(_run_sanity_rules(DESIGN_FACET, inverted_ages)) == 1
+    assert len(_run_sanity_rules(DESIGN_FACET, equal_ages)) == 1
+
+
+def test_non_positive_target_enrollment_produces_warning() -> None:
+    zero_enrollment = TrialDesignFacts(
+        target_enrollment=CitedValue[int](
+            value=0, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+    negative_enrollment = TrialDesignFacts(
+        target_enrollment=CitedValue[int](
+            value=-10, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+
+    assert len(_run_sanity_rules(DESIGN_FACET, zero_enrollment)) == 1
+    assert len(_run_sanity_rules(DESIGN_FACET, negative_enrollment)) == 1
+
+
+def test_zero_arm_count_produces_warning() -> None:
+    zero_arms = TrialDesignFacts(
+        arm_count=CitedValue[int](
+            value=0, citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+
+    warnings = _run_sanity_rules(DESIGN_FACET, zero_arms)
+
+    assert len(warnings) == 1
+    assert "arm" in warnings[0].lower()
+
+
+def test_design_facet_tolerates_all_fields_null() -> None:
+    empty_facts = TrialDesignFacts()
+
+    assert len(DESIGN_FACET.sanity_rules) == 3
+    assert normalize_design_facts(empty_facts) == empty_facts
+    assert _run_sanity_rules(DESIGN_FACET, empty_facts) == []
+
+
+def test_nct_id_normalized_without_spaces() -> None:
+    raw = TrialDesignFacts(
+        nct_id=CitedValue[str](
+            value="nct 04828785 ", citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+
+    normalized = normalize_design_facts(raw)
+
+    assert normalized.nct_id is not None
+    assert normalized.nct_id.value == "NCT04828785"
+    assert raw.nct_id is not None
+    assert raw.nct_id.value == "nct 04828785 "
+
+
+def test_age_inclusivity_kept_when_its_age_is_present() -> None:
+    raw = TrialDesignFacts(
+        max_age_years=CitedValue[float](
+            value=18.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        is_max_age_inclusive=False,
+    )
+
+    assert normalize_design_facts(raw).is_max_age_inclusive is False
+
+
+def test_age_inclusivity_cleared_when_its_age_is_missing() -> None:
+    raw = TrialDesignFacts(
+        min_age_years=CitedValue[float](
+            value=18.0, citation=_citation(VERIFIABLE_QUOTE)
+        ),
+        is_min_age_inclusive=True,
+        is_max_age_inclusive=False,
+    )
+
+    normalized = normalize_design_facts(raw)
+
+    assert normalized.is_min_age_inclusive is True
+    assert normalized.is_max_age_inclusive is None
+
+
+def test_design_instructions_explain_age_inclusivity() -> None:
+    for field_name in ("is_min_age_inclusive", "is_max_age_inclusive"):
+        assert field_name in DESIGN_FACET.instructions
+
+
+def test_registry_contains_eligibility_and_design() -> None:
+    assert FACETS == (ELIGIBILITY_FACET, DESIGN_FACET)
+    assert [facet.name for facet in FACETS] == [
+        FacetName.ELIGIBILITY,
+        FacetName.DESIGN,
+    ]

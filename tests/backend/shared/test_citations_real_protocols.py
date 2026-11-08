@@ -3,9 +3,15 @@
 from functools import cache
 from pathlib import Path
 
+import pytest
+
 from backend.clients.pdf_reader import read_pdf_pages
 from backend.shared.citations import verify_citation
 from backend.shared.messages import Citation, PageText
+
+# Reading both PDFs (227 pages) takes seconds, so these run only in
+# `make test-extended`, not in the default `make test` / `make check`.
+pytestmark = pytest.mark.extended
 
 FAME_D_PDF_PATH = Path("data/protocols/demo/NCT04828785_protocol.pdf")
 CANAGLIFLOZIN_PDF_PATH = Path("data/protocols/demo/NCT03170518_protocol.pdf")
@@ -18,6 +24,9 @@ WRONG_PAGE = 3
 FOLLOW_UP_PAGE = 8
 SPACED_WORD_PAGE = 14
 THRESHOLD_PAGE = 15
+VISIT_WINDOW_PAGE = 59
+PRIVATE_USE_START_CODEPOINT = 0xE000
+PRIVATE_USE_END_CODEPOINT = 0xF8FF
 
 
 @cache
@@ -73,6 +82,30 @@ def test_fame_d_cover_title_verifies() -> None:
     citation = Citation(
         page_number=COVER_PAGE,
         quote="Food As MedicinE for Diabetes Study Protocol",
+    )
+
+    assert verify_citation(citation, pages).is_verified is True
+
+
+def test_no_private_use_characters_remain_in_demo_protocols() -> None:
+    leftovers = [
+        (page.page_number, f"U+{ord(char):04X}")
+        for pdf_path in (FAME_D_PDF_PATH, CANAGLIFLOZIN_PDF_PATH)
+        for page in _load_pages(pdf_path)
+        for char in page.text
+        if PRIVATE_USE_START_CODEPOINT
+        <= ord(char)
+        <= PRIVATE_USE_END_CODEPOINT
+    ]
+
+    assert leftovers == []
+
+
+def test_canagliflozin_visit_window_quote_verifies() -> None:
+    pages = _load_pages(CANAGLIFLOZIN_PDF_PATH)
+    citation = Citation(
+        page_number=VISIT_WINDOW_PAGE,
+        quote="recommended visit window of ±4 days",
     )
 
     assert verify_citation(citation, pages).is_verified is True

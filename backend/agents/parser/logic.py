@@ -11,6 +11,8 @@ from pydantic import BaseModel
 
 from backend.agents.parser.prompts import (
     COMMON_EXTRACTION_RULES,
+    DESIGN_INSTRUCTIONS,
+    ELIGIBILITY_INSTRUCTIONS,
     INSTRUCTIONS_SEPARATOR,
     REPAIR_INSTRUCTIONS,
 )
@@ -18,6 +20,8 @@ from backend.clients.gemini import ThinkingLevel
 from backend.shared.citations import verify_citation
 from backend.shared.messages import (
     Citation,
+    CriterionKind,
+    EligibilityCriterion,
     EligibilityExtraction,
     EndpointList,
     ExtractionWarning,
@@ -32,6 +36,9 @@ from backend.shared.messages import (
 
 PAGE_MARKER_TEMPLATE = "=== PAGE {page_number} ==="
 EMPTY_FACET_WARNING = "facet ran but found no items in the document"
+INCLUSION_ID_PREFIX = "IN"
+EXCLUSION_ID_PREFIX = "EX"
+MIN_ARM_COUNT = 1
 
 type SanityRule[ResultT: BaseModel] = Callable[[ResultT, int], list[str]]
 """Takes a facet result and the page count; returns warning messages."""
@@ -46,6 +53,7 @@ class Facet[ResultT: BaseModel]:
     result_model: type[ResultT]
     thinking_level: ThinkingLevel
     sanity_rules: tuple[SanityRule[ResultT], ...] = field(default=())
+    normalize: Callable[[ResultT], ResultT] | None = None
 
 
 @dataclass
@@ -216,3 +224,112 @@ def _store_facet_result(
         "expected a facet result model defined in messages.py, "
         f"got {type(result).__name__}"
     )
+
+
+def assign_criterion_ids(
+    extraction: EligibilityExtraction,
+) -> EligibilityExtraction:
+    """Renumber eligibility criteria in document order as IN-01 and EX-01."""
+    inclusion_index = 0
+    exclusion_index = 0
+    renumbered: list[EligibilityCriterion] = []
+    for criterion in extraction.criteria:
+        if criterion.kind == CriterionKind.INCLUSION:
+            inclusion_index += 1
+            criterion_id = f"{INCLUSION_ID_PREFIX}-{inclusion_index:02d}"
+        else:
+            exclusion_index += 1
+            criterion_id = f"{EXCLUSION_ID_PREFIX}-{exclusion_index:02d}"
+        renumbered.append(
+            criterion.model_copy(update={"criterion_id": criterion_id})
+        )
+    return extraction.model_copy(update={"criteria": renumbered})
+
+
+def normalize_design_facts(facts: TrialDesignFacts) -> TrialDesignFacts:
+    """Normalize extracted design facts.
+
+    Strips spaces from and uppercases the NCT ID, and clears an age
+    inclusivity flag whose age limit is missing (it would describe nothing).
+    """
+    updates: dict[str, object] = {}
+    if facts.nct_id is not None:
+        cleaned_nct = "".join(facts.nct_id.value.split()).upper()
+        updates["nct_id"] = facts.nct_id.model_copy(
+            update={"value": cleaned_nct}
+        )
+    if facts.min_age_years is None:
+        updates["is_min_age_inclusive"] = None
+    if facts.max_age_years is None:
+        updates["is_max_age_inclusive"] = None
+    return facts.model_copy(update=updates)
+
+
+def _check_has_inclusion_criterion(
+    extraction: EligibilityExtraction, _page_count: int
+) -> list[str]:
+    if any(c.kind == CriterionKind.INCLUSION for c in extraction.criteria):
+        return []
+    return ["eligibility criteria contain no INCLUSION items"]
+
+
+def _check_age_range(facts: TrialDesignFacts, _page_count: int) -> list[str]:
+    if facts.min_age_years is None or facts.max_age_years is None:
+        return []
+    min_age = facts.min_age_years.value
+    max_age = facts.max_age_years.value
+    if min_age >= max_age:
+        message = (
+            f"min_age_years ({min_age}) must be less than "
+            f"max_age_years ({max_age})"
+        )
+        return [message]
+    return []
+
+
+def _check_target_enrollment(
+    facts: TrialDesignFacts, _page_count: int
+) -> list[str]:
+    if facts.target_enrollment is None:
+        return []
+    enrollment = facts.target_enrollment.value
+    if enrollment <= 0:
+        return [f"target_enrollment ({enrollment}) must be positive"]
+    return []
+
+
+def _check_arm_count(facts: TrialDesignFacts, _page_count: int) -> list[str]:
+    if facts.arm_count is None:
+        return []
+    arms = facts.arm_count.value
+    if arms < MIN_ARM_COUNT:
+        return [f"arm_count ({arms}) must be at least {MIN_ARM_COUNT}"]
+    return []
+
+
+ELIGIBILITY_FACET: Facet[EligibilityExtraction] = Facet(
+    name=FacetName.ELIGIBILITY,
+    instructions=ELIGIBILITY_INSTRUCTIONS,
+    result_model=EligibilityExtraction,
+    thinking_level=ThinkingLevel.HIGH,
+    sanity_rules=(_check_has_inclusion_criterion,),
+    normalize=assign_criterion_ids,
+)
+
+DESIGN_FACET: Facet[TrialDesignFacts] = Facet(
+    name=FacetName.DESIGN,
+    instructions=DESIGN_INSTRUCTIONS,
+    result_model=TrialDesignFacts,
+    thinking_level=ThinkingLevel.MEDIUM,
+    sanity_rules=(
+        _check_age_range,
+        _check_target_enrollment,
+        _check_arm_count,
+    ),
+    normalize=normalize_design_facts,
+)
+
+FACETS: tuple[Facet[EligibilityExtraction] | Facet[TrialDesignFacts], ...] = (
+    ELIGIBILITY_FACET,
+    DESIGN_FACET,
+)

@@ -12,11 +12,18 @@ from backend.shared.messages import Citation, PageText
 
 MIN_QUOTE_CHARACTERS = 15
 
+# pypdf maps Symbol-font glyphs to U+F000 + their Symbol code; these are
+# the ones seen in real protocols (thresholds, visit windows, statistics).
 SYMBOL_FONT_CHARACTERS: dict[str, str] = {
     "\uf0b3": "≥",
     "\uf0a3": "≤",
     "\uf02d": "-",
     "\uf0b7": "•",
+    "\uf0b1": "±",
+    "\uf061": "α",
+    "\uf062": "β",
+    "\uf067": "γ",
+    "\uf0a5": "∞",
 }
 SYMBOL_FONT_TRANSLATION = str.maketrans(SYMBOL_FONT_CHARACTERS)
 

@@ -140,3 +140,10 @@ def test_parse_response_envelope_round_trips() -> None:
 
     assert restored_envelope.review_id == "rev-123"
     assert restored_document == document
+
+
+def test_age_inclusivity_is_unknown_by_default() -> None:
+    facts = TrialDesignFacts()
+
+    assert facts.is_min_age_inclusive is None
+    assert facts.is_max_age_inclusive is None

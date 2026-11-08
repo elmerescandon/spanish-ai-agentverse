@@ -33,8 +33,11 @@ extend-select = ["UP", "E501"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-markers = ["live: hits real APIs"]
-addopts = "-m 'not live'"
+markers = [
+    "live: hits real APIs",
+    "extended: slow local checks (real demo PDFs); run with make test-extended",
+]
+addopts = "-m 'not live and not extended'"
 pythonpath = ["."]
 
 [[tool.mypy.overrides]]

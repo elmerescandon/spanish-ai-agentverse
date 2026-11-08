@@ -3,9 +3,16 @@
 from pydantic import BaseModel
 
 from backend.agents.parser.agent import extract_facet
-from backend.agents.parser.logic import Facet
+from backend.agents.parser.logic import ELIGIBILITY_FACET, Facet
 from backend.clients.gemini import LlmCallFailedError, ThinkingLevel
-from backend.shared.messages import Citation, FacetName, PageText
+from backend.shared.messages import (
+    Citation,
+    CriterionKind,
+    EligibilityCriterion,
+    EligibilityExtraction,
+    FacetName,
+    PageText,
+)
 from tests.conftest import FakeJsonGenerator
 
 PAGES = [
@@ -181,3 +188,68 @@ async def test_sanity_rule_violation_becomes_warning() -> None:
     outcome = await extract_facet(_facet(SANITY_MESSAGE), PAGES, llm)
 
     assert outcome.warnings == [f"{SANITY_MESSAGE} page_count={len(PAGES)}"]
+
+
+async def test_normalize_runs_before_sanity_rules() -> None:
+    def uppercase_statements(result: _Statements) -> _Statements:
+        return _Statements(
+            statements=[
+                statement.model_copy(update={"text": statement.text.upper()})
+                for statement in result.statements
+            ]
+        )
+
+    def require_uppercase(result: _Statements, page_count: int) -> list[str]:
+        if any(not s.text.isupper() for s in result.statements):
+            return [f"statements not normalized (pages={page_count})"]
+        return []
+
+    facet = Facet(
+        name=FacetName.ELIGIBILITY,
+        instructions=FACET_INSTRUCTIONS,
+        result_model=_Statements,
+        thinking_level=ThinkingLevel.HIGH,
+        sanity_rules=(require_uppercase,),
+        normalize=uppercase_statements,
+    )
+    llm = FakeJsonGenerator([_statements((VERIFIABLE_QUOTE, 2))])
+
+    outcome = await extract_facet(facet, PAGES, llm)
+
+    assert isinstance(outcome.result, _Statements)
+    assert outcome.result.statements[0].text == "STATEMENT 0"
+    assert outcome.warnings == []
+
+
+async def test_eligibility_facet_end_to_end_with_fake_llm() -> None:
+    raw_extraction = EligibilityExtraction(
+        criteria=[
+            EligibilityCriterion(
+                criterion_id="a",
+                kind=CriterionKind.INCLUSION,
+                text="Participants must have HbA1c >= 8.0% at screening.",
+                citation=Citation(page_number=2, quote=VERIFIABLE_QUOTE),
+            ),
+            EligibilityCriterion(
+                criterion_id="b",
+                kind=CriterionKind.EXCLUSION,
+                text="Prior enrollment in the Food As Medicine trial.",
+                citation=Citation(page_number=1, quote=OTHER_VERIFIABLE_QUOTE),
+            ),
+        ]
+    )
+    llm = FakeJsonGenerator([raw_extraction])
+
+    outcome = await extract_facet(ELIGIBILITY_FACET, PAGES, llm)
+
+    assert isinstance(outcome.result, EligibilityExtraction)
+    assert [c.criterion_id for c in outcome.result.criteria] == [
+        "IN-01",
+        "EX-01",
+    ]
+    assert [
+        c.citation.is_verified
+        for c in outcome.result.criteria
+        if c.citation is not None
+    ] == [True, True]
+    assert outcome.warnings == []

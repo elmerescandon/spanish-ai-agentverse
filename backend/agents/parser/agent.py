@@ -76,6 +76,8 @@ async def extract_facet[ResultT: BaseModel](
             f"{len(still_failed)} citation(s) could not be verified "
             "against the PDF and are flagged is_verified=False"
         )
+    if facet.normalize is not None:
+        best_result = facet.normalize(best_result)
     page_count = len(pages)
     for rule in facet.sanity_rules:
         warnings.extend(rule(best_result, page_count))

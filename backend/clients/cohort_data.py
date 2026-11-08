@@ -39,6 +39,10 @@ PEER_PROTOCOL_LIST_ADAPTER: TypeAdapter[list[PeerTrialProtocol]] = TypeAdapter(
 )
 
 
+class CohortDataError(FileNotFoundError, ValueError):
+    """Raised when the NHANES cohort or peer protocol files are invalid."""
+
+
 class _RegistryModel(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel,
@@ -255,13 +259,13 @@ def load_nhanes_diabetes_cohort(
 ) -> list[PatientRecord]:
     """Load and validate the NaN-free CDC NHANES Diabetes patient cohort."""
     if not cohort_path.exists():
-        raise FileNotFoundError(
+        raise CohortDataError(
             f"Expected NHANES cohort file at {cohort_path}, but it was missing"
         )
     raw_json = cohort_path.read_text(encoding="utf-8")
     patients = PATIENT_LIST_ADAPTER.validate_json(raw_json)
     if not patients:
-        raise ValueError(
+        raise CohortDataError(
             f"Expected non-empty patient cohort in {cohort_path}, got 0 rows"
         )
     logger.info(
@@ -279,7 +283,7 @@ def load_peer_diabetes_protocols(
 ) -> list[PeerTrialProtocol]:
     """Load peer Diabetes protocols, merging adult peers from Theo's store."""
     if not peer_path.exists():
-        raise FileNotFoundError(
+        raise CohortDataError(
             f"Expected peer protocols file at {peer_path}, but it was missing"
         )
     raw_json = peer_path.read_text(encoding="utf-8")
@@ -292,7 +296,7 @@ def load_peer_diabetes_protocols(
             seen_ids.add(registry_peer.nct_id)
 
     if not peers:
-        raise ValueError(
+        raise CohortDataError(
             f"Expected non-empty peer protocols in {peer_path}, got 0 items"
         )
     logger.info(

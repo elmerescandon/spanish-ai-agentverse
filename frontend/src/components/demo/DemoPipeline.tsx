@@ -43,6 +43,7 @@ export default function DemoPipeline({
     stepId: steps[0].id,
     decisionId: null,
   });
+  const [stepChangeCount, setStepChangeCount] = useState(0);
 
   // The rest of the steps follow the upload one by one.
   useEffect(() => {
@@ -81,14 +82,27 @@ export default function DemoPipeline({
     return { id: step.id, title: step.title, state };
   });
 
-  const openStep = useCallback((id: string) => {
-    setView({ stepId: id as StepId, decisionId: null });
-  }, []);
+  // Only a change of step animates the content; first render and opening a
+  // finding within the same step do not.
+  const goTo = useCallback(
+    (next: View) => {
+      if (next.stepId !== view.stepId) {
+        setStepChangeCount((count) => count + 1);
+      }
+      setView(next);
+    },
+    [view.stepId]
+  );
+
+  const openStep = useCallback(
+    (id: string) => goTo({ stepId: id as StepId, decisionId: null }),
+    [goTo]
+  );
 
   const openDecision = (decisionId: string) => {
     const decision = decisionsById.get(decisionId);
     if (!decision) return;
-    setView({ stepId: decision.step_id, decisionId });
+    goTo({ stepId: decision.step_id, decisionId });
   };
 
   const closeDecision = useCallback(() => {
@@ -132,8 +146,8 @@ export default function DemoPipeline({
       />
 
       <div
-        key={`${currentStep.id}-${currentDecision?.decision_id ?? ""}`}
-        className="animate-file-change"
+        key={stepChangeCount}
+        className={stepChangeCount > 0 ? "animate-file-change" : undefined}
       >
         {currentDecision ? (
           <div className="space-y-4">

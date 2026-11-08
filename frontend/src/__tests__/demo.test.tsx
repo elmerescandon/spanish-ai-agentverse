@@ -218,6 +218,35 @@ describe("demo pipeline step bar flow", () => {
     }
   });
 
+  it("animates content only when the step changes, not on first render", async () => {
+    const user = userEvent.setup();
+    render(<DemoPage />);
+    await loadPreset(user);
+
+    const stepContent = () =>
+      screen.getByRole("region", { name: /Data Ingestion|Completeness/ })
+        .parentElement!;
+    expect(stepContent()).not.toHaveClass("animate-file-change");
+
+    await user.click(
+      screen.getByRole("button", { name: /Eligibility criteria extracted/ })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Back to findings" })
+    );
+    expect(stepContent()).not.toHaveClass("animate-file-change");
+
+    await waitFor(
+      () =>
+        expect(
+          screen.getByRole("button", { name: "Next step" })
+        ).toBeEnabled(),
+      { timeout: SLOW_STEP_TIMEOUT_MS }
+    );
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(stepContent()).toHaveClass("animate-file-change");
+  });
+
   it("opens a finding under the step bar and goes back by button or Esc", async () => {
     const user = userEvent.setup();
     render(<DemoPage />);

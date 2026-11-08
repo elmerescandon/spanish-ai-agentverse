@@ -1,14 +1,25 @@
-"""Shared pytest fixtures and test doubles for the protocol parser suite."""
+"""Shared pytest fixtures and test doubles."""
 
-from collections.abc import Sequence
+import asyncio
+from collections.abc import Generator, Sequence
 from pathlib import Path
 
 import pytest
 from fpdf import FPDF
 from pydantic import BaseModel
 
-from backend.clients.gemini import GeminiClient, ThinkingLevel
+from backend.api.protocol_pipeline import (
+    ProtocolPipeline,
+    set_protocol_pipeline,
+)
+from backend.clients.gemini import (
+    GeminiClient,
+    LlmCallFailedError,
+    ThinkingLevel,
+)
+from backend.clients.pdf_reader import read_pdf_pages
 from backend.shared.config import load_settings
+from backend.shared.messages import ProtocolDocument
 
 PDF_FONT_FAMILY = "Helvetica"
 PDF_FONT_SIZE_PT = 10
@@ -66,3 +77,48 @@ def make_live_gemini_client() -> GeminiClient:
     except ValueError:
         pytest.skip("GEMINI_API_KEY is not set in .env or the environment")
     return GeminiClient(api_key=api_key, model=settings.gemini_model)
+
+
+class UnavailableLlm:
+    """JsonGenerator that fails every call, as when Gemini is down."""
+
+    def __init__(self) -> None:
+        self.call_count = 0
+
+    async def generate_json[ModelT: BaseModel](
+        self,
+        prompt: str,
+        response_model: type[ModelT],
+        thinking_level: ThinkingLevel = ThinkingLevel.MEDIUM,
+    ) -> ModelT:
+        """Count the call and fail it."""
+        self.call_count += 1
+        raise LlmCallFailedError("Gemini is unavailable in offline tests")
+
+
+class OfflineProtocolPipeline(ProtocolPipeline):
+    """API-test pipeline: text-only parse, rule check without Gemini."""
+
+    def __init__(self) -> None:
+        super().__init__(llm=UnavailableLlm())
+
+    async def parse(self, pdf_path: Path) -> ProtocolDocument:
+        """Read the PDF's text only (raises UnreadablePdfError like parse)."""
+        pages = await asyncio.to_thread(read_pdf_pages, pdf_path)
+        return ProtocolDocument(
+            protocol_id="offline",
+            title=pdf_path.stem,
+            page_count=len(pages),
+            pages=pages,
+        )
+
+
+@pytest.fixture(autouse=True)
+def _offline_protocol_pipeline(
+    request: pytest.FixtureRequest,
+) -> Generator[None]:
+    """Keep API tests off Gemini; live tests use the real pipeline."""
+    if request.node.get_closest_marker("live") is None:
+        set_protocol_pipeline(OfflineProtocolPipeline())
+    yield
+    set_protocol_pipeline(None)

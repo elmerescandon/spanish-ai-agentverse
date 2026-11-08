@@ -1,14 +1,12 @@
 """HTTP routes for clinical protocol gap analysis and recommendations."""
 
-import asyncio
 import logging
 import tempfile
 from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, HTTPException, UploadFile, status
 
 from backend.agents.protocol_comparison.demo import demo_recommendations
 from backend.agents.protocol_comparison.peer_store import PeerStoreError
@@ -18,20 +16,8 @@ from backend.api.agent_runners import (
     run_cohort_agent,
     run_protocol_comparison_agent,
 )
-from backend.api.compliance import (
-    to_compliance_report_response,
-    to_recommendations,
-)
-from backend.api.compliance_service import (
-    AnalysisInProgressError,
-    AnalysisJob,
-    ComplianceService,
-    GeminiPipeline,
-)
+from backend.api.protocol_pipeline import get_protocol_pipeline
 from backend.api.schemas import (
-    AnalysisState,
-    AnalysisStatusResponse,
-    ComplianceReportResponse,
     HealthResponse,
     PipelineStep,
     ProtocolCreateRequest,
@@ -44,8 +30,8 @@ from backend.api.schemas import (
     StepRecommendationRequest,
     UploadFileResponse,
 )
-from backend.clients.pdf_reader import UnreadablePdfError, read_pdf_pages
-from backend.shared.messages import ComplianceReport, ProtocolDocument
+from backend.clients.pdf_reader import UnreadablePdfError
+from backend.shared.messages import ProtocolDocument
 
 logger = logging.getLogger(__name__)
 
@@ -241,165 +227,6 @@ async def update_recommendation(
     return updated_rec
 
 
-def _require_protocol(protocol_id: str) -> ProtocolSummary:
-    protocol = _protocols.get(protocol_id)
-    if protocol is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Protocol '{protocol_id}' not found",
-        )
-    return protocol
-
-
-def _set_protocol_status(protocol_id: str, new_status: ProtocolStatus) -> None:
-    protocol = _protocols.get(protocol_id)
-    if protocol is not None:
-        _protocols[protocol_id] = protocol.model_copy(
-            update={"status": new_status}
-        )
-
-
-def apply_compliance_report(
-    protocol_id: str, report: ComplianceReport
-) -> None:
-    """Replace the protocol's completeness cards with the real findings.
-
-    Cards from the other pipeline steps are kept.
-    """
-    cards = _recommendations.setdefault(protocol_id, {})
-    for card_id in [
-        card_id
-        for card_id, card in cards.items()
-        if card.source_step == PipelineStep.COMPLETENESS
-    ]:
-        del cards[card_id]
-    for card in to_recommendations(report):
-        cards[card.recommendation_id] = card
-    _set_protocol_status(protocol_id, ProtocolStatus.READY)
-
-
-def _mark_analysis_failed(protocol_id: str, error: str) -> None:
-    _set_protocol_status(protocol_id, ProtocolStatus.UPLOADED)
-
-
-_compliance_service = ComplianceService(
-    analyse=GeminiPipeline(),
-    on_report=apply_compliance_report,
-    on_failure=_mark_analysis_failed,
-)
-
-
-def get_compliance_service() -> ComplianceService:
-    """Return the process-wide compliance service (overridable in tests)."""
-    return _compliance_service
-
-
-ComplianceServiceDependency = Annotated[
-    ComplianceService, Depends(get_compliance_service)
-]
-
-
-def _status_response(
-    protocol_id: str, job: AnalysisJob
-) -> AnalysisStatusResponse:
-    return AnalysisStatusResponse(
-        protocol_id=protocol_id, state=job.state, error=job.error
-    )
-
-
-@router.post("/protocols/{protocol_id}/pdf", response_model=ProtocolSummary)
-async def upload_protocol_pdf(
-    protocol_id: str,
-    file: UploadFile,
-    service: ComplianceServiceDependency,
-) -> ProtocolSummary:
-    """Attach the protocol PDF that the compliance analysis will read."""
-    _require_protocol(protocol_id)
-    content = await file.read(MAX_UPLOAD_BYTES + 1)
-    if len(content) > MAX_UPLOAD_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=f"PDF must be at most {MAX_UPLOAD_BYTES} bytes",
-        )
-    if not content.startswith(PDF_MAGIC_BYTES):
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"expected a PDF file (starting with {PDF_MAGIC_BYTES!r})",
-        )
-    try:
-        service.store_pdf(protocol_id, content)
-    except AnalysisInProgressError as error:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(error)
-        ) from error
-    _set_protocol_status(protocol_id, ProtocolStatus.UPLOADED)
-    return _require_protocol(protocol_id)
-
-
-@router.post(
-    "/protocols/{protocol_id}/compliance-report",
-    status_code=status.HTTP_202_ACCEPTED,
-    response_model=AnalysisStatusResponse,
-)
-async def start_compliance_report(
-    protocol_id: str,
-    service: ComplianceServiceDependency,
-) -> AnalysisStatusResponse:
-    """Start the protocol's compliance analysis (safe to call twice)."""
-    _require_protocol(protocol_id)
-    try:
-        job = service.start(protocol_id)
-    except KeyError as error:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"upload the protocol PDF first: {error}",
-        ) from error
-    if job.state == AnalysisState.RUNNING:
-        _set_protocol_status(protocol_id, ProtocolStatus.ANALYZING)
-    return _status_response(protocol_id, job)
-
-
-@router.get(
-    "/protocols/{protocol_id}/compliance-report/status",
-    response_model=AnalysisStatusResponse,
-)
-def get_compliance_report_status(
-    protocol_id: str,
-    service: ComplianceServiceDependency,
-) -> AnalysisStatusResponse:
-    """Return the analysis progress, for the UI to poll."""
-    _require_protocol(protocol_id)
-    job = service.get(protocol_id)
-    if job is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"no analysis started for protocol '{protocol_id}'",
-        )
-    return _status_response(protocol_id, job)
-
-
-@router.get(
-    "/protocols/{protocol_id}/compliance-report",
-    response_model=ComplianceReportResponse,
-)
-def get_compliance_report(
-    protocol_id: str,
-    service: ComplianceServiceDependency,
-) -> ComplianceReportResponse:
-    """Return the finished compliance report."""
-    _require_protocol(protocol_id)
-    job = service.get(protocol_id)
-    if job is None or job.report is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=(
-                f"no finished report for protocol '{protocol_id}'; "
-                "check /compliance-report/status"
-            ),
-        )
-    return to_compliance_report_response(job.report)
-
-
 def _validate_pdf_upload(file: UploadFile, content: bytes) -> None:
     """Reject uploads that are not a non-empty PDF.
 
@@ -434,15 +261,30 @@ def _validate_pdf_upload(file: UploadFile, content: bytes) -> None:
 
 @router.post("/upload-file", response_model=UploadFileResponse)
 async def upload_file(file: UploadFile) -> UploadFileResponse:
-    """Read an uploaded protocol PDF and return the INGEST step."""
-    content = await file.read()
+    """Parse an uploaded protocol PDF and return the INGEST step.
+
+    The first upload of a PDF takes minutes (one Gemini call per parser
+    facet); the same file uploaded again is served from the parse cache.
+
+    Raises:
+        HTTPException: 413 for a file over MAX_UPLOAD_BYTES, 415 for a
+            non-PDF, 422 for an empty or unreadable PDF.
+        AnalysisFailedError: Gemini is not configured or every parser
+            facet failed (answered with 503 by the app's error handler).
+    """
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"expected a PDF of at most {MAX_UPLOAD_BYTES} bytes",
+        )
     _validate_pdf_upload(file, content)
     filename = file.filename or "protocol.pdf"
     with tempfile.TemporaryDirectory() as temp_directory:
         pdf_path = Path(temp_directory) / "upload.pdf"
         pdf_path.write_bytes(content)
         try:
-            pages = await asyncio.to_thread(read_pdf_pages, pdf_path)
+            parsed = await get_protocol_pipeline().parse(pdf_path)
         except UnreadablePdfError as error:
             logger.warning(
                 "upload unreadable: filename=%s error=%s", filename, error
@@ -451,11 +293,11 @@ async def upload_file(file: UploadFile) -> UploadFileResponse:
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=str(error),
             ) from error
-    document = ProtocolDocument(
-        protocol_id=f"proto-{uuid4().hex[:8]}",
-        title=Path(filename).stem,
-        page_count=len(pages),
-        pages=pages,
+    document = parsed.model_copy(
+        update={
+            "protocol_id": f"proto-{uuid4().hex[:8]}",
+            "title": Path(filename).stem,
+        }
     )
     _documents[document.protocol_id] = document
     logger.info(

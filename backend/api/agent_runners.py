@@ -9,6 +9,7 @@ run in parallel and a retried call is safe.
 """
 
 import logging
+from collections.abc import Sequence
 from typing import cast
 
 from pydantic import JsonValue
@@ -21,6 +22,7 @@ from backend.agents.cohort import (
     analyze_protocol_cohort,
     analyze_protocol_document_cohort,
 )
+from backend.agents.completeness.rules import load_rule_catalogue
 from backend.agents.protocol_comparison.agent import (
     AGENT_NAME as COMPARISON_AGENT_NAME,
 )
@@ -29,7 +31,14 @@ from backend.agents.protocol_comparison.peer_store import PeerStoreError
 from backend.agents.protocol_comparison.step_data import (
     to_step_data as comparison_step_data,
 )
+from backend.api.check_step import AGENT_LABEL, to_check_step
+from backend.api.protocol_pipeline import (
+    AnalysisFailedError,
+    get_protocol_pipeline,
+)
 from backend.api.schemas import (
+    DataSource,
+    DataTable,
     Decision,
     DecisionOption,
     Evidence,
@@ -41,14 +50,15 @@ from backend.api.schemas import (
     Severity,
     StepData,
     StepId,
+    StepStatus,
+    StepWarning,
+    TableColumn,
     TraceEntry,
     TraceKind,
 )
 from backend.shared.messages import ProtocolDocument
 
 logger = logging.getLogger(__name__)
-
-MOCK_EVIDENCE_PAGE = 1  # mocks cite page 1 so the quote link always resolves
 
 
 def _step_logged(document: ProtocolDocument, step: StepData) -> StepData:
@@ -62,29 +72,40 @@ def _step_logged(document: ProtocolDocument, step: StepData) -> StepData:
     return step
 
 
-def build_ingest_step(document: ProtocolDocument) -> StepData:
-    """Build the INGEST section from the text-only read of the upload.
+def _count_label(items: Sequence[object] | None) -> str:
+    """Count extracted items; "n/a" when the parser facet did not run."""
+    return "n/a" if items is None else str(len(items))
 
-    Pure: uses only the document's pages and counts.
+
+def build_ingest_step(document: ProtocolDocument) -> StepData:
+    """Build the INGEST section from the parsed upload.
+
+    Pure: uses only the parsed document.
     """
-    # [TO REFACTOR:(alex)]: swap text-only read for parse_protocol once
-    # Gemini is wired into upload
-    character_count = sum(len(page.text) for page in document.pages)
     empty_page_count = sum(
         1 for page in document.pages if not page.text.strip()
     )
+    criteria = document.eligibility_criteria or []
     metrics = [
         Metric(label="Pages", value=str(document.page_count)),
+        Metric(label="Sections", value=_count_label(document.sections)),
         Metric(
-            label="Characters",
-            value=f"{character_count:,}",
-            tone=MetricTone.GOOD,
+            label="Eligibility criteria",
+            value=_count_label(document.eligibility_criteria),
         ),
+        Metric(label="Endpoints", value=_count_label(document.endpoints)),
+        Metric(label="Visits", value=_count_label(document.schedule)),
         Metric(
             label="Empty pages",
             value=str(empty_page_count),
             tone=MetricTone.WARN if empty_page_count else MetricTone.GOOD,
         ),
+    ]
+    warnings = [
+        StepWarning(
+            code=f"facet_{item.facet.value.lower()}", message=item.message
+        )
+        for item in document.extraction_warnings
     ]
     return _step_logged(
         document,
@@ -92,8 +113,10 @@ def build_ingest_step(document: ProtocolDocument) -> StepData:
             id=StepId.INGEST,
             title="Data Ingestion",
             summary=(
-                f"'{document.title}' read as text; structured parsing "
-                "is not wired in yet."
+                f"'{document.title}' parsed into "
+                f"{_count_label(document.sections)} sections and "
+                f"{_count_label(document.eligibility_criteria)} eligibility "
+                "criteria, each fact with a verified page quote."
             ),
             headline=Metric(
                 label="pages read",
@@ -101,109 +124,77 @@ def build_ingest_step(document: ProtocolDocument) -> StepData:
                 tone=MetricTone.GOOD,
             ),
             metrics=metrics,
+            status=StepStatus.PARTIAL if warnings else StepStatus.COMPLETED,
+            agent="Parser",
+            warnings=warnings,
+            data_sources=[
+                DataSource(
+                    source=EvidenceSource.PROTOCOL,
+                    name=document.title,
+                    record_count=document.page_count,
+                )
+            ],
+            tables=[
+                DataTable(
+                    table_id="ingest-criteria",
+                    title="Eligibility criteria",
+                    columns=[
+                        TableColumn(key="criterion_id", label="ID"),
+                        TableColumn(key="kind", label="Kind"),
+                        TableColumn(key="text", label="Criterion"),
+                        TableColumn(key="page", label="Page"),
+                    ],
+                    rows=[
+                        {
+                            "criterion_id": c.criterion_id,
+                            "kind": c.kind.value,
+                            "text": c.text,
+                            "page": c.citation.page_number
+                            if c.citation
+                            else None,
+                        }
+                        for c in criteria
+                    ],
+                )
+            ],
+            details={
+                "design": (
+                    document.design.model_dump(mode="json", exclude_none=True)
+                    if document.design
+                    else None
+                ),
+            },
         ),
-    )
-
-
-def _mock_decision(
-    *,
-    step_id: StepId,
-    key: str,
-    document: ProtocolDocument,
-    severity: Severity,
-    title: str,
-    claim: str,
-    quote: str,
-    agent: str,
-    rule_text: str,
-    proposed_change: ProposedChange,
-    source: EvidenceSource = EvidenceSource.PROTOCOL,
-) -> Decision:
-    """Assemble one mock Decision with a single evidence and a short trace."""
-    evidence_id = f"e-{key}"
-    return Decision(
-        decision_id=f"d-{key}",
-        step_id=step_id,
-        severity=severity,
-        title=title,
-        claim=claim,
-        evidence=[
-            Evidence(
-                evidence_id=evidence_id,
-                source=source,
-                document=document.title,
-                page=MOCK_EVIDENCE_PAGE,
-                quote=quote,
-            )
-        ],
-        trace=[
-            TraceEntry(
-                agent=agent,
-                kind=TraceKind.RULE,
-                text=rule_text,
-                evidence_ids=[evidence_id],
-            ),
-            TraceEntry(
-                agent=agent,
-                kind=TraceKind.CONCLUDE,
-                text=claim,
-                evidence_ids=[evidence_id],
-            ),
-        ],
-        proposed_change=proposed_change,
     )
 
 
 async def run_checklist_agent(document: ProtocolDocument) -> StepData:
-    """Return the CHECK section (completeness and consistency).
+    """Return the CHECK section: the protocol against every rule.
+
+    The check runs once per parsed protocol; repeated calls return the
+    same step.
 
     Raises:
-        Nothing today (mock). Real agents should raise a specific
-        exception the route can turn into an HTTP error.
+        AnalysisFailedError: Gemini is not configured (the app answers
+            with 503).
     """
-    # [TO REFACTOR:(alex)]: mock until the checklist agent is wired
-    decision = _mock_decision(
-        step_id=StepId.CHECK,
-        key="chk-01",
-        document=document,
-        severity=Severity.CRITICAL,
-        title="Rescue medication criteria missing",
-        claim=(
-            "No rescue medication rule is defined, although the "
-            "protocol allows glycaemic rescue after Week 12."
-        ),
-        quote=(
-            "Rescue therapy may be initiated at the investigator's "
-            "discretion after Week 12."
-        ),
-        agent="Completeness",
-        rule_text="Rubric item R-07 requires explicit rescue thresholds.",
-        proposed_change=ProposedChange(
-            path="6.4 Rescue therapy",
-            before="at the investigator's discretion",
-            after="when fasting plasma glucose exceeds 13.3 mmol/L",
-        ),
+    try:
+        run = await get_protocol_pipeline().check(document)
+    except AnalysisFailedError:
+        logger.exception(
+            "completeness check failed: agent=%s protocol_id=%s",
+            AGENT_LABEL,
+            document.protocol_id,
+        )
+        raise
+    step = to_check_step(
+        run.report,
+        load_rule_catalogue(),
+        page_count=document.page_count,
+        started_at=run.started_at,
+        completed_at=run.completed_at,
     )
-    return _step_logged(
-        document,
-        StepData(
-            id=StepId.CHECK,
-            title="Completeness & Consistency",
-            summary=f"'{document.title}' checked against the rubric.",
-            headline=Metric(
-                label="items missing", value="2", tone=MetricTone.RISK
-            ),
-            metrics=[
-                Metric(label="Present", value="9", tone=MetricTone.GOOD),
-                Metric(label="Weak", value="3", tone=MetricTone.WARN),
-                Metric(label="Missing", value="2", tone=MetricTone.RISK),
-                Metric(
-                    label="Contradictions", value="1", tone=MetricTone.WARN
-                ),
-            ],
-            decisions=[decision],
-        ),
-    )
+    return _step_logged(document, step)
 
 
 async def run_protocol_comparison_agent(

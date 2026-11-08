@@ -46,6 +46,14 @@ class RecommendationStatus(StrEnum):
     REJECTED = "rejected"
 
 
+class AnalysisState(StrEnum):
+    """Progress of a protocol's background compliance analysis."""
+
+    RUNNING = "running"
+    DONE = "done"
+    FAILED = "failed"
+
+
 class HealthResponse(BaseModel):
     """Response returned by the health check endpoint."""
 
@@ -138,3 +146,11 @@ class ComplianceReportResponse(BaseModel):
     fixes: list[ProposedFix] = Field(default_factory=list)
     new_findings_after_fixes: list[FindingView] = Field(default_factory=list)
     sponsor_inputs_needed: list[SponsorInput] = Field(default_factory=list)
+
+
+class AnalysisStatusResponse(BaseModel):
+    """Progress of a protocol's compliance analysis, for UI polling."""
+
+    protocol_id: str
+    state: AnalysisState
+    error: str | None = None

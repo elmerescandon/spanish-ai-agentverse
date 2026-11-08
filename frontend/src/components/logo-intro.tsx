@@ -21,11 +21,9 @@ const isMarkedOnServer = () => true;
 
 /**
  * First-visit intro: over a blurred view of the page, the insulin molecule
- * forms (each chain revealed left to right), then grows past the screen
- * edges as the blur fades, bringing the page into focus. Only transform
- * and opacity animate, so the GPU runs it smoothly even while the page is
- * still loading. It follows the <head> script's mark on
- * <html>, and clearing the mark when the fade ends removes it.
+ * forms (each chain revealed left to right), then fades as the blur clears,
+ * bringing the page into focus. It follows the <head> script's mark on
+ * <html>, and clearing the mark when the unblur ends removes it.
  */
 export function LogoIntro() {
   const isPlaying = useSyncExternalStore(
@@ -38,7 +36,7 @@ export function LogoIntro() {
 
   const finish = (event: AnimationEvent<HTMLDivElement>) => {
     // The windows' and molecule's animations bubble up; only the cover's
-    // fade ends the intro.
+    // unblur ends the intro.
     if (event.target !== event.currentTarget) return;
     document.documentElement.removeAttribute(INTRO_PLAY_ATTRIBUTE);
   };

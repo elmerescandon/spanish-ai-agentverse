@@ -261,13 +261,13 @@ html {
   scroll-padding-top: 5rem;
 }
 
-/* Homepage intro (src/components/logo-intro.tsx), 1s in total: over a
+/* Homepage intro (src/components/logo-intro.tsx), 1.2s in total: over a
    blurred view of the page, the insulin molecule forms as each chain is
-   revealed left to right (0-0.6s), then grows past the screen edges while
-   the blur fades away, bringing the page into focus (0.6-1s). Only
-   transform and opacity animate, so the GPU runs it without waiting on the
-   page's own start-up work. Shown only while the <head> script has marked
-   <html> with data-intro-play. */
+   revealed left to right (0-0.6s), then the molecule fades while the blur
+   clears, bringing the page into focus (0.6-1.2s). The blur itself
+   animates rather than the cover's opacity, so the page sharpens in place
+   instead of fading through a wash. Shown only while the <head> script has
+   marked <html> with data-intro-play. */
 .logo-intro {
   position: fixed;
   inset: 0;
@@ -281,8 +281,8 @@ html {
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
   color: oklch(0.141 0.005 285.823); /* zinc-950, the page's ink */
-  will-change: opacity;
-  animation: logo-intro-cover 1s ease-in forwards;
+  will-change: backdrop-filter, background-color;
+  animation: logo-intro-unblur 1.2s ease-out forwards;
 }
 
 html[data-intro-play] .logo-intro {
@@ -294,7 +294,7 @@ html[data-intro-play] .logo-intro {
   width: 6rem;
   height: 6rem;
   will-change: transform;
-  animation: logo-intro-grow 1s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+  animation: logo-intro-molecule-fade 1.2s ease-out forwards;
 }
 
 /* A window and its content slide in opposite directions by the same
@@ -367,23 +367,30 @@ html[data-intro-play] .logo-intro {
   }
 }
 
-@keyframes logo-intro-grow {
+@keyframes logo-intro-molecule-fade {
   0%,
-  60% {
+  50% {
+    opacity: 1;
     transform: scale(1);
   }
+  85%,
   100% {
-    transform: scale(40);
+    opacity: 0;
+    transform: scale(1.15);
   }
 }
 
-@keyframes logo-intro-cover {
+@keyframes logo-intro-unblur {
   0%,
-  60% {
-    opacity: 1;
+  50% {
+    background-color: oklch(1 0 0 / 0.3);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
   }
   100% {
-    opacity: 0;
+    background-color: oklch(1 0 0 / 0);
+    -webkit-backdrop-filter: blur(0px);
+    backdrop-filter: blur(0px);
   }
 }
 

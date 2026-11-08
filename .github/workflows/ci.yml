@@ -31,8 +31,10 @@ jobs:
       - name: Type-check (mypy)
         run: uv run mypy backend
 
-      - name: Run tests (pytest, live tests skipped)
-        run: uv run pytest
+      # -m overrides pyproject's default filter, so CI also runs the slow
+      # `extended` tests (real demo PDFs); only live API tests are skipped.
+      - name: Run tests (pytest incl. extended, live tests skipped)
+        run: uv run pytest -m 'not live'
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

@@ -66,7 +66,7 @@ cp .env.example .env
 | `BACKEND_PORT` | `8000` | Port for FastAPI server |
 | `ALLOWED_ORIGINS` | `http://localhost:3000,http://127.0.0.1:3000` | Comma-separated CORS allowed origins |
 | `GEMINI_API_KEY` | *(None)* | Google Gemini API key for LLM tasks |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model identifier |
+| `GEMINI_MODEL` | `gemini-4-argon` | Gemini model identifier |
 | `AACT_DB_URL` | *(None)* | PostgreSQL URL for ClinicalTrials.gov AACT |
 | `MIMIC_DATA_PATH` | *(None)* | Local filesystem path to MIMIC-IV data |
 | `SYNTHEA_DATA_PATH` | *(None)* | Local path to Synthea synthetic data |

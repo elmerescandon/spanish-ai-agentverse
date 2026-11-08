@@ -1,6 +1,6 @@
 import type {
+  RecommendationStepId,
   StepData,
-  StepId,
   UploadFileResponse,
 } from "@/lib/demo/types";
 
@@ -240,7 +240,7 @@ export type RecommendationFetcher = (protocolId: string) => Promise<StepData>;
 
 // The steps that follow ingest, each backed by its own agent endpoint.
 export const RECOMMENDATION_ENDPOINTS: Record<
-  Exclude<StepId, "ingest">,
+  RecommendationStepId,
   RecommendationFetcher
 > = {
   check: fetchChecklistRecommendation,

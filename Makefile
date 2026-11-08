@@ -1,4 +1,4 @@
-.PHONY: install dev dev-frontend run parse format lint test test-extended test-live check demo
+.PHONY: install dev dev-frontend run parse format lint test test-extended test-live check demo sample-protocol
 
 install:
 	uv sync
@@ -41,3 +41,6 @@ test-live:
 check: format lint test
 
 demo: test-live run
+
+sample-protocol:
+	uv run python scripts/make_sample_protocol.py

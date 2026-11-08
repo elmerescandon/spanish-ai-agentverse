@@ -25,7 +25,7 @@ import {
   TRACE_KINDS,
   UPLOAD_FILE_RESPONSE_KEYS,
 } from "@/lib/demo/types";
-import { MOCK_STEPS } from "@/lib/demo/mock";
+import { MOCK_STEPS, MOCK_UPLOAD_RESPONSE } from "@/lib/demo/mock";
 import { MOCK_PROTOCOL, MOCK_RECOMMENDATIONS } from "./fixtures";
 
 interface OpenApiSchemaProperty {
@@ -157,6 +157,17 @@ describe("Frontend <-> Backend API Schema & Component Contract Alignment", () =>
     expect(keysOf("UploadFileResponse")).toEqual(
       [...UPLOAD_FILE_RESPONSE_KEYS].sort()
     );
+  });
+
+  it("keeps the sample upload response within the backend keys", () => {
+    for (const key of Object.keys(MOCK_UPLOAD_RESPONSE)) {
+      expect(UPLOAD_FILE_RESPONSE_KEYS as readonly string[]).toContain(key);
+    }
+    const required = schemas["UploadFileResponse"]?.required ?? [];
+    for (const key of required) {
+      expect(Object.keys(MOCK_UPLOAD_RESPONSE)).toContain(key);
+    }
+    expect(MOCK_UPLOAD_RESPONSE.step.id).toBe("ingest");
   });
 
   it("keeps the mock steps within the backend enums and keys", () => {

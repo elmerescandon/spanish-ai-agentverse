@@ -105,7 +105,7 @@ export default function StepBar({
   return (
     <nav
       aria-label="Pipeline steps"
-      className="sticky top-0 z-10 -mx-2 bg-white/95 px-2 pb-3 pt-2 backdrop-blur-sm"
+      className="sticky top-18 z-20 -mx-2 bg-white/95 px-2 pb-3 pt-2 backdrop-blur-sm"
     >
       <div className="flex items-center gap-2">
         <button

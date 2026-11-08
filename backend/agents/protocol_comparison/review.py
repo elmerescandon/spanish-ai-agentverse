@@ -76,9 +76,14 @@ def needs_review(result: DimensionComparison) -> bool:
     )
 
 
-def _comparison_facts(
+def describe_comparison(
     result: DimensionComparison, suggestions: Sequence[Suggestion]
 ) -> dict[str, object]:
+    """Every fact about one comparison as plain JSON-ready data.
+
+    Shared by the LLM prompt and the API recommendation details, so the
+    reviewer sees exactly what the LLM was given.
+    """
     dimension = result.dimension
     draft_value = result.draft_value
     note = result.same_drug_note
@@ -162,7 +167,7 @@ def build_reasoning_prompt(
     result: DimensionComparison, suggestions: Sequence[Suggestion]
 ) -> str:
     """Instructions plus every fact the LLM may use, as JSON."""
-    facts = _comparison_facts(result, suggestions)
+    facts = describe_comparison(result, suggestions)
     return (
         REASONING_INSTRUCTIONS
         + PROMPT_SECTION_SEPARATOR

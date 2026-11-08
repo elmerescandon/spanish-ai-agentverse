@@ -109,6 +109,7 @@ class ReadingStatus(StrEnum):
     READ = "READ"
     NO_TEXT = "NO_TEXT"  # the registry has no eligibility text
     FAILED = "FAILED"  # the LLM call failed after its retries
+    NOT_READ = "NOT_READ"  # nothing cached and no LLM to read it
 
 
 @dataclass(frozen=True)

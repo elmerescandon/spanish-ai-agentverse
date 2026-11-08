@@ -7,11 +7,17 @@ comparison results; it returns one suggestion card per flag.
 import asyncio
 import logging
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Protocol
 
 from backend.agents.protocol_comparison.comparison import (
     DimensionComparison,
+    compare_draft,
+)
+from backend.agents.protocol_comparison.dimensions import (
+    ALL_DIMENSIONS,
+    profile_registry_study,
+    with_values,
 )
 from backend.agents.protocol_comparison.eligibility import (
     LabLimitReply,
@@ -23,6 +29,7 @@ from backend.agents.protocol_comparison.eligibility import (
     interpret_reply,
     reading_cache_key,
 )
+from backend.agents.protocol_comparison.logic import screen_peers
 from backend.agents.protocol_comparison.review import (
     FlagReasoning,
     ReasoningStatus,
@@ -30,6 +37,10 @@ from backend.agents.protocol_comparison.review import (
     build_reasoning_prompt,
     needs_review,
     unknown_cited_trials,
+)
+from backend.agents.protocol_comparison.rules import (
+    TYPE_2_DIABETES_PEER_CRITERIA,
+    PeerCriteria,
 )
 from backend.agents.protocol_comparison.suggestions import suggest_values
 from backend.clients.clinicaltrials_gov import StudyRecord
@@ -49,7 +60,7 @@ class LabReadingCache(Protocol):
 
 
 async def _read_one(
-    study: StudyRecord, llm: JsonGenerator, cache: LabReadingCache
+    study: StudyRecord, llm: JsonGenerator | None, cache: LabReadingCache
 ) -> LabReading:
     eligibility = study.protocol_section.eligibility_module
     raw_text = eligibility.eligibility_criteria if eligibility else None
@@ -64,6 +75,13 @@ async def _read_one(
     cache_key = reading_cache_key(text)
     stored = cache.load_lab_reading(study.nct_id)
     if stored is None or stored.cache_key != cache_key:
+        if llm is None:
+            return LabReading(
+                trial_id=study.nct_id,
+                values={},
+                rejected=(),
+                status=ReadingStatus.NOT_READ,
+            )
         try:
             reply = await llm.generate_json(
                 build_lab_prompt(text), LabLimitReply
@@ -101,10 +119,14 @@ async def _read_one(
 
 async def read_lab_limits(
     studies: Sequence[StudyRecord],
-    llm: JsonGenerator,
+    llm: JsonGenerator | None,
     cache: LabReadingCache,
 ) -> tuple[LabReading, ...]:
     """Read every study's lab limits from its eligibility text.
+
+    With llm=None only cached readings are used; a trial with none gets
+    a NOT_READ reading with no values. That keeps API calls fast and
+    free of LLM latency.
 
     The LLM's raw reply is cached per trial and reused while the text
     and instructions are unchanged, so values stay the same between
@@ -181,3 +203,43 @@ async def review_flags(
         *(_review_flag(result, llm) for result in flagged)
     )
     return tuple(cards)
+
+
+async def compare_registry_draft(
+    draft_study: StudyRecord,
+    protocol_date: date,
+    peer_studies: Sequence[StudyRecord],
+    cache: LabReadingCache,
+    llm: JsonGenerator | None = None,
+    criteria: PeerCriteria = TYPE_2_DIABETES_PEER_CRITERIA,
+) -> tuple[tuple[DimensionComparison, ...], tuple[SuggestionCard, ...]]:
+    """Run the whole comparison for a draft given as a registry record.
+
+    Screens the peers, reads lab limits (cached readings only when llm
+    is None), compares every dimension and builds the review cards. The
+    LLM, when given, also reads uncached text and writes card reasoning.
+    """
+    screening = screen_peers(list(peer_studies), criteria)
+    readings = await read_lab_limits(
+        [draft_study, *screening.peers], llm, cache
+    )
+    lab_values = {reading.trial_id: reading.values for reading in readings}
+    draft = with_values(
+        profile_registry_study(draft_study), lab_values[draft_study.nct_id]
+    )
+    peers = [
+        with_values(profile_registry_study(peer), lab_values[peer.nct_id])
+        for peer in screening.peers
+    ]
+    results = compare_draft(
+        draft, protocol_date, peers, dimensions=ALL_DIMENSIONS
+    )
+    logger.info(
+        "comparison done: agent=%s draft=%s peers=%d excluded=%d flags=%d",
+        AGENT_NAME,
+        draft_study.nct_id,
+        len(peers),
+        len(screening.excluded),
+        sum(bool(result.flagged_categories) for result in results),
+    )
+    return results, await review_flags(results, llm)

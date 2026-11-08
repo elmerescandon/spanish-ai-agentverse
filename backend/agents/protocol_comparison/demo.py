@@ -11,16 +11,23 @@ import asyncio
 import logging
 from datetime import date
 
+from backend.agents.protocol_comparison.agent import compare_registry_draft
 from backend.agents.protocol_comparison.peer_store import (
     PeerStore,
+    PeerStoreError,
     load_or_fetch_peers,
 )
+from backend.agents.protocol_comparison.recommendations import (
+    to_recommendations,
+)
+from backend.api.schemas import Recommendation
 from backend.clients.clinicaltrials_gov import (
     ClinicalTrialsGovClient,
     PeerSearchQuery,
     Phase,
     Population,
 )
+from backend.clients.gemini import JsonGenerator
 
 DEMO_DRAFT_NCT_ID = "NCT03170518"
 # Original protocol issue date, from the protocol amendment table (Prot_002
@@ -45,6 +52,36 @@ async def refresh_demo_peers() -> None:
         await load_or_fetch_peers(DEMO_PEER_QUERY, client, store, refresh=True)
         draft = await client.fetch_study(DEMO_DRAFT_NCT_ID)
     store.save_study(draft)
+
+
+async def demo_recommendations(
+    protocol_id: str,
+    store: PeerStore | None = None,
+    llm: JsonGenerator | None = None,
+) -> list[Recommendation]:
+    """Compare the demo draft with its cached peers, as recommendations.
+
+    Uses only the committed cache (data/peers) unless an LLM is given,
+    so it is fast and repeatable.
+
+    Raises:
+        PeerStoreError: the demo peers or draft are not cached; run
+            `make demo-peers`.
+    """
+    # [TO REFACTOR:(theo)]: every protocol is compared as the demo draft
+    # until the parsed protocol's values feed the comparison.
+    store = store or PeerStore()
+    peer_studies = store.load_studies(DEMO_PEER_QUERY)
+    if peer_studies is None:
+        raise PeerStoreError(
+            "expected cached demo peers in data/peers, found none; "
+            "run `make demo-peers`"
+        )
+    draft_study = store.load_study(DEMO_DRAFT_NCT_ID)
+    results, cards = await compare_registry_draft(
+        draft_study, DEMO_PROTOCOL_DATE, peer_studies, store, llm
+    )
+    return to_recommendations(protocol_id, results, cards)
 
 
 if __name__ == "__main__":

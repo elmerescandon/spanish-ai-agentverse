@@ -106,3 +106,18 @@ async def test_the_llm_sees_the_text_without_registry_escapes(
     )
 
     assert "ALT > 3 x ULN at screening" in llm.prompts[0]
+
+
+async def test_without_an_llm_only_cached_readings_are_used(
+    tmp_path: Path,
+) -> None:
+    store = PeerStore(tmp_path)
+    cached = make_study(nct_id="NCT00000001", eligibility_criteria=CRITERIA)
+    unread = make_study(nct_id="NCT00000002", eligibility_criteria=CRITERIA)
+    await read_lab_limits([cached], FakeJsonGenerator([ALT_REPLY]), store)
+
+    first, second = await read_lab_limits([cached, unread], None, store)
+
+    assert first.values[DimensionId.ALT_AST_LIMIT].value == 3.0
+    assert second.status == ReadingStatus.NOT_READ
+    assert second.values == {}

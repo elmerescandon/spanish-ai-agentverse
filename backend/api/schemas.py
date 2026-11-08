@@ -79,3 +79,123 @@ class RecommendationDecisionRequest(BaseModel):
 
     status: RecommendationStatus
     comment: str | None = None
+
+
+# --- Demo pipeline contract -------------------------------------------------
+# One endpoint per /demo section: upload fills "ingest", then the three
+# recommendation endpoints run in parallel and each fills its own step.
+# Mirrors frontend/src/lib/demo/types.ts.
+
+
+class StepId(StrEnum):
+    """Section of the /demo page a response fills."""
+
+    INGEST = "ingest"
+    CHECK = "check"
+    PEERS = "peers"
+    COHORT = "cohort"
+
+
+class EvidenceSource(StrEnum):
+    """Where a piece of evidence was taken from."""
+
+    PROTOCOL = "protocol"
+    CONSENT = "consent"
+    AACT = "aact"
+    MIMIC = "mimic"
+    NHANES = "nhanes"
+
+
+class TraceKind(StrEnum):
+    """Kind of reasoning step in an agent's trace."""
+
+    RETRIEVE = "retrieve"
+    RULE = "rule"
+    COMPARE = "compare"
+    CONCLUDE = "conclude"
+
+
+class MetricTone(StrEnum):
+    """Colour cue for a metric on the /demo page."""
+
+    NEUTRAL = "neutral"
+    GOOD = "good"
+    WARN = "warn"
+    RISK = "risk"
+
+
+class Evidence(BaseModel):
+    """Verbatim quote backing a decision."""
+
+    evidence_id: str
+    source: EvidenceSource
+    document: str
+    page: int | None = None
+    quote: str
+    is_verified: bool = False
+
+
+class TraceEntry(BaseModel):
+    """One step of the reasoning that led to a decision."""
+
+    agent: str
+    kind: TraceKind
+    text: str
+    evidence_ids: list[str] = Field(default_factory=list)
+
+
+class ProposedChange(BaseModel):
+    """Suggested edit to the protocol text."""
+
+    path: str
+    before: str
+    after: str
+
+
+class Decision(BaseModel):
+    """A finding the clinical team reviews (a Decision Card)."""
+
+    decision_id: str
+    step_id: StepId
+    severity: Severity
+    title: str
+    claim: str
+    evidence: list[Evidence] = Field(default_factory=list)
+    trace: list[TraceEntry] = Field(default_factory=list)
+    proposed_change: ProposedChange | None = None
+    # Decisions from earlier steps this one builds on (traceability).
+    derived_from: list[str] = Field(default_factory=list)
+
+
+class Metric(BaseModel):
+    """Labelled figure shown on a step."""
+
+    label: str
+    value: str
+    tone: MetricTone = MetricTone.NEUTRAL
+
+
+class StepData(BaseModel):
+    """Everything one /demo section shows: summary, metrics, decisions."""
+
+    id: StepId
+    title: str
+    summary: str
+    headline: Metric
+    metrics: list[Metric] = Field(default_factory=list)
+    decisions: list[Decision] = Field(default_factory=list)
+
+
+class UploadFileResponse(BaseModel):
+    """Result of uploading a protocol PDF; protocol_id keys later calls."""
+
+    protocol_id: str
+    title: str
+    page_count: int
+    step: StepData
+
+
+class StepRecommendationRequest(BaseModel):
+    """Body of every recommendation endpoint."""
+
+    protocol_id: str = Field(min_length=1)

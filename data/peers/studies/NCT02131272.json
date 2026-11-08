@@ -1,0 +1,559 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT02131272",
+      "briefTitle": "A Trial Investigating the Efficacy and Safety of Insulin Detemir Versus Insulin NPH in Combination With Metformin and Diet/Exercise in Children and Adolescents With Type 2 Diabetes Insufficiently Controlled on Metformin With or Without Other Oral Antidiabetic Drug(s) With or Without Basal Insulin",
+      "officialTitle": "A 26-week Open Label, Randomised, 2-armed, Parallel Group, Multi-centre Trial Investigating Efficacy and Safety of Insulin Detemir Versus Insulin Neutral Protamine Hagedorn in Combination With the Maximum Tolerated Dose of Metformin and Diet/Exercise on Glycaemic Control in Children and Adolescents With Type 2 Diabetes Insufficiently Controlled on the Maximum Tolerated Dose of Metformin ± Other Oral Antidiabetic Drug(s) ± Basal Insulin"
+    },
+    "statusModule": {
+      "overallStatus": "TERMINATED",
+      "startDateStruct": {
+        "date": "2014-06-11"
+      },
+      "completionDateStruct": {
+        "date": "2016-06-14"
+      },
+      "lastUpdatePostDateStruct": {
+        "date": "2018-09-10"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {
+        "name": "Novo Nordisk A/S",
+        "class": "INDUSTRY"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": true
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "NONE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 42,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "Insulin detemir and diet/exercise"
+        },
+        {
+          "label": "Insulin NPH and diet/exercise"
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "Insulin detemir"
+        },
+        {
+          "type": "DRUG",
+          "name": "Insulin NPH"
+        },
+        {
+          "type": "BEHAVIORAL",
+          "name": "Diet/exercise"
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Change in HbA1c (Glycosylated Haemoglobin)",
+          "timeFrame": "week 0, week 26"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Change in Body Weight Standard Deviation Score (SDS)",
+          "timeFrame": "week 0, week 26"
+        },
+        {
+          "measure": "Proportion of Subjects Achieving HbA1c Below 7.0%, Who Have Not Experienced Any Treatment Emergent Severe Hypoglycaemic Episodes Within the Last 14 Weeks of Treatment.",
+          "timeFrame": "At week 26"
+        },
+        {
+          "measure": "Proportion of Subjects Achieving HbA1c Below 7.5%, Who Have Not Experienced Any Treatment Emergent Severe Hypoglycaemic Episodes Within the Last 14 Weeks of Treatment",
+          "timeFrame": "At week 26"
+        },
+        {
+          "measure": "Total Number of Treatment Emergent Nocturnal (23:00-06:59) Severe or Blood Glucose (BG) Confirmed Symptomatic Hypoglycaemic Episodes",
+          "timeFrame": "Weeks 0 - 26"
+        },
+        {
+          "measure": "Total Number of Treatment Emergent Severe or BG Confirmed Symptomatic Hypoglycaemic Episodes",
+          "timeFrame": "Weeks 0 - 26"
+        },
+        {
+          "measure": "Incidence of Adverse Events (AEs)",
+          "timeFrame": "weeks 0 - 26"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n* Informed consent from the subject or a legally acceptable representative (LAR) and child assent from the subject obtained before any trial-related activities.Trial-related activities are any procedures that are carried out as part of the trial, including activities to determine suitability for the trial\n* Male or female, above or equal to 10 years and below or equal to 17 years at the time of signing informed consent/assent\n* Diagnosis of type 2 diabetes mellitus at least 3 months prior to screening\n* Treated with the maximum tolerated stable dose of metformin for at least 3 months prior to screening or have documented complete metformin intolerance\n* HbA1c (glycosylated haemoglobin) above or equal to 7.0% and below or equal to 10.5% (above or equal to 53 mmol/mol and below or equal to 91 mmol/mol) at screening\n\nExclusion Criteria:\n\n* Maturity onset diabetes of the young (MODY)\n* Fasting C-peptide at screening below 0.6 ng/mL\n* Impaired liver function defined as alanine aminotransferase (ALT) above or equal to 2.5 times upper normal limit\n* Known proliferative retinopathy or maculopathy requiring acute treatment as judged by the investigator\n* Treatment with any medication for the indication of diabetes or obesity other than stated in the inclusion criteria in a period of 3 months before the day of screening",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "10 Years",
+      "maximumAge": "18 Years",
+      "stdAges": [
+        "CHILD",
+        "ADULT"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Tucson",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Los Angeles",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Jacksonville",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Jacksonville",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Pembroke Pines",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Tallahassee",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Atlanta",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Reisterstown",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Silver Spring",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Las Vegas",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Buffalo",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Cleveland",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Toledo",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Hershey",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Philadelphia",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Pittsburgh",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Providence",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Columbia",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Memphis",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Amarillo",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Edinburg",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Norfolk",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Milwaukee",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "CABA",
+          "country": "Argentina"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Aparecida de Goiânia",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Porto Alegre",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "São Paulo",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "São Paulo",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Zagreb",
+          "country": "Croatia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Alexandria",
+          "country": "Egypt"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Cairo",
+          "country": "Egypt"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Cairo",
+          "country": "Egypt"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Ludwigshafen",
+          "country": "Germany"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Neuwied",
+          "country": "Germany"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Goudi/ Athens",
+          "country": "Greece"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Thessaloniki",
+          "country": "Greece"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Budapest",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Budapest",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Miskolc",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Hyderabad",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Hyderabad",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Ahmedabad",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Bangalore",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Bangalore",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Bangalore",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Chennai",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Kolkata",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Beersheba",
+          "country": "Israel"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Haifa",
+          "country": "Israel"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Ancona",
+          "country": "Italy"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Florence",
+          "country": "Italy"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Beirut",
+          "country": "Lebanon"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Hazmiyeh",
+          "country": "Lebanon"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Lebanon - Beirut",
+          "country": "Lebanon"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Kota Kinabalu",
+          "country": "Malaysia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Kuala Lumpur",
+          "country": "Malaysia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Seremban",
+          "country": "Malaysia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Seri Manjung",
+          "country": "Malaysia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Puebla City",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Casablanca",
+          "country": "Morocco"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Fes",
+          "country": "Morocco"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Marrakesh",
+          "country": "Morocco"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Rabat",
+          "country": "Morocco"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Wroclaw",
+          "country": "Poland"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Lisbon",
+          "country": "Portugal"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Izhevsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Stavropol",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Tomsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Niš",
+          "country": "Serbia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Lenasia",
+          "country": "South Africa"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Pretoria",
+          "country": "South Africa"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Observatory",
+          "country": "South Africa"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Seoul",
+          "country": "South Korea"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Seoul",
+          "country": "South Korea"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Esplugues Llobregat(Barcelona)",
+          "country": "Spain"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Taichung",
+          "country": "Taiwan"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Taoyuan",
+          "country": "Taiwan"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Adana",
+          "country": "Turkey (Türkiye)"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Ankara",
+          "country": "Turkey (Türkiye)"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Istanbul",
+          "country": "Turkey (Türkiye)"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Istanbul",
+          "country": "Turkey (Türkiye)"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Kayseri",
+          "country": "Turkey (Türkiye)"
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Diabetes Mellitus"
+        },
+        {
+          "term": "Diabetes Mellitus, Type 2"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Insulin Detemir"
+        },
+        {
+          "term": "Insulin, Isophane"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,200 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT01434186",
+      "briefTitle": "A Multicenter, Randomized, Double-blind, Placebo-controlled Study to Evaluate the Efficacy and Safety of Saxagliptin (BMS-477118) in Combination With Metformin IR or Metformin XR in Pediatric Patients With Type 2 Diabetes Who Have Inadequate Glycemic Control on Metformin Alone",
+      "officialTitle": "A Multicenter, Randomized, Double-blind, Placebo-controlled Study to Evaluate the Efficacy and Safety of Saxagliptin (BMS-477118) in Combination With Metformin IR or Metformin XR in Pediatric Patients With Type 2 Diabetes Who Have Inadequate Glycemic Control on Metformin Alone"
+    },
+    "statusModule": {
+      "overallStatus": "COMPLETED",
+      "startDateStruct": {
+        "date": "2012-05"
+      },
+      "completionDateStruct": {
+        "date": "2016-04"
+      },
+      "lastUpdatePostDateStruct": {
+        "date": "2017-04-18"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {
+        "name": "AstraZeneca",
+        "class": "INDUSTRY"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": true
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Diabetes Mellitus, Type 2"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "DOUBLE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 32,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "Arm 1: Saxagliptin +Metformin XR/IR"
+        },
+        {
+          "label": "Arm 2: Placebo +Metformin XR/IR"
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "Placebo matching with Saxagliptin"
+        },
+        {
+          "type": "DRUG",
+          "name": "Metformin IR"
+        },
+        {
+          "type": "DRUG",
+          "name": "Metformin XR"
+        },
+        {
+          "type": "DRUG",
+          "name": "Saxagliptin"
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Mean Change in HbA1c From Baseline to Week 16",
+          "timeFrame": "16 week short term treatment period"
+        }
+      ],
+      "secondaryOutcomes": []
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n* Male and female patients eligible if 10 years of age, up to 17 years and 30 weeks of age at the time of screening\n* Previously diagnosed as having type 2 diabetes\n* HbA1c ≥7.0% and ≤10.5%\n* Body weight ≥ 30 kg\n* Stable dose of metformin (≥ 1000mg - ≤ 2000mg) for a minimum of 2 months\n* Women must have a negative serum or urine pregnancy test\n* Women must not be breastfeeding\n\nExclusion Criteria:\n\n* Current use of anti-diabetic medications or use within the specified timeframe prior to screening (Exception: Metformin)\n* Fasting plasma glucose (FPG) \\> 255 mg/dL\n* Diabetic ketoacidosis (DKA) within 6 months of study entry\n* Abnormal renal function\n* Active liver disease\n* Anemia\n* An abnormal Thyroid Stimulating Hormone (TSH)\n* Creatinine kinase (CK) ≥ 3X ULN",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "10 Years",
+      "maximumAge": "17 Years",
+      "stdAges": [
+        "CHILD"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "Research Site",
+          "city": "Los Angeles",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Tallahassee",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Dearborn",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Saint Paul",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Mineola",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Cleveland",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Memphis",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Namur",
+          "country": "Belgium"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Calgary",
+          "country": "Canada"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Bangalore",
+          "country": "India"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Aguascalientes",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Meridas",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Monterrey",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Veracruz",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Taichung",
+          "country": "Taiwan"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Leicester",
+          "country": "United Kingdom"
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Diabetes Mellitus, Type 2"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "term": "saxagliptin"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,442 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT00658021",
+      "briefTitle": "Safety and Efficacy of Exenatide as Monotherapy and Adjunctive Therapy to Oral Antidiabetic Agents in Adolescents With Type 2 Diabetes",
+      "officialTitle": "Safety and Efficacy of Exenatide as Monotherapy and Adjunctive Therapy to Oral Antidiabetic Agents in Adolescents With Type 2 Diabetes."
+    },
+    "statusModule": {
+      "overallStatus": "COMPLETED",
+      "startDateStruct": {
+        "date": "2008-05-30"
+      },
+      "completionDateStruct": {
+        "date": "2020-04-01"
+      },
+      "lastUpdatePostDateStruct": {
+        "date": "2020-12-01"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {
+        "name": "AstraZeneca",
+        "class": "INDUSTRY"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": true
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Type 2 Diabetes"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "DOUBLE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 122,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "Placebo"
+        },
+        {
+          "label": "Exenatide 5 µg"
+        },
+        {
+          "label": "Exenatide 10 µg"
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "Placebo"
+        },
+        {
+          "type": "DRUG",
+          "name": "Exenatide"
+        },
+        {
+          "type": "DRUG",
+          "name": "Exenatide"
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Adjusted Change From Baseline in Glycated Hemoglobin A1c (HbA1c) at Week 28",
+          "timeFrame": "Baseline (Day 1) and Week 28"
+        },
+        {
+          "measure": "Number of Participants With Post-Treatment Adverse Events of Special Interest (AESI) During Safety Follow-up Period",
+          "timeFrame": "From 1 day after the Week 28/ED visit to 3 years after Week 28/ED visit."
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Percentage of Participants Achieving HbA1c Goals of < 7%, <= 6.5%, and < 6.5% Through Week 28",
+          "timeFrame": "Weeks 0, 4, 12, 20 and 28"
+        },
+        {
+          "measure": "Adjusted Change From Baseline in Body Weight Through Week 28",
+          "timeFrame": "Baseline (Day 1) up to Week 28"
+        },
+        {
+          "measure": "Adjusted Change From Baseline in Fasting Serum Glucose (FSG) at Week 28",
+          "timeFrame": "Baseline (Day 1) and Week 28"
+        },
+        {
+          "measure": "Adjusted Change From Baseline in Self-Monitored Blood Glucose (SMBG) at Week 28",
+          "timeFrame": "Pre-meal and 2 hours post-meal on Baseline (Day 1) and Week 28"
+        },
+        {
+          "measure": "Adjusted Change From Baseline in Fasting Serum Insulin at Week 28",
+          "timeFrame": "Baseline (Day 1) and Week 28"
+        },
+        {
+          "measure": "Adjusted Change From Baseline in Homeostasis Model Assessments - Beta-Cell Function (HOMA-B) and Insulin Sensitivity (HOMA-S) at Week 28",
+          "timeFrame": "Baseline (Day 1) and Week 28"
+        },
+        {
+          "measure": "Percentage of Participants Discontinuing the Study Due to Failure to Maintain Glycemic Control Through Week 28",
+          "timeFrame": "Weeks 2, 4, 8, 12, 16, 20, 24 and 28"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria-patients are eligible to be included in the study only if they meet all of the following criteria:\n\n* are a male or a female between ages 10 to 17 years, inclusive. The number of patients ≥17 years of age will be limited to no more than 10% of patients in each treatment arm\n* have a history of type 2 diabetes with the original diagnosis based on at least one American Diabetes Association (ADA) diagnostic criteria\n* have been treated with metformin, an SU, or both metformin and an SU (with or without diet and exercise), for at least 3 months or are naïve to anti-diabetes agents and being treated with diet and exercise alone. The dose of oral agent(s) should be stable for the 30 days prior to the screening visit\n* have fasting C-peptide \\>0.6 ng/mL\n* have HbA1c between 6.5% and 10.5%, inclusive.\n\nDisease Diagnostic Criteria-for the purposes of this study, patients with type 2 diabetes are defined by:\n\n* diagnosis of type 2 diabetes, as determined by ADA diagnostic criteria and antibody testing, documented and confirmed in the patient's medical record, which includes laboratory determinations consistent with one or more of the following in the patient's medical history\n* fasting blood glucose 126 mg/dL (7.0 mmol/L)\n* random blood glucose 200 mg/dL (11.1 mmol/L)\n* two-hour OGTT (Oral Glucose Tolerance Test) ≥ 200 mg/dL (11.1 mmol/L) AND one or more of the following: no antibodies to GAD65 OR no antibodies to islet cell antigen (ICA512).\n\nExclusion Criteria-patients will be excluded from the study if they meet any of the following criteria:\n\n* have previously been exposed to exenatide or, completed or withdrawn from this study or any other study investigating exenatide\n* are unwilling or unable to inject the study medication\n* currently use inhaled steroids at a dose equal to or above 1000g Flovent (fluticasone propionate) daily\n* have used oral steroids within the last 60 days or more than 20 days use within the past year\n* have used any weight loss medication(s) within 30 days of screening\n* have used insulin for more than 10 weeks during the 3 months prior to screening\n* have history of renal disease, or serum creatinine \\>1.6 mg/dL (141.4 µmol/L) (males) or \\>1.4 mg/dL (123.8 µmol/L) (females)\n* have hepatic dysfunction, defined by aspartate (AST) or alanine (ALT) transaminase \\>3.0 times the upper limit of normal (ULN).",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "10 Years",
+      "maximumAge": "17 Years",
+      "stdAges": [
+        "CHILD"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "Research Site",
+          "city": "Birmingham",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Tucson",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Los Angeles",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Montclair",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Sacramento",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "San Diego",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Santa Ana",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Aurora",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Melbourne",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Miami",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Miami Lakes",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Orlando",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Pensacola",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Tallahassee",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Dalton",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Chicago",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Chicago",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Indianapolis",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Wichita",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Dearborn",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Kansas City",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "St Louis",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Reno",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Jamaica",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Greenville",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Raleigh",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Oklahoma City",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Memphis",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Dallas",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "San Antonio",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Spokane",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Fortaleza",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Juiz de Fora",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Santo André",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Ahmedabad",
+          "country": "India"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Bangalore",
+          "country": "India"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Pune",
+          "country": "India"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Aguascalientes",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Culiacán",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Guadalajara",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Monterrey",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "San Juan del Río",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Tamaupilas",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Tampico",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Quezon City",
+          "country": "Philippines"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Moscow",
+          "country": "Russia"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Tomsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Ufa",
+          "country": "Russia"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Moloto South",
+          "country": "South Africa"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Paarl",
+          "country": "South Africa"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Pretoria",
+          "country": "South Africa"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Verulam",
+          "country": "South Africa"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Seoul",
+          "country": "South Korea"
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Diabetes Mellitus, Type 2"
+        },
+        {
+          "term": "Diabetes Mellitus"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Exenatide"
+        }
+      ]
+    }
+  },
+  "documentSection": {
+    "largeDocumentModule": {
+      "largeDocs": [
+        {
+          "typeAbbrev": "Prot",
+          "hasProtocol": true,
+          "hasSap": false,
+          "label": "Study Protocol",
+          "date": "2017-10-13",
+          "filename": "Prot_000.pdf"
+        },
+        {
+          "typeAbbrev": "SAP",
+          "hasProtocol": false,
+          "hasSap": true,
+          "label": "Statistical Analysis Plan",
+          "date": "2020-04-22",
+          "filename": "SAP_001.pdf"
+        }
+      ]
+    }
+  }
+}

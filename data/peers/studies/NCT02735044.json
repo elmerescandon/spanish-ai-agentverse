@@ -1,0 +1,714 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT02735044",
+      "briefTitle": "Comparison of the Safety and Efficacy of HOE901-U300 With Lantus in Children and Adolescents With Type 1 Diabetes Mellitus",
+      "officialTitle": "6-Month, Multicenter, Randomized, Open-label, 2-Arm, Parallel-group Study Comparing the Efficacy and Safety of a New Formulation of Insulin Glargine and Lantus® Injected Once Daily in Children and Adolescents Age 6 - 17 Years With Type 1 Diabetes Mellitus With a 6-month Safety Extension Period"
+    },
+    "statusModule": {
+      "overallStatus": "COMPLETED",
+      "startDateStruct": {
+        "date": "2016-04-14"
+      },
+      "completionDateStruct": {
+        "date": "2018-12-20"
+      },
+      "lastUpdatePostDateStruct": {
+        "date": "2022-03-25"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {
+        "name": "Sanofi",
+        "class": "INDUSTRY"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": false
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Type 1 Diabetes Mellitus"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "NONE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 463,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "HOE901-U300"
+        },
+        {
+          "label": "Lantus"
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "Insulin glargine,300 U/mL"
+        },
+        {
+          "type": "DRUG",
+          "name": "Insulin glargine (100 units /mL)"
+        },
+        {
+          "type": "DRUG",
+          "name": "Background therapy"
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Change From Baseline in HbA1c to Month 6",
+          "timeFrame": "Baseline to Month 6"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Change From Baseline in Fasting Plasma Glucose (FPG) to Month 6",
+          "timeFrame": "Baseline to Month 6"
+        },
+        {
+          "measure": "Percentage of Participants With HbA1c Values of <7.5% at Month 6",
+          "timeFrame": "Month 6"
+        },
+        {
+          "measure": "Percentage of Participants With HbA1c Values of <7.5% Without Any Episode of Severe and/or Documented Self-Monitored Plasma Glucose ([SMPG] <54 mg/dL [3.0 mmol/L]) Symptomatic Hypoglycemia During the Last 3 Months of the Main 6-month Randomized Period",
+          "timeFrame": "upto Month 6"
+        },
+        {
+          "measure": "Percentage of Participants With FPG of <=130 mg/dL (7.2 mmol/L) at Month 6",
+          "timeFrame": "Month 6"
+        },
+        {
+          "measure": "Percentage of Participants With FPG of <=130 mg/dL (7.2 mmol/L) Without Any Episode of Severe and/or Documented (SMPG <54 mg/dL [3.0 mmol/L]) Symptomatic Hypoglycemia During the Last 3 Months of the Main 6-month Randomized Period",
+          "timeFrame": "upto Month 6"
+        },
+        {
+          "measure": "Change From Baseline in 24-Hour Mean Plasma Glucose Based on 8-point SMPG Profiles to Month 6",
+          "timeFrame": "Baseline to Month 6"
+        },
+        {
+          "measure": "Change From Baseline in Variability of 24-Hour Mean Plasma Glucose Based on 8-point SMPG Profiles at Month 6",
+          "timeFrame": "Baseline, Month 6"
+        },
+        {
+          "measure": "Change From Baseline to Month 6 in 8-Point SMPG Profile Per Time Point",
+          "timeFrame": "Baseline to Month 6"
+        },
+        {
+          "measure": "Percentage of Participants With at Least One Hypoglycemic Events (Any Hypoglycemia, Severe Hypoglycemia, Documented Symptomatic, Probable Symptomatic, Asymptomatic Hypoglycemia, Pseudo-hypoglycemia and Severe and/or Confirmed Hypoglycemia) at Month 12",
+          "timeFrame": "Month 12"
+        },
+        {
+          "measure": "Percentage of Participants With Any Hyperglycemia With Ketosis at Month 12",
+          "timeFrame": "Month 12"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion criteria :\n\n* Children and adolescents with type 1 diabetes mellitus (T1DM) for at least 1 year confirmed by typical symptoms at diagnosis and/or by antibody testing \\[presence of anti-GAD (glutamic acid decarboxylase) or anti-IA2 (islet antigen 2/tyrosine phosphatase) or anti-islet cell antibodies\\] and/or clinical features (eg, history of ketoacidosis)\\].\n* Signed written informed consent obtained from parent(s)/legal guardian and written or oral assent obtained from participant.\n\nExclusion criteria:\n\n* Age \\<6 years and \\>=18 years at randomization.\n* Less than 1 year on insulin treatment prior to screening visit.\n* Less than 6 months on basal plus mealtime insulin and self-monitoring of blood glucose prior to screening visit.\n* Participants using premix insulins in the last 3 months before screening visit or participants using human regular insulin as mealtime insulin in the last 3 months before screening visit.\n* Use of an insulin pump in the last 6 months before screening visit or plans to switch to pump within the next 6 months after screening visit.\n* Any contraindication to use of insulin glargine as defined in the national product label.\n* No willingness to inject insulin glargine (Lantus or HOE901-U300) once daily.\n* HbA1c \\<7.5% or \\>11% at screening.\n* Initiation of any glucose-lowering medications in the last 3 months before screening visit.\n* Hospitalization or care in the emergency ward for diabetic ketoacidosis or history of severe hypoglycemia (as defined by need for glucagon or IV glucose) and accompanied by seizure and/or unconsciousness and/or coma in the last 3 months prior to screening visit.\n* Postmenarchal girls not protected by highly-effective method(s) of birth control and/or who were unwilling or unable to be tested for pregnancy. Abstinence from sexual intercourse was considered as an acceptable form of birth control.\n* Pregnant or breast-feeding adolescents, or adolescents who intended to become pregnant during the study period, or who were at risk of getting pregnant due to any psychosocial reason during the study period.\n\nThe above information is not intended to contain all considerations relevant to a participant's potential participation in a clinical trial.",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "6 Years",
+      "maximumAge": "17 Years",
+      "stdAges": [
+        "CHILD"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "Investigational Site Number 8400008",
+          "city": "Tucson",
+          "country": "United States"
+        },
+        {
+          "facility": "Investigational Site Number 8400037",
+          "city": "Atlanta",
+          "country": "United States"
+        },
+        {
+          "facility": "Investigational Site Number 8400032",
+          "city": "Indianapolis",
+          "country": "United States"
+        },
+        {
+          "facility": "Investigational Site Number 8400015",
+          "city": "Buffalo",
+          "country": "United States"
+        },
+        {
+          "facility": "Investigational Site Number 8400016",
+          "city": "Chapel Hill",
+          "country": "United States"
+        },
+        {
+          "facility": "Investigational Site Number 8400035",
+          "city": "Morehead City",
+          "country": "United States"
+        },
+        {
+          "facility": "Investigational Site Number 8400038",
+          "city": "Oklahoma City",
+          "country": "United States"
+        },
+        {
+          "facility": "Investigational Site Number 8400030",
+          "city": "Philadelphia",
+          "country": "United States"
+        },
+        {
+          "facility": "Investigational Site Number 8400010",
+          "city": "Rapid City",
+          "country": "United States"
+        },
+        {
+          "facility": "Investigational Site Number 8400005",
+          "city": "Dallas",
+          "country": "United States"
+        },
+        {
+          "facility": "Investigational Site Number 8400021",
+          "city": "Dallas",
+          "country": "United States"
+        },
+        {
+          "facility": "Investigational Site Number 8400029",
+          "city": "Lufkin",
+          "country": "United States"
+        },
+        {
+          "facility": "Investigational Site Number 8400034",
+          "city": "Seattle",
+          "country": "United States"
+        },
+        {
+          "facility": "Investigational Site Number 0320003",
+          "city": "Caba",
+          "country": "Argentina"
+        },
+        {
+          "facility": "Investigational Site Number 0320001",
+          "city": "Caba",
+          "country": "Argentina"
+        },
+        {
+          "facility": "Investigational Site Number 0320004",
+          "city": "Capital Federal",
+          "country": "Argentina"
+        },
+        {
+          "facility": "Investigational Site Number 0320002",
+          "city": "Capital Federal",
+          "country": "Argentina"
+        },
+        {
+          "facility": "Investigational Site Number 0320006",
+          "city": "Mendoza",
+          "country": "Argentina"
+        },
+        {
+          "facility": "Investigational Site Number 0320005",
+          "city": "Salta",
+          "country": "Argentina"
+        },
+        {
+          "facility": "Investigational Site Number 0320007",
+          "city": "San Miguel de Tucumán",
+          "country": "Argentina"
+        },
+        {
+          "facility": "Investigational Site Number 0760005",
+          "city": "Curitiba",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Investigational Site Number 0760006",
+          "city": "Fortaleza",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Investigational Site Number 0760004",
+          "city": "Fortaleza",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Investigational Site Number 0760003",
+          "city": "Porto Alegre",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Investigational Site Number 0760001",
+          "city": "São Paulo",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Investigational Site Number 0760002",
+          "city": "São Paulo",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Investigational Site Number 1000001",
+          "city": "Plovdiv",
+          "country": "Bulgaria"
+        },
+        {
+          "facility": "Investigational Site Number 1000005",
+          "city": "Sofia",
+          "country": "Bulgaria"
+        },
+        {
+          "facility": "Investigational Site Number 1000004",
+          "city": "Varna",
+          "country": "Bulgaria"
+        },
+        {
+          "facility": "Investigational Site Number 1240003",
+          "city": "Halifax",
+          "country": "Canada"
+        },
+        {
+          "facility": "Investigational Site Number 1240002",
+          "city": "Montreal",
+          "country": "Canada"
+        },
+        {
+          "facility": "Investigational Site Number 1240005",
+          "city": "Montreal",
+          "country": "Canada"
+        },
+        {
+          "facility": "Investigational Site Number 1240006",
+          "city": "Sherbrooke",
+          "country": "Canada"
+        },
+        {
+          "facility": "Investigational Site Number 1520002",
+          "city": "Santiago",
+          "country": "Chile"
+        },
+        {
+          "facility": "Investigational Site Number 1520004",
+          "city": "Santiago",
+          "country": "Chile"
+        },
+        {
+          "facility": "Investigational Site Number 1520006",
+          "city": "Santiago",
+          "country": "Chile"
+        },
+        {
+          "facility": "Investigational Site Number 1520007",
+          "city": "Temuco",
+          "country": "Chile"
+        },
+        {
+          "facility": "Investigational Site Number 1520003",
+          "city": "Viña del Mar",
+          "country": "Chile"
+        },
+        {
+          "facility": "Investigational Site Number 2030003",
+          "city": "Hradec Králové",
+          "country": "Czechia"
+        },
+        {
+          "facility": "Investigational Site Number 2030005",
+          "city": "Ostrava - Poruba",
+          "country": "Czechia"
+        },
+        {
+          "facility": "Investigational Site Number 2030001",
+          "city": "Praha 5 - Motol",
+          "country": "Czechia"
+        },
+        {
+          "facility": "Investigational Site Number 2080001",
+          "city": "Herlev",
+          "country": "Denmark"
+        },
+        {
+          "facility": "Investigational Site Number 2500003",
+          "city": "Montpellier",
+          "country": "France"
+        },
+        {
+          "facility": "Investigational Site Number 2500002",
+          "city": "Toulouse",
+          "country": "France"
+        },
+        {
+          "facility": "Investigational Site Number 2760002",
+          "city": "Hanover",
+          "country": "Germany"
+        },
+        {
+          "facility": "Investigational Site Number 2760001",
+          "city": "Heidelberg",
+          "country": "Germany"
+        },
+        {
+          "facility": "Investigational Site Number 2760004",
+          "city": "Leipzig",
+          "country": "Germany"
+        },
+        {
+          "facility": "Investigational Site Number 2760003",
+          "city": "Münster",
+          "country": "Germany"
+        },
+        {
+          "facility": "Investigational Site Number 3480001",
+          "city": "Budapest",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Investigational Site Number 3480004",
+          "city": "Budapest",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Investigational Site Number 3480003",
+          "city": "Budapest",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Investigational Site Number 3480005",
+          "city": "Gyula",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Investigational Site Number 3480002",
+          "city": "Miskolc",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Investigational Site Number 3480006",
+          "city": "Pécs",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Investigational Site Number 3480007",
+          "city": "Székesfehérvár",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Investigational Site Number 3760003",
+          "city": "Beersheba",
+          "country": "Israel"
+        },
+        {
+          "facility": "Investigational Site Number 3760001",
+          "city": "Haifa",
+          "country": "Israel"
+        },
+        {
+          "facility": "Investigational Site Number 3760006",
+          "city": "Holon",
+          "country": "Israel"
+        },
+        {
+          "facility": "Investigational Site Number 3760002",
+          "city": "Petah Tikva",
+          "country": "Israel"
+        },
+        {
+          "facility": "Investigational Site Number 3800001",
+          "city": "Florence",
+          "country": "Italy"
+        },
+        {
+          "facility": "Investigational Site Number 3800005",
+          "city": "Roma",
+          "country": "Italy"
+        },
+        {
+          "facility": "Investigational Site Number 3800004",
+          "city": "Torino",
+          "country": "Italy"
+        },
+        {
+          "facility": "Investigational Site Number 3800006",
+          "city": "Varese",
+          "country": "Italy"
+        },
+        {
+          "facility": "Investigational Site Number 3800003",
+          "city": "Verona",
+          "country": "Italy"
+        },
+        {
+          "facility": "Investigational Site Number 3920006",
+          "city": "Chiyoda-Ku",
+          "country": "Japan"
+        },
+        {
+          "facility": "Investigational Site Number 3920002",
+          "city": "Fukuoka",
+          "country": "Japan"
+        },
+        {
+          "facility": "Investigational Site Number 3920003",
+          "city": "Hiroshima",
+          "country": "Japan"
+        },
+        {
+          "facility": "Investigational Site Number 3920007",
+          "city": "Kobe",
+          "country": "Japan"
+        },
+        {
+          "facility": "Investigational Site Number 3920005",
+          "city": "Osaka",
+          "country": "Japan"
+        },
+        {
+          "facility": "Investigational Site Number 3920004",
+          "city": "Shinjuku-Ku",
+          "country": "Japan"
+        },
+        {
+          "facility": "Investigational Site Number 4280002",
+          "city": "Daugavpils",
+          "country": "Latvia"
+        },
+        {
+          "facility": "Investigational Site Number 4280001",
+          "city": "Riga",
+          "country": "Latvia"
+        },
+        {
+          "facility": "Investigational Site Number 4840003",
+          "city": "Durango",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Investigational Site Number 4840004",
+          "city": "México",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Investigational Site Number 4840001",
+          "city": "Monterrey",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Investigational Site Number 4840002",
+          "city": "Puebla City",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Investigational Site Number 4840005",
+          "city": "Veracruz",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Investigational Site Number 8070001",
+          "city": "Skopje",
+          "country": "North Macedonia"
+        },
+        {
+          "facility": "Investigational Site Number 6160005",
+          "city": "Bielsko-Biala",
+          "country": "Poland"
+        },
+        {
+          "facility": "Investigational Site Number 6160001",
+          "city": "Gdansk",
+          "country": "Poland"
+        },
+        {
+          "facility": "Investigational Site Number 6160006",
+          "city": "Szczecin",
+          "country": "Poland"
+        },
+        {
+          "facility": "Investigational Site Number 6160007",
+          "city": "Warsaw",
+          "country": "Poland"
+        },
+        {
+          "facility": "Investigational Site Number 6160004",
+          "city": "Warsaw",
+          "country": "Poland"
+        },
+        {
+          "facility": "Investigational Site Number 6160003",
+          "city": "Warsaw",
+          "country": "Poland"
+        },
+        {
+          "facility": "Investigational Site Number 6420005",
+          "city": "Bucharest",
+          "country": "Romania"
+        },
+        {
+          "facility": "Investigational Site Number 6420007",
+          "city": "Constanța",
+          "country": "Romania"
+        },
+        {
+          "facility": "Investigational Site Number 6420004",
+          "city": "Craiova",
+          "country": "Romania"
+        },
+        {
+          "facility": "Investigational Site Number 6420006",
+          "city": "Sibiu",
+          "country": "Romania"
+        },
+        {
+          "facility": "Investigational Site Number 6420003",
+          "city": "Timișoara",
+          "country": "Romania"
+        },
+        {
+          "facility": "Investigational Site Number 6430001",
+          "city": "Moscow",
+          "country": "Russia"
+        },
+        {
+          "facility": "Investigational Site Number 6430002",
+          "city": "Saint Petersburg",
+          "country": "Russia"
+        },
+        {
+          "facility": "Investigational Site Number 6430004",
+          "city": "Smolensk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Investigational Site Number 6430003",
+          "city": "Ufa",
+          "country": "Russia"
+        },
+        {
+          "facility": "Investigational Site Number 6880002",
+          "city": "Belgrade",
+          "country": "Serbia"
+        },
+        {
+          "facility": "Investigational Site Number 6880003",
+          "city": "Belgrade",
+          "country": "Serbia"
+        },
+        {
+          "facility": "Investigational Site Number 6880004",
+          "city": "Niš",
+          "country": "Serbia"
+        },
+        {
+          "facility": "Investigational Site Number 7240005",
+          "city": "Barcelona",
+          "country": "Spain"
+        },
+        {
+          "facility": "Investigational Site Number 7240002",
+          "city": "Barcelona",
+          "country": "Spain"
+        },
+        {
+          "facility": "Investigational Site Number 7240003",
+          "city": "Esplugues de Llobregat",
+          "country": "Spain"
+        },
+        {
+          "facility": "Investigational Site Number 7240004",
+          "city": "Sabadell",
+          "country": "Spain"
+        },
+        {
+          "facility": "Investigational Site Number 7240006",
+          "city": "Santa Cruz de Tenerife",
+          "country": "Spain"
+        },
+        {
+          "facility": "Investigational Site Number 7240001",
+          "city": "Vitoria-Gasteiz",
+          "country": "Spain"
+        },
+        {
+          "facility": "Investigational Site Number 7520002",
+          "city": "Stockholm",
+          "country": "Sweden"
+        },
+        {
+          "facility": "Investigational Site Number 8260005",
+          "city": "Doncaster",
+          "country": "United Kingdom"
+        },
+        {
+          "facility": "Investigational Site Number 8260001",
+          "city": "Ipswich",
+          "country": "United Kingdom"
+        },
+        {
+          "facility": "Investigational Site Number 8260004",
+          "city": "Kettering",
+          "country": "United Kingdom"
+        },
+        {
+          "facility": "Investigational Site Number 8260002",
+          "city": "Salisbury",
+          "country": "United Kingdom"
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Diabetes Mellitus, Type 1"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Insulin Glargine"
+        }
+      ]
+    }
+  },
+  "documentSection": {
+    "largeDocumentModule": {
+      "largeDocs": [
+        {
+          "typeAbbrev": "Prot",
+          "hasProtocol": true,
+          "hasSap": false,
+          "label": "Study Protocol",
+          "date": "2016-08-23",
+          "filename": "Prot_000.pdf"
+        },
+        {
+          "typeAbbrev": "SAP",
+          "hasProtocol": false,
+          "hasSap": true,
+          "label": "Statistical Analysis Plan",
+          "date": "2017-04-20",
+          "filename": "SAP_001.pdf"
+        }
+      ]
+    }
+  }
+}

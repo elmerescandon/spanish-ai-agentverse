@@ -1,0 +1,737 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT03170518",
+      "briefTitle": "A Study to Investigate the Efficacy and Safety of Canagliflozin in Children and Adolescents (>=10 to <18 Years) With Type 2 Diabetes Mellitus",
+      "officialTitle": "A Randomized, Multicenter, Double-Blind, Parallel-Group, Placebo-Controlled Study to Investigate the Efficacy and Safety of Canagliflozin in Children and Adolescents (≥10 to <18 Years) With Type 2 Diabetes Mellitus"
+    },
+    "statusModule": {
+      "overallStatus": "COMPLETED",
+      "startDateStruct": {
+        "date": "2017-07-21"
+      },
+      "completionDateStruct": {
+        "date": "2023-09-20"
+      },
+      "lastUpdatePostDateStruct": {
+        "date": "2025-04-25"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {
+        "name": "Janssen Research & Development, LLC",
+        "class": "INDUSTRY"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": true
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Diabetes Mellitus, Type 2"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "DOUBLE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 171,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "Single-blind run-in Period: Placebo"
+        },
+        {
+          "label": "Double-blind Treatment Phase: Canagliflozin or Placebo"
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "Canagliflozin 100 mg"
+        },
+        {
+          "type": "DRUG",
+          "name": "Canagliflozin 300 mg"
+        },
+        {
+          "type": "DRUG",
+          "name": "Placebo"
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Change From Baseline in Glycated Hemoglobin (HbA1c) at Week 26",
+          "timeFrame": "Baseline (Day 1) and Week 26"
+        },
+        {
+          "measure": "Percentage of Participants With Treatment-emergent Adverse Events (TEAEs)",
+          "timeFrame": "Baseline (Day 1) up to 30 days post last dose at Week 52 (up to Week 56)"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Change From Baseline in Fasting Plasma Glucose (FPG) at Weeks 26 and 52",
+          "timeFrame": "Baseline (Day 1), Weeks 26 and 52"
+        },
+        {
+          "measure": "Percentage of Participants With HbA1c Less Than (<)7.5 Percent (%), <7%, and <6.5% at Weeks 26 and 52",
+          "timeFrame": "Weeks 26 and 52"
+        },
+        {
+          "measure": "Percentage of Participants Who Received Rescue Therapy",
+          "timeFrame": "Baseline (Day 1) up to Week 52"
+        },
+        {
+          "measure": "Time to Rescue Therapy",
+          "timeFrame": "Baseline (Day 1) up to Week 52"
+        },
+        {
+          "measure": "Percent Change From Baseline in Body Weight at Weeks 26 and 52",
+          "timeFrame": "Baseline (Day 1), Weeks 26 and 52"
+        },
+        {
+          "measure": "Change From Baseline in Body Mass Index (BMI) at Weeks 26 and 52",
+          "timeFrame": "Baseline (Day 1), Weeks 26, and 52"
+        },
+        {
+          "measure": "Percent Change From Baseline in Fasting Plasma Lipids Levels at Weeks 26 and 52",
+          "timeFrame": "Baseline (Day 1), Weeks 26, and 52"
+        },
+        {
+          "measure": "Percent Change From Baseline in LDL-C to HDL-C Ratio and Non-HDL-C to LDL-C Ratio at Weeks 26 and 52",
+          "timeFrame": "Baseline (Day 1), Weeks 26, and 52"
+        },
+        {
+          "measure": "Change From Baseline in Systolic Blood Pressure at Weeks 26 and 52",
+          "timeFrame": "Baseline (Day 1), Weeks 26 and 52"
+        },
+        {
+          "measure": "Change From Baseline in Diastolic Blood Pressure at Weeks 26 and 52",
+          "timeFrame": "Baseline (Day 1), Weeks 26, and 52"
+        },
+        {
+          "measure": "Change From Baseline in HbA1c at Weeks 12 and 52",
+          "timeFrame": "Baseline (Day 1), Weeks 12, and 52"
+        },
+        {
+          "measure": "Growth Velocity at Weeks 26 and 52",
+          "timeFrame": "Baseline (Day 1) and Weeks 26 and 52"
+        },
+        {
+          "measure": "Number of Participants With Changes in Tanner Staging (Females) From Baseline at Weeks 26 and 52",
+          "timeFrame": "Baseline (Day 1), Weeks 26, and 52"
+        },
+        {
+          "measure": "Number of Participants With Changes in Tanner Staging (Males) From Baseline at Weeks 26 and 52",
+          "timeFrame": "Baseline (Day 1), Weeks 26, and 52"
+        },
+        {
+          "measure": "Change From Baseline in Bone Turnover Marker: Serum Osteocalcin and Serum Collagen Type 1 Carboxy-Telopeptide (CTx) at Weeks 26 and 52",
+          "timeFrame": "Baseline (Day 1), Weeks 26 and 52"
+        },
+        {
+          "measure": "Urinary Albumin/Creatinine Ratio (ACR) at Weeks 26 and 52",
+          "timeFrame": "Weeks 26 and 52"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n* Participants with a diagnosis of type 2 diabetes mellitus (T2DM)\n* Random C-peptide at screening greater than (\\>)0.6 nanogram/milliliter (ng/mL) (\\>0.2 nanomole/liter \\[nmol\\]/L\\])\n* HbA1c of greater than or equal to (\\>=)6.5 percent (%) to less than or equal to (\\<=)11.0% and meets 1 of the inclusion criteria below:\n\n  1. On diet and exercise only for at least 4 weeks prior to screening\n  2. On diet and exercise and a stable dose of metformin monotherapy \\>=1,000 mg per day or MTD per day for at least 8 weeks prior to screening\n  3. On diet and exercise and a stable insulin monotherapy regimen for at least 8 weeks prior to screening (stable dose is defined as no change in the insulin regimen \\[that is, type{s} of insulin\\] and \\<=15% change in the total daily dose of insulin \\[averaged over 1 week to account for day to day variability\\])\n  4. On diet and exercise and a stable combination therapy with metformin and insulin for at least 8 weeks prior to screening\n\nExclusion Criteria:\n\n* History of diabetic ketoacidosis (DKA), type 1 diabetes mellitus (T1DM), pancreas or cell transplantation, or diabetes secondary to pancreatitis or pancreatectomy or maturity onset diabetes of the young (MODY)\n* Participants on any antihyperglycemic agents (AHAs) other than metformin, or injectable insulin within 8 weeks of the first dose of study drug (that is Day 1)\n* Repeated (2 or more over a 1-week period) fasting self-monitoring of blood glucose (SMBG) measurements \\>270 milligram/deciliter (mg/dL) (\\>15 millimole/liter \\[mmol/L\\]) during the pretreatment phase, despite reinforcement of diet and exercise counseling\n* Severe hypoglycemia within 6 months prior to Day 1\n* History of hereditary glucose-galactose malabsorption or primary renal glucosuria\n* Alanine aminotransferase level \\>5.0 times the upper limit of normal (ULN) or total bilirubin \\>1.5 times the ULN at screening (for elevations in bilirubin: if, in the opinion of the investigator and agreed upon by the sponsor's medical officer, the elevation in bilirubin is consistent with Gilbert's disease, the subject may participate)",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "10 Years",
+      "maximumAge": "17 Years",
+      "stdAges": [
+        "CHILD"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "Arkansas Childrens Hospital",
+          "city": "Little Rock",
+          "country": "United States"
+        },
+        {
+          "facility": "Center of Excellence for Diabetes and Endocrinology (CEDE)",
+          "city": "Sacramento",
+          "country": "United States"
+        },
+        {
+          "facility": "American Institute of Research",
+          "city": "Whittier",
+          "country": "United States"
+        },
+        {
+          "facility": "University of Colorado School of Medicine/Children's Hospital Colorado",
+          "city": "Aurora",
+          "country": "United States"
+        },
+        {
+          "facility": "Nemours DuPont Hospital for Children",
+          "city": "Wilmington",
+          "country": "United States"
+        },
+        {
+          "facility": "TOPAZ Clinical Research",
+          "city": "Apopka",
+          "country": "United States"
+        },
+        {
+          "facility": "Columbus Clinical Services LLC",
+          "city": "Miami",
+          "country": "United States"
+        },
+        {
+          "facility": "Medical Research Center of Miami II Inc",
+          "city": "Miami",
+          "country": "United States"
+        },
+        {
+          "facility": "Nicklaus Children's Hospital",
+          "city": "Miami",
+          "country": "United States"
+        },
+        {
+          "facility": "Nemours Children's Hospital/Endocrinology",
+          "city": "Orlando",
+          "country": "United States"
+        },
+        {
+          "facility": "Asclepes Research",
+          "city": "Spring Hill",
+          "country": "United States"
+        },
+        {
+          "facility": "Johns Hopkins All Children's Hospital",
+          "city": "St. Petersburg",
+          "country": "United States"
+        },
+        {
+          "facility": "Appalachian Clinical Research",
+          "city": "Adairsville",
+          "country": "United States"
+        },
+        {
+          "facility": "Endocrine Consultants Research",
+          "city": "Columbus",
+          "country": "United States"
+        },
+        {
+          "facility": "University of Iowa Hospitals and Clinics",
+          "city": "Iowa City",
+          "country": "United States"
+        },
+        {
+          "facility": "Capital Diabetes and Endocrine Associates",
+          "city": "Camp Springs",
+          "country": "United States"
+        },
+        {
+          "facility": "Floating Hospital For Children at Tufts Medical Center",
+          "city": "Boston",
+          "country": "United States"
+        },
+        {
+          "facility": "Alas Viable Research",
+          "city": "Henderson",
+          "country": "United States"
+        },
+        {
+          "facility": "University of New Mexico",
+          "city": "Albuquerque",
+          "country": "United States"
+        },
+        {
+          "facility": "SUNY Downstate Medical Center",
+          "city": "Brooklyn",
+          "country": "United States"
+        },
+        {
+          "facility": "Icahn School of Medicine at Mount Sinai",
+          "city": "New York",
+          "country": "United States"
+        },
+        {
+          "facility": "Carolinas Research Center, LLC",
+          "city": "Charlotte",
+          "country": "United States"
+        },
+        {
+          "facility": "WakeMed Clinical Research Institute",
+          "city": "Raleigh",
+          "country": "United States"
+        },
+        {
+          "facility": "PMG Research of Wilmington, LLC",
+          "city": "Wilmington",
+          "country": "United States"
+        },
+        {
+          "facility": "Cleveland Clinic Center for Pediatric Endocrinology",
+          "city": "Cleveland",
+          "country": "United States"
+        },
+        {
+          "facility": "Buckeye Health and Research, LLC",
+          "city": "Columbus",
+          "country": "United States"
+        },
+        {
+          "facility": "Children's Hospital of Philadelphia",
+          "city": "Philadelphia",
+          "country": "United States"
+        },
+        {
+          "facility": "AM Diabetes & Endocrinology Center",
+          "city": "Bartlett",
+          "country": "United States"
+        },
+        {
+          "facility": "LifeDoc Research, PLLC",
+          "city": "Memphis",
+          "country": "United States"
+        },
+        {
+          "facility": "Avant Research Associates, LLC",
+          "city": "Austin",
+          "country": "United States"
+        },
+        {
+          "facility": "Driscoll Children's Hospital",
+          "city": "Corpus Christi",
+          "country": "United States"
+        },
+        {
+          "facility": "Amir Ali Hassan, MD, PA",
+          "city": "Houston",
+          "country": "United States"
+        },
+        {
+          "facility": "Sante Clinical Research",
+          "city": "Kerrville",
+          "country": "United States"
+        },
+        {
+          "facility": "Texas Institute for Kidney and Endocrine Disorders",
+          "city": "Lufkin",
+          "country": "United States"
+        },
+        {
+          "facility": "Sun Research Institute",
+          "city": "San Antonio",
+          "country": "United States"
+        },
+        {
+          "facility": "MultiCare Health System",
+          "city": "Tacoma",
+          "country": "United States"
+        },
+        {
+          "facility": "Hospital Universitario Joao de Barros Barreto - UFPA",
+          "city": "Belém",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Santa Casa de Misericordia de Belo Horizonte",
+          "city": "Belo Horizonte",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Condominio Centro Clinico do Lago",
+          "city": "Brasília",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Centro de Diabetes Curitiba Ltda",
+          "city": "Curitiba",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Núcleo de Pesquisa Clinica",
+          "city": "Porto Alegre",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Instituto da Criança com Diabetes do Rio Grande do Sul - ICDRS",
+          "city": "Porto Alegre",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Ruschel Medicina e Pesquisa Clínica Ltda",
+          "city": "Rio de Janeiro",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Hospital e Maternidade Dr Christovao da Gama S.A",
+          "city": "Santo André",
+          "country": "Brazil"
+        },
+        {
+          "facility": "IPEC - Instituto de Pesquisa Clínica Ltda",
+          "city": "São Paulo",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Hospital Das Clinicas Da Faculdade De Medicina Da USP",
+          "city": "São Paulo",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Santa Casa de Misericórdia de Votuporanga",
+          "city": "Votuporanga",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Capital Institute of Pediatrics",
+          "city": "Beijing",
+          "country": "China"
+        },
+        {
+          "facility": "Xiangya Hospital Central South University",
+          "city": "Changsha",
+          "country": "China"
+        },
+        {
+          "facility": "The Childrens Hospital Zhejiang University School Of Medicine",
+          "city": "Hangzhou",
+          "country": "China"
+        },
+        {
+          "facility": "Jiangxi Provincial Children's Hospital",
+          "city": "Nanchang",
+          "country": "China"
+        },
+        {
+          "facility": "Jiangsu Province Hospital",
+          "city": "Nanjing",
+          "country": "China"
+        },
+        {
+          "facility": "Wuhan Union Hospital",
+          "city": "Wuhan",
+          "country": "China"
+        },
+        {
+          "facility": "Tongji Hospital Tongji Medical College of Huazhong University of Science and Technology",
+          "city": "Wuhan",
+          "country": "China"
+        },
+        {
+          "facility": "Chidren's Hospital of Zhengzhou",
+          "city": "Zhengzhou",
+          "country": "China"
+        },
+        {
+          "facility": "General Children's Hospital 'P. and A. Kyriakou'",
+          "city": "Athens",
+          "country": "Greece"
+        },
+        {
+          "facility": "Athens Medical Center",
+          "city": "Athens",
+          "country": "Greece"
+        },
+        {
+          "facility": "Diacon Hospital",
+          "city": "Bangalore",
+          "country": "India"
+        },
+        {
+          "facility": "Post Graduate Institute of Medical Education And Research PGIMER",
+          "city": "Chandigarh",
+          "country": "India"
+        },
+        {
+          "facility": "Kovai Diabetes Specialty Centre & Hospital",
+          "city": "Coimbatore",
+          "country": "India"
+        },
+        {
+          "facility": "Quality Care India Limited",
+          "city": "Hyderabad",
+          "country": "India"
+        },
+        {
+          "facility": "P D Hinduja National Hospital and Medical Research Center",
+          "city": "Mumbai",
+          "country": "India"
+        },
+        {
+          "facility": "Sir Ganga Ram Hospital",
+          "city": "New Delhi",
+          "country": "India"
+        },
+        {
+          "facility": "Jehangir Clinical Development Center Pvt Ltd",
+          "city": "Pune",
+          "country": "India"
+        },
+        {
+          "facility": "Jothydev's Diabetes Research Centre",
+          "city": "Trivandrum",
+          "country": "India"
+        },
+        {
+          "facility": "Hospital Sultanah Bahiyah",
+          "city": "Alor Star",
+          "country": "Malaysia"
+        },
+        {
+          "facility": "Hospital Pulau Pinang",
+          "city": "George Town",
+          "country": "Malaysia"
+        },
+        {
+          "facility": "Hospital Raja Permaisuri Bainun",
+          "city": "Ipoh",
+          "country": "Malaysia"
+        },
+        {
+          "facility": "Hospital Tuanku Fauziah",
+          "city": "Kangar",
+          "country": "Malaysia"
+        },
+        {
+          "facility": "Hospital University Sains Malaysia",
+          "city": "Kubang Kerian",
+          "country": "Malaysia"
+        },
+        {
+          "facility": "Investigación Biomédica para el Desarrollo de Fármacos S.A. de C.V.",
+          "city": "Aguascalientes",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Instituto Nacional de Pediatría",
+          "city": "Coyoacán",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Desarrollo Ético en Investigación Clínica S.C .",
+          "city": "Guadalajara",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Centro de Estudios de Investigación Metabólicos y Cardiovasculares S.C.",
+          "city": "Madero",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Bio Investigación AMARC, S.C.",
+          "city": "Mexico City",
+          "country": "Mexico"
+        },
+        {
+          "facility": "St Lucas Clinical Research Center",
+          "city": "Mérida",
+          "country": "Mexico"
+        },
+        {
+          "facility": "UBAM Unidad Biomédica Avanzada Monterrey",
+          "city": "Monterrey",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Consultorio Medico",
+          "city": "Puebla City",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Centro Integral Medico SJR, SC",
+          "city": "San Juan del Río",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Centro De Investigacion Medica De Occidente, S.C.",
+          "city": "Zapopan",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Chong Hua Hospital",
+          "city": "Cebu City",
+          "country": "Philippines"
+        },
+        {
+          "facility": "Norzel MedicaL and Diagnostic Clinic",
+          "city": "Cebu City",
+          "country": "Philippines"
+        },
+        {
+          "facility": "De La Salle Health Sciences Institute- DLSUMC",
+          "city": "Dasmariñas",
+          "country": "Philippines"
+        },
+        {
+          "facility": "Davao Doctors Hospital",
+          "city": "Davao City",
+          "country": "Philippines"
+        },
+        {
+          "facility": "Docbebet Diabetes Clinic",
+          "city": "San Fernando City",
+          "country": "Philippines"
+        },
+        {
+          "facility": "Gornoslaskie Centrum Zdrowia, SPSK nr 6 Slaskiego Uniwersytetu Medycznego w Katowicach",
+          "city": "Katowice",
+          "country": "Poland"
+        },
+        {
+          "facility": "WSS Dzieciecy prof.dr S.Popowskiego w Olsztynie,Od.Pediatryczny VI Reumatologiczno-Endokrynologiczny",
+          "city": "Olsztyn",
+          "country": "Poland"
+        },
+        {
+          "facility": "Gabinet Pediatryczny Artur Mazur",
+          "city": "Rzeszów",
+          "country": "Poland"
+        },
+        {
+          "facility": "Instytut 'Pomnik-Centrum Zdrowia Dziecka', Klinika Endokrynologii i Diabetologii",
+          "city": "Warsaw",
+          "country": "Poland"
+        },
+        {
+          "facility": "Uniwersytecki Szpital Kliniczny im Jana Mikulicza Radeckiego we Wroclawiu",
+          "city": "Wroclaw",
+          "country": "Poland"
+        },
+        {
+          "facility": "Specjalistyczna Praktyka Lekarska Aspiro",
+          "city": "Wroclaw",
+          "country": "Poland"
+        },
+        {
+          "facility": "Republic Children Clinical Hospital of the Ministry of Health of Udmurtskaya Republic",
+          "city": "Izhevsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Kirov Clinical Hospital #7 named after V.I. Yurlova",
+          "city": "Kirov",
+          "country": "Russia"
+        },
+        {
+          "facility": "Krasnoyarsk State Medical University",
+          "city": "Krasnoyarsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Natiolal Medical Research Center of Endocrinology",
+          "city": "Moscow",
+          "country": "Russia"
+        },
+        {
+          "facility": "Russian National Research Medical University named after N.I.Pirogov",
+          "city": "Moscow",
+          "country": "Russia"
+        },
+        {
+          "facility": "Children City Clinical Hospital #1",
+          "city": "Novosibirsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Omsk Regional Childrens Clinical Hospital",
+          "city": "Omsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "City Children Clinical Outpatient Clinic #5",
+          "city": "Perm",
+          "country": "Russia"
+        },
+        {
+          "facility": "SBHI Children's City Multi-Profile Clinical Center named after K. A. Rauhfus",
+          "city": "Saint Petersburg",
+          "country": "Russia"
+        },
+        {
+          "facility": "Children Outpatient Clinic 45 Of Nevskiy Region",
+          "city": "Saint Petersburg",
+          "country": "Russia"
+        },
+        {
+          "facility": "Saint-Petersburg State Pediatric Medical Academy of RosZdrav, Clinical Diagnostic Center",
+          "city": "Saint Petersburg",
+          "country": "Russia"
+        },
+        {
+          "facility": "Samara Regional Children Clinical Hospital named after N.N. Ivanova",
+          "city": "Samara",
+          "country": "Russia"
+        },
+        {
+          "facility": "Siberian State Medical University",
+          "city": "Tomsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Tver Regional Clinical Hospital",
+          "city": "Tver'",
+          "country": "Russia"
+        },
+        {
+          "facility": "Regional Pediatric Clinical Hospital No.1",
+          "city": "Yekaterinburg",
+          "country": "Russia"
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Diabetes Mellitus, Type 2"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Canagliflozin"
+        }
+      ]
+    }
+  },
+  "documentSection": {
+    "largeDocumentModule": {
+      "largeDocs": [
+        {
+          "typeAbbrev": "Prot",
+          "hasProtocol": true,
+          "hasSap": false,
+          "label": "Study Protocol",
+          "date": "2020-08-14",
+          "filename": "Prot_002.pdf"
+        },
+        {
+          "typeAbbrev": "SAP",
+          "hasProtocol": false,
+          "hasSap": true,
+          "label": "Statistical Analysis Plan",
+          "date": "2023-09-22",
+          "filename": "SAP_003.pdf"
+        }
+      ]
+    }
+  }
+}

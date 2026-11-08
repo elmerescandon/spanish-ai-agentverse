@@ -1,0 +1,218 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT01760447",
+      "briefTitle": "A Pooled Analysis of the Safety and Efficacy of MK-0431A and MK-0431A XR in Pediatric Participants With Type 2 Diabetes Mellitus With Inadequate Glycemic Control on Metformin Therapy (Alone or in Combination With Insulin) (MK-0431A-170/MK-0431A-289)",
+      "officialTitle": "A Pooled Analysis of the Safety and Efficacy of MK-0431A and MK-0431A XR in Pediatric Patients With Type 2 Diabetes Mellitus With Inadequate Glycemic Control on Metformin Therapy (Alone or in Combination With Insulin)"
+    },
+    "statusModule": {
+      "overallStatus": "COMPLETED",
+      "startDateStruct": {
+        "date": "2011-12-07"
+      },
+      "completionDateStruct": {
+        "date": "2019-09-17"
+      },
+      "lastUpdatePostDateStruct": {
+        "date": "2022-09-23"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {
+        "name": "Merck Sharp & Dohme LLC",
+        "class": "INDUSTRY"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": true
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Type 2 Diabetes Mellitus"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "QUADRUPLE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 223,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "Sitagliptin/Metformin"
+        },
+        {
+          "label": "Metformin"
+        },
+        {
+          "label": "Sitagliptin/Metformin XR"
+        },
+        {
+          "label": "Metformin XR"
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "Sitagliptin plus metformin"
+        },
+        {
+          "type": "DRUG",
+          "name": "Placebo to metformin"
+        },
+        {
+          "type": "DRUG",
+          "name": "Metformin"
+        },
+        {
+          "type": "DRUG",
+          "name": "Placebo to sitagliptin plus metformin"
+        },
+        {
+          "type": "DRUG",
+          "name": "Sitagliptin plus metformin XR"
+        },
+        {
+          "type": "DRUG",
+          "name": "Placebo to metformin XR"
+        },
+        {
+          "type": "DRUG",
+          "name": "Insulin"
+        },
+        {
+          "type": "DRUG",
+          "name": "Placebo to sitagliptin plus metformin XR"
+        },
+        {
+          "type": "DRUG",
+          "name": "Metformin XR"
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Change From Baseline in A1C at Week 20",
+          "timeFrame": "Baseline and Week 20"
+        },
+        {
+          "measure": "Number of Participants Who Experienced ≥1 Adverse Event During Weeks 0-20",
+          "timeFrame": "Up to Week 20"
+        },
+        {
+          "measure": "Number of Participants Who Discontinued Study Drug Due to Experiencing an Adverse Event During Weeks 0-20",
+          "timeFrame": "Up to Week 20"
+        },
+        {
+          "measure": "Number of Participants Who Experienced ≥1 Adverse Event During Weeks 0-56",
+          "timeFrame": "Up to approximately Week 56"
+        },
+        {
+          "measure": "Number of Participants Who Discontinued Study Drug Due to Experiencing an Adverse Event During Weeks 0-54",
+          "timeFrame": "Up to Week 54"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Change From Baseline in A1C at Week 54",
+          "timeFrame": "Baseline and Week 54"
+        },
+        {
+          "measure": "Change From Baseline in Fasting Plasma Glucose (FPG) at Week 20",
+          "timeFrame": "Baseline and Week 20"
+        },
+        {
+          "measure": "Change From Baseline in FPG at Week 54",
+          "timeFrame": "Baseline and Week 54"
+        },
+        {
+          "measure": "Percentage of Participants With A1C at Goal (<7.0%) at Week 20",
+          "timeFrame": "Week 20"
+        },
+        {
+          "measure": "Percentage of Participants With A1C at Goal (<6.5%) at Week 20",
+          "timeFrame": "Week 20"
+        },
+        {
+          "measure": "Percentage of Participants With A1C at Goal (<7.0%) at Week 54",
+          "timeFrame": "Week 54"
+        },
+        {
+          "measure": "Percentage of Participants With A1C at Goal (<6.5%) at Week 54",
+          "timeFrame": "Week 54"
+        },
+        {
+          "measure": "Percentage of Participants Initiating Glycemic Rescue Therapy by Week 20",
+          "timeFrame": "Up to Week 20"
+        },
+        {
+          "measure": "Percentage of Participants Initiating Insulin Glargine During Weeks 20-54",
+          "timeFrame": "Week 20 up to Week 54"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n* For MK-0431A-170 base study and MK-0431A-289:\n\n  * Has type 2 diabetes mellitus (T2DM)\n  * Is on metformin monotherapy (≥1500 mg/day) for ≥12 weeks with glycated hemoglobin (A1C) ≥6.5% and ≤10.0% OR is on stable doses of metformin (≥1500 mg/day) and insulin for ≥12 weeks with an A1C ≥7.0% and ≤10%. NOTE: Participants on a daily dose of metformin greater than or equal to 1000 mg/day, but less than 1500 mg/day may be eligible if there is documentation that higher doses are not tolerated.\n  * Participant and a family member or adult closely involved in the daily activities will participate in the participant's treatment and study protocol (i.e., available for telephone calls, study visits and administration of study medication as needed).\n  * Male, or female who is unlikely to conceive (non-sterilized, and is not sexually active or agrees to abstain from heterosexual activity or agrees to use an adequate method of contraception) during the study and for 14 days after the last dose of study drug\n* For MK-0431A-170 extension protocol:\n\n  * Has completed the P170 base study\n  * Participant and a family member or adult closely involved in the daily activities will participate in the participant's treatment and study protocol (i.e., available for telephone calls, study visits and administration of study medication as needed).\n  * Male, or female who is unlikely to conceive (non-sterilized, and is not sexually active or agrees to abstain from heterosexual activity or agrees to use an adequate method of contraception) during the study and for 14 days after the last dose of study drug\n\nExclusion Criteria:\n\n* For MK-0431A-170 base study and MK-0431A-289:\n\n  * Has type 1 diabetes mellitus\n  * Has monogenic diabetes or secondary diabetes\n  * Has symptomatic hyperglycemia and/or moderate to large ketonuria and/or positive test for ketonemia, requiring immediate initiation of another antihyperglycemic agent\n  * Has previously taken a dipeptidyl peptidase IV (DPP-4) inhibitor (such as sitagliptin, vildagliptin, alogliptin, saxagliptin, or linagliptin) or glucagon-like peptide-1 (GLP-1) receptor agonist (such as exenatide or liraglutide)\n  * Is on or likely to require treatment for ≥2 consecutive weeks or repeated courses of corticosteroids (inhaled, nasal and topical corticosteroids are permitted)\n  * Has undergone a surgical procedure within 4 weeks of study participation or has planned major surgery during the study\n  * History of congenital heart disease or cardiovascular disease other than hypertension\n  * History of active liver disease (other than non-alcoholic steatosis), including chronic active hepatitis B or C, primary biliary cirrhosis, or symptomatic gallbladder disease\n  * Active neuropathy (such as nephrotic syndrome or glomerulonephritis)\n  * Chronic myopathy, mitochondrial disorder or a progressive neurological or neuromuscular disorder\n  * Human immunodeficiency virus (HIV)\n  * Hematological disorder (such as aplastic anemia, thrombocytopenia, myeloproliferative or myelodysplastic syndromes)\n  * Is currently being treated for hyperthyroidism or is on thyroid hormone therapy and has not been on a stable dose for at least 6 weeks\n  * History of malignancy for ≤5 years prior to study participation, except for adequately treated basal cell or squamous cell skin cancer, or in situ cervical cancer\n  * History of idiopathic acute pancreatitis or chronic pancreatitis\n  * History of recreational or illicit drug use, or of alcohol abuse or dependence (within the past year)\n  * Has donated blood products or has had phlebotomy of \\>10% of estimated total blood volume within 8 weeks of study participation, or intends to donate blood products or receive blood products within the projected duration of the study\n  * Is pregnant or breast-feeding, or is expecting to conceive or donate eggs during the study, including 14 days following the last dose of study drug\n* For MK-0431A-170 extension protocol:\n\n  * Participant meets a study medication discontinuation criterion at the last visit of the MK-0431A-170 base study (Week 20)\n  * Has taken the last dose of study medication for the MK-0431A-170 base study more than 14 days prior to Extension Visit 1\n  * Has initiated another oral antihyperglycemic agent\n  * Participant does not agree to refrain from participating in any other double-blind interventional study while participating in the P170 extension study",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "10 Years",
+      "maximumAge": "17 Years",
+      "stdAges": [
+        "CHILD"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": []
+    }
+  },
+  "derivedSection": {
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Diabetes Mellitus, Type 2"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Sitagliptin Phosphate"
+        },
+        {
+          "term": "Metformin"
+        },
+        {
+          "term": "Insulin"
+        }
+      ]
+    }
+  },
+  "documentSection": {
+    "largeDocumentModule": {
+      "largeDocs": [
+        {
+          "typeAbbrev": "Prot_SAP",
+          "hasProtocol": true,
+          "hasSap": true,
+          "label": "Study Protocol and Statistical Analysis Plan",
+          "date": "2018-04-03",
+          "filename": "Prot_SAP_000.pdf"
+        }
+      ]
+    }
+  }
+}

@@ -24,6 +24,11 @@
       ]
     }
   },
+  "functions": {
+    "backend/main.py": {
+      "maxDuration": 800
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:path*",

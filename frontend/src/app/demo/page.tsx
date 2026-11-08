@@ -11,7 +11,7 @@ export default function DemoPage() {
   return (
     <div className="min-h-screen bg-white text-zinc-900 selection:bg-emerald-100">
       <header className="sticky top-0 z-30 w-full border-b border-zinc-100/60 bg-white/70 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 sm:px-10 lg:px-12">
+        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-6 sm:px-10 lg:px-12">
           <Link
             href="/"
             style={serifFont}
@@ -22,7 +22,7 @@ export default function DemoPage() {
           </Link>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl px-6 py-12 sm:px-10 lg:px-12">
+      <main className="mx-auto w-full max-w-7xl px-6 pb-12 pt-2 sm:px-10 lg:px-12">
         <DemoPipeline />
       </main>
     </div>

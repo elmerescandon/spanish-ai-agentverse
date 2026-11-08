@@ -299,6 +299,10 @@ html {
   border-color: #059669;
   box-shadow: 0 8px 24px #064e3b12;
 }
+.analysis-card[aria-current="step"] {
+  border-color: #059669;
+  background: #ecfdf5;
+}
 .analysis-card[data-loading="true"]::after {
   content: "";
   position: absolute;

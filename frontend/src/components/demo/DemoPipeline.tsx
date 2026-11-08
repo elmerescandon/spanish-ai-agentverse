@@ -78,7 +78,7 @@ export default function DemoPipeline({
   const [sampleRevealCount, setSampleRevealCount] = useState(0);
   useEffect(() => {
     if (!isSample) return;
-    const timers = [1350, 2350, 3550, 4750].map((delay, index) =>
+    const timers = [1350, 2350, 3350, 4350].map((delay, index) =>
       setTimeout(() => setSampleRevealCount(index + 1), delay));
     return () => timers.forEach(clearTimeout);
   }, [isSample, animationReplay]);
@@ -242,6 +242,18 @@ export default function DemoPipeline({
 
   const hasExpandedDecision = expandedDecisionIds.size > 0;
   useEffect(() => {
+    const navigate = (event: KeyboardEvent) => {
+      if (isTextEntry(event.target)) return;
+      const index = barItems.findIndex((item) => item.id === activeStepId);
+      const direction = event.key === "ArrowRight" ? 1 :
+        event.key === "ArrowLeft" ? -1 : 0;
+      const target = direction ? barItems[index + direction] : undefined;
+      if (target && target.state !== "running") openStep(target.id);
+    };
+    window.addEventListener("keydown", navigate);
+    return () => window.removeEventListener("keydown", navigate);
+  }, [barItems, activeStepId, openStep]);
+  useEffect(() => {
     if (!hasExpandedDecision) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !isTextEntry(event.target)) {
@@ -373,7 +385,7 @@ export default function DemoPipeline({
       <nav aria-label="Pipeline steps"
         className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {barItems.map((item, index) => (
-          <button key={`${animationReplay}-${item.id}-${item.state}`}
+          <button key={`${animationReplay}-${item.id}`}
             type="button"
             onClick={() => openStep(item.id)}
             disabled={item.state === "running"}
@@ -460,27 +472,24 @@ export default function DemoPipeline({
         aria-label="Step navigation"
         className="flex items-center justify-between border-t border-zinc-200/60 pb-16 pt-6 font-sans text-sm"
       >
-        {previousItem ? (
           <button
             type="button"
-            onClick={() => openStep(previousItem.id)}
+            aria-label="Previous step"
+            disabled={!previousItem}
+            onClick={() => previousItem && openStep(previousItem.id)}
             className="cursor-pointer text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900"
           >
-            ← Previous: {previousItem.title}
+            ← Previous: {previousItem?.title ?? "Start"}
           </button>
-        ) : (
-          <span />
-        )}
-        {nextItem && (
           <button
             type="button"
-            disabled={nextItem.state === "running"}
-            onClick={() => openStep(nextItem.id)}
+            aria-label="Next step"
+            disabled={!nextItem || nextItem.state === "running"}
+            onClick={() => nextItem && openStep(nextItem.id)}
             className="cursor-pointer text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900 disabled:cursor-default disabled:no-underline disabled:opacity-40"
           >
-            Next: {nextItem.title} →
+            Next: {nextItem?.title ?? "End"} →
           </button>
-        )}
       </nav>
     </div>
   );

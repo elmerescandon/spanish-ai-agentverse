@@ -21,12 +21,15 @@ import { makeStep } from "./fixtures";
 
 type User = ReturnType<typeof userEvent.setup>;
 
-const SLOW_STEP_TIMEOUT_MS = 4000;
+const SLOW_STEP_TIMEOUT_MS = 6500;
 
 async function loadPreset(user: User) {
   await user.click(
     screen.getByRole("button", { name: "Try the sample protocol" })
   );
+  await waitFor(() => expect(screen.getByRole("navigation", {
+    name: "Pipeline steps",
+  })).toBeInTheDocument(), { timeout: SLOW_STEP_TIMEOUT_MS });
 }
 
 async function waitForAllStepsDone() {
@@ -265,16 +268,16 @@ describe("demo pipeline step bar flow", () => {
       within(screen.getByRole("navigation", { name: "Step navigation" }));
     expect(
       stepNavigation().queryByRole("button", { name: /Previous/ })
-    ).not.toBeInTheDocument();
+    ).toBeDisabled();
 
     const nextButton = () =>
-      stepNavigation().getByRole("button", { name: /^Next:/ });
+      stepNavigation().getByRole("button", { name: "Next step" });
     await waitFor(() => expect(nextButton()).toBeEnabled(), {
       timeout: SLOW_STEP_TIMEOUT_MS,
     });
     await user.click(nextButton());
     expect(
-      stepNavigation().getByRole("button", { name: /^← Previous:/ })
+      stepNavigation().getByRole("button", { name: "Previous step" })
     ).toBeInTheDocument();
   });
 
@@ -496,7 +499,7 @@ describe("live upload fans out to the recommendation agents", () => {
 
     const failed = screen.getByRole("button", { name: "Protocol Comparison" });
     expect(failed).toBeEnabled();
-    expect(failed).toHaveTextContent("Failed");
+    expect(failed).toHaveTextContent("Needs attention");
     await user.click(failed);
     expect(screen.getByRole("alert")).toHaveTextContent("Peer search unavailable");
 

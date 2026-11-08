@@ -1,0 +1,41 @@
+{
+  "trial_id": "NCT01541215",
+  "cache_key": "5bdc03481c3dfa6e",
+  "read_at": "2026-11-08T03:47:58.087632Z",
+  "reply": {
+    "predicates": [
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 7.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c: 7.0-11% (inclusive) if diet and exercise treated"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 11.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c: 7.0-11% (inclusive) if diet and exercise treated"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 6.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c: 7.0-11% (inclusive) if diet and exercise treated or 6.5-11% (inclusive)"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 11.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c: 7.0-11% (inclusive) if diet and exercise treated or 6.5-11% (inclusive)"
+      }
+    ]
+  }
+}

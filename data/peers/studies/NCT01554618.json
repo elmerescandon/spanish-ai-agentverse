@@ -1,0 +1,398 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT01554618",
+      "briefTitle": "Safety and Efficacy Study of Exenatide Once Weekly in Adolescents With Type 2 Diabetes",
+      "officialTitle": "A Phase 3, Double-Blind, Placebo-Controlled, Randomized, Multi-Center Study to Assess the Safety and Efficacy of Exenatide Once Weekly in Adolescents With Type 2 Diabetes"
+    },
+    "statusModule": {
+      "overallStatus": "COMPLETED",
+      "startDateStruct": {
+        "date": "2011-12-02"
+      },
+      "completionDateStruct": {
+        "date": "2021-05-05"
+      },
+      "lastUpdatePostDateStruct": {
+        "date": "2021-11-30"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {
+        "name": "AstraZeneca",
+        "class": "INDUSTRY"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": true
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Children and Adolescent With Type 2 Diabetes"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "QUADRUPLE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 84,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "EQW"
+        },
+        {
+          "label": "Placebo"
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "Exenatide Once Weekly"
+        },
+        {
+          "type": "DRUG",
+          "name": "Placebo"
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Change From Baseline in Glycosylated Hemoglobin A1c (HbA1c) to Week 24 (Controlled Assessment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 24"
+        },
+        {
+          "measure": "Percentage of Patients With On-Treatment Adverse Events (AEs) up to Week 24 (Controlled Assessment Period)",
+          "timeFrame": "Day 1 (Week 0) up to Week 24, plus up to a maximum of 90 days follow up"
+        },
+        {
+          "measure": "Percentage of Patients Positive for Anti-Drug Antibodies (ADAs) to Exenatide up to Week 24",
+          "timeFrame": "Samples were collected on Day 1 (Week 0), Week 4, Week 8, Week 12 and Week 24"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Change From Baseline in Fasting Plasma Glucose (FPG) Concentration to Week 24 (Controlled Assessment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 24"
+        },
+        {
+          "measure": "Change From Baseline in Body Weight to Week 24 (Controlled Assessment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 24"
+        },
+        {
+          "measure": "Change From Baseline in Fasting Insulin to Week 24 (Controlled Assessment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 24"
+        },
+        {
+          "measure": "Percentage of Patients Achieving HbA1c Goals of < 6.5%, ≤ 6.5%, and < 7.0% at Week 24 (Controlled Assessment Period)",
+          "timeFrame": "At Week 24"
+        },
+        {
+          "measure": "Change From Baseline in Lipid Profiles to Week 24 (Controlled Assessment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 24"
+        },
+        {
+          "measure": "Change From Baseline in Systolic Blood Pressure (SBP) and Diastolic Blood Pressure (DBP) to Week 24 (Controlled Assessment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 24"
+        },
+        {
+          "measure": "Number of Patients Needing Rescue Medication Due to Failure to Maintain Glycemic Control up to Week 24 (Controlled Assessment Period)",
+          "timeFrame": "At Week 4, Week 8, Week 12, Week 18 and Week 24"
+        },
+        {
+          "measure": "Change From Baseline in Homeostasis Model Assessments - Beta-Cell Function (HOMA-B) and Insulin Sensitivity (HOMA-S) to Week 24 (Controlled Assessment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 24"
+        },
+        {
+          "measure": "Percentage of Patients Reporting AEs of Injection Site Reactions up to Week 24 (Controlled Assessment Period)",
+          "timeFrame": "At Week 4, Week 8, Week 12, Week 18 and Week 24"
+        },
+        {
+          "measure": "Change From Baseline in HbA1c to Week 52 Among Patients Who Received Open-Label Exenatide (Treatment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 52"
+        },
+        {
+          "measure": "Change From Baseline in FPG Concentration to Week 52 Among Patients Who Received Open-Label Exenatide (Treatment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 52"
+        },
+        {
+          "measure": "Change From Baseline in Body Weight to Week 52 Among Patients Who Received Open-Label Exenatide (Treatment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 52"
+        },
+        {
+          "measure": "Change From Baseline in Fasting Insulin to Week 52 Among Patients Who Received Open-Label Exenatide (Treatment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 52"
+        },
+        {
+          "measure": "Percentage of Participants Achieving HbA1c Goals of < 6.5%, ≤ 6.5%, and < 7.0% to Week 52 Among Patients Who Received Open-Label Exenatide (Treatment Period)",
+          "timeFrame": "At Week 52"
+        },
+        {
+          "measure": "Change From Baseline in Lipids Profiles to Week 52 Among Patients Who Received Open-Label Exenatide (Treatment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 52"
+        },
+        {
+          "measure": "Change From Baseline in Blood Pressure (Systolic and Diastolic) to Week 52 Among Patients Who Received Open-Label Exenatide (Treatment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 52"
+        },
+        {
+          "measure": "Number of Patients Needing Rescue Medication Due to Failure to Maintain Glycemic Control up to Week 52 Among Patients Who Received Open-Label Exenatide (Treatment Period)",
+          "timeFrame": "At Week 4, Week 8, Week 12, Week 18, Week 24, Week 28, Week 40 and Week 52"
+        },
+        {
+          "measure": "Change From Baseline in HOMA-B and HOMA-S to Week 52 Among Patients Who Received Open-Label Exenatide (Treatment Period)",
+          "timeFrame": "Baseline (Week 0) and Week 52"
+        },
+        {
+          "measure": "Percentage of Patients Reporting AEs of Injection Site Reactions up to Week 52 Among Patients Who Received Open-Label Exenatide (Treatment Period)",
+          "timeFrame": "At Week 4, Week 8, Week 12, Week 18, Week 24, Week 28, Week 40 and Week 52"
+        },
+        {
+          "measure": "Plasma Exenatide Concentrations to Week 52 Among Patients Who Received Open-Label Exenatide (Treatment Period)",
+          "timeFrame": "Samples were collected on Day 1 (Week 0), Week 4, Week 8, Week 12, Week 24 and Week 52"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Each patient must meet the following criteria to be enrolled in this study.\n\n1. Is a child or an adolescent of 10 to \\<18 years old, at Visit 1 (Screening)\n2. Has been diagnosed with type 2 diabetes mellitus per American Diabetes Association diagnostic criteria\n3. HbA1c of 6.5% to 11.0%, inclusive, in patients not taking insulin/SU, and of 6.5% to 12.0%, inclusive, in patients taking insulin/SU, at Visit 1 (Screening)\n4. Has a C-peptide of \\>0.6 ng/L at Visit 1 (Screening)\n5. Has been treated with diet and exercise alone or in combination with a stable dose of an oral antidiabetic agent (e.g., metformin and/or SU) and/or insulin for their type 2 diabetes for at least 2 months prior to Visit 1 (Screening)\n6. Has a fasting plasma glucose concentration \\<280 mg/dL (15.5 mmol/L) at Visit 1 (Screening)\n\nPatients who meet any of the following criteria will be excluded from the study.\n\n1. Has a clinically significant medical condition that could potentially affect study participation and/or personal well-being, as judged by the Investigator, including but not limited to the following conditions:\n\n   1. Hepatic disease (defined by aspartate or alanine transaminase \\>3.0 times the upper limit of normal (ULN)\n   2. Renal disease or serum creatinine \\>1.5 mg/dL (132.6 µmol/L) (males) or 1.4 mg/dL (123.8 µmol/L) (females)\n   3. Gastrointestinal disease deemed significant by the Investigator\n   4. Organ transplantation\n   5. Chronic infection (e.g., tuberculosis, human immunodeficiency virus, hepatitis B virus, or hepatitis C virus)\n   6. Clinically significant malignant disease (with the exception of basal and squamous cell carcinoma of the skin) within 5 years of Visit 1 (Screening)\n2. Has positive antibody titers to glutamic acid decarboxylase (GAD65) or islet cell antigen (ICA512) at Visit 1 (Screening)\n3. Has a personal or family history of elevated calcitonin, calcitonin \\>100 ng/L, medullary thyroid carcinoma, or multiple endocrine neoplasia-2\n4. Has ever used exenatide (exenatide once weekly \\[exenatide LAR\\], exenatide BID, BYETTA, or any other formulation) or any glucagon-like peptide-1 (GLP-1) receptor agonist (e.g., liraglutide \\[Victoza®\\])\n5. Is pregnant",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "10 Years",
+      "maximumAge": "17 Years",
+      "stdAges": [
+        "CHILD"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "Research Site",
+          "city": "Los Angeles",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "New Haven",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Iowa City",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Kansas City",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Louisville",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Boston",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Jackson",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Buffalo",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Chapel Hill",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Charlotte",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Cleveland",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Oklahoma City",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Rapid City",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Nashville",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Dallas",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Houston",
+          "country": "United States"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Pleven",
+          "country": "Bulgaria"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Sevlievo",
+          "country": "Bulgaria"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Baja",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Budapest",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Budapest",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Budapest",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Szeged",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Beersheba",
+          "country": "Israel"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Haifa",
+          "country": "Israel"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Ramat Gan",
+          "country": "Israel"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Kuwait City",
+          "country": "Kuwait"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Aguascalientes",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Durango",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Guadalajara",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Veracruz",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Chernivts?",
+          "country": "Ukraine"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Ivano-Frankivsk",
+          "country": "Ukraine"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Kharkiv Region",
+          "country": "Ukraine"
+        },
+        {
+          "facility": "Research Site",
+          "city": "Odesa",
+          "country": "Ukraine"
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Diabetes Mellitus, Type 2"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Exenatide"
+        }
+      ]
+    }
+  },
+  "documentSection": {
+    "largeDocumentModule": {
+      "largeDocs": [
+        {
+          "typeAbbrev": "Prot",
+          "hasProtocol": true,
+          "hasSap": false,
+          "label": "Study Protocol",
+          "date": "2017-12-14",
+          "filename": "Prot_002.pdf"
+        },
+        {
+          "typeAbbrev": "SAP",
+          "hasProtocol": false,
+          "hasSap": true,
+          "label": "Statistical Analysis Plan",
+          "date": "2020-05-21",
+          "filename": "SAP_003.pdf"
+        }
+      ]
+    }
+  }
+}

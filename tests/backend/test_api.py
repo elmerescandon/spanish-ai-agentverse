@@ -80,7 +80,6 @@ def test_list_recommendations_returns_all_pipeline_steps(
     response = client.get(f"/api/protocols/{DEMO_PROTOCOL_ID}/recommendations")
     assert response.status_code == 200
     recs = response.json()
-    assert len(recs) == 3
     steps = {r["source_step"] for r in recs}
     assert steps == {"completeness", "comparison", "cohort"}
 
@@ -148,3 +147,70 @@ def test_update_unknown_recommendation_returns_404(
     )
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
+
+
+def comparison_items(client: TestClient) -> list[dict[str, object]]:
+    response = client.get(f"/api/protocols/{DEMO_PROTOCOL_ID}/recommendations")
+    assert response.status_code == 200
+    return [
+        item for item in response.json() if item["source_step"] == "comparison"
+    ]
+
+
+def test_comparison_step_returns_one_real_item_per_dimension(
+    client: TestClient,
+) -> None:
+    """Comparison items come from the agent, one per compared dimension."""
+    items = comparison_items(client)
+
+    assert len(items) == 7
+    assert all(
+        str(item["recommendation_id"]).startswith("comparison-")
+        for item in items
+    )
+
+
+def test_comparison_items_are_not_duplicated_on_repeat_reads(
+    client: TestClient,
+) -> None:
+    """Reading twice returns the same items, not a second copy."""
+    first = comparison_items(client)
+    second = comparison_items(client)
+
+    assert [item["recommendation_id"] for item in first] == [
+        item["recommendation_id"] for item in second
+    ]
+
+
+def test_decision_on_a_comparison_item_survives_the_next_read(
+    client: TestClient,
+) -> None:
+    """A reviewer's decision is not overwritten by re-running the agent."""
+    rec_id = comparison_items(client)[0]["recommendation_id"]
+
+    patch = client.patch(
+        f"/api/protocols/{DEMO_PROTOCOL_ID}/recommendations/{rec_id}",
+        json={"status": "accepted", "comment": "Agreed with peers"},
+    )
+    assert patch.status_code == 200
+
+    [item] = [
+        i for i in comparison_items(client) if i["recommendation_id"] == rec_id
+    ]
+    assert (item["status"], item["comment"]) == (
+        "accepted",
+        "Agreed with peers",
+    )
+
+
+def test_comparison_item_can_be_decided_before_any_listing(
+    client: TestClient,
+) -> None:
+    """PATCH works on a comparison item even if nothing listed it yet."""
+    response = client.patch(
+        f"/api/protocols/{DEMO_PROTOCOL_ID}/recommendations/"
+        "comparison-minimum_age",
+        json={"status": "rejected"},
+    )
+
+    assert response.status_code == 200

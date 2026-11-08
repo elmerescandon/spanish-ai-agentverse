@@ -1,0 +1,41 @@
+{
+  "trial_id": "NCT00658021",
+  "cache_key": "7ccd88a4540972b1",
+  "read_at": "2026-11-08T03:47:57.836231Z",
+  "reply": {
+    "predicates": [
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 6.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "have HbA1c between 6.5% and 10.5%, inclusive."
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 10.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "have HbA1c between 6.5% and 10.5%, inclusive."
+      },
+      {
+        "variable": "AST",
+        "operator": ">",
+        "value": 3.0,
+        "unit": "times the upper limit of normal (ULN)",
+        "scope": "EXCLUSION",
+        "source_text": "aspartate (AST) or alanine (ALT) transaminase >3.0 times the upper limit of normal (ULN)."
+      },
+      {
+        "variable": "ALT",
+        "operator": ">",
+        "value": 3.0,
+        "unit": "times the upper limit of normal (ULN)",
+        "scope": "EXCLUSION",
+        "source_text": "aspartate (AST) or alanine (ALT) transaminase >3.0 times the upper limit of normal (ULN)."
+      }
+    ]
+  }
+}

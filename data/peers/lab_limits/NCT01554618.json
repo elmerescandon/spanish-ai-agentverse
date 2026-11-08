@@ -1,0 +1,57 @@
+{
+  "trial_id": "NCT01554618",
+  "cache_key": "e9955e3bfd37cbd5",
+  "read_at": "2026-11-08T03:47:57.223607Z",
+  "reply": {
+    "predicates": [
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 6.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c of 6.5% to 11.0%, inclusive, in patients not taking insulin/SU"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 11.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c of 6.5% to 11.0%, inclusive, in patients not taking insulin/SU"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 6.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "of 6.5% to 12.0%, inclusive, in patients taking insulin/SU"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 12.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "of 6.5% to 12.0%, inclusive, in patients taking insulin/SU"
+      },
+      {
+        "variable": "AST",
+        "operator": ">",
+        "value": 3.0,
+        "unit": "times the upper limit of normal (ULN)",
+        "scope": "EXCLUSION",
+        "source_text": "aspartate or alanine transaminase >3.0 times the upper limit of normal (ULN)"
+      },
+      {
+        "variable": "ALT",
+        "operator": ">",
+        "value": 3.0,
+        "unit": "times the upper limit of normal (ULN)",
+        "scope": "EXCLUSION",
+        "source_text": "aspartate or alanine transaminase >3.0 times the upper limit of normal (ULN)"
+      }
+    ]
+  }
+}

@@ -21,6 +21,14 @@ from backend.agents.cohort import (
     analyze_protocol_cohort,
     analyze_protocol_document_cohort,
 )
+from backend.agents.protocol_comparison.agent import (
+    AGENT_NAME as COMPARISON_AGENT_NAME,
+)
+from backend.agents.protocol_comparison.demo import compare_demo_draft
+from backend.agents.protocol_comparison.peer_store import PeerStoreError
+from backend.agents.protocol_comparison.step_data import (
+    to_step_data as comparison_step_data,
+)
 from backend.api.schemas import (
     Decision,
     DecisionOption,
@@ -203,54 +211,31 @@ async def run_protocol_comparison_agent(
 ) -> StepData:
     """Return the PEERS section (comparison with similar trials).
 
+    Compares the demo draft with the committed peer snapshot and no LLM,
+    so the step is fast, gives the same result when called twice and
+    never writes to disk (the deployed filesystem is read-only).
+
     Raises:
-        Nothing today (mock). Real agents should raise a specific
-        exception the route can turn into an HTTP error.
+        PeerStoreError: the peer snapshot in data/peers is missing or
+            invalid; the route answers with a server error.
     """
-    # [TO REFACTOR:(theo)]: mock until the protocol comparison agent is
-    # wired
-    decision = _mock_decision(
-        step_id=StepId.PEERS,
-        key="prs-01",
-        document=document,
-        severity=Severity.WARNING,
-        title="HbA1c exclusion stricter than peers",
-        claim=(
-            "The HbA1c upper limit excludes more patients than in "
-            "similar Phase 3 trials."
-        ),
-        quote="HbA1c above 9.0% at screening.",
-        agent="Comparison",
-        rule_text="Compared the exclusion limit with 42 peer trials.",
-        proposed_change=ProposedChange(
-            path="5.2 Exclusion criteria",
-            before="HbA1c above 9.0%",
-            after="HbA1c above 10.0%",
-        ),
-        source=EvidenceSource.AACT,
-    )
-    return _step_logged(
+    try:
+        comparison = await compare_demo_draft()
+    except PeerStoreError:
+        logger.exception(
+            "comparison failed: agent=%s protocol_id=%s",
+            COMPARISON_AGENT_NAME,
+            document.protocol_id,
+        )
+        raise
+    step = comparison_step_data(
         document,
-        StepData(
-            id=StepId.PEERS,
-            title="Protocol Comparison",
-            summary=(
-                f"'{document.title}' compared with similar Phase 3 trials."
-            ),
-            headline=Metric(label="peer trials", value="42"),
-            metrics=[
-                Metric(label="Peer trials", value="42"),
-                Metric(label="Outliers", value="2", tone=MetricTone.WARN),
-                Metric(
-                    label="Biggest outlier",
-                    value="HbA1c >= 9.0",
-                    tone=MetricTone.RISK,
-                ),
-                Metric(label="Peer median duration", value="36 wk"),
-            ],
-            decisions=[decision],
-        ),
+        comparison.draft_trial_id,
+        comparison.protocol_date,
+        comparison.results,
+        comparison.cards,
     )
+    return _step_logged(document, step)
 
 
 def _cohort_card_to_decision(

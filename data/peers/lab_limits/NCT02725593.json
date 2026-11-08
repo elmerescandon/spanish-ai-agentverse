@@ -1,0 +1,41 @@
+{
+  "trial_id": "NCT02725593",
+  "cache_key": "355d2968e23f1336",
+  "read_at": "2026-11-08T03:48:09.157471Z",
+  "reply": {
+    "predicates": [
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 6.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c >= 6.5% and <= 11%"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 11.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c >= 6.5% and <= 11%"
+      },
+      {
+        "variable": "EGFR",
+        "operator": "<",
+        "value": 80.0,
+        "unit": "mL/min/1.73 m2",
+        "scope": "EXCLUSION",
+        "source_text": "estimated glomerular filtration rate (eGFR) calculated by the Schwartz Formula < 80 mL/min/1.73 m2"
+      },
+      {
+        "variable": "EGFR",
+        "operator": "<",
+        "value": 60.0,
+        "unit": "mL/min/1.73 m2",
+        "scope": "EXCLUSION",
+        "source_text": "estimated glomerular filtration rate (eGFR) calculated by the MDRD Formula < 60 mL/min/1.73 m2"
+      }
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "trial_id": "NCT01485614",
+  "cache_key": "15b1b3c20a8c81fa",
+  "read_at": "2026-11-08T03:48:01.821214Z",
+  "reply": {
+    "predicates": [
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 6.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "An A1C of ≥6.5% and ≤10.0%"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 10.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "An A1C of ≥6.5% and ≤10.0%"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 7.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "an A1C ≥7.0% and ≤10.0%"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 10.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "an A1C ≥7.0% and ≤10.0%"
+      }
+    ]
+  }
+}

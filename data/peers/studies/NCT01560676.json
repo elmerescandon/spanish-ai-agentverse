@@ -1,0 +1,136 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT01560676",
+      "briefTitle": "Reducing Obesity and Type 2 Diabetes in High Risk Youth",
+      "officialTitle": "A School-based Internet Obesity Prevention Program for Adolescents"
+    },
+    "statusModule": {
+      "overallStatus": "COMPLETED",
+      "startDateStruct": {
+        "date": "2009-09"
+      },
+      "completionDateStruct": {
+        "date": "2011-08"
+      },
+      "lastUpdatePostDateStruct": {
+        "date": "2012-03-22"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {
+        "name": "Yale University",
+        "class": "OTHER"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": false
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Obesity",
+        "Type 2 Diabetes"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE2",
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "PREVENTION",
+        "maskingInfo": {
+          "masking": "SINGLE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 384,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "HEALTH[e]TEEN"
+        },
+        {
+          "label": "HEALTH[e]TEEN + CST"
+        }
+      ],
+      "interventions": [
+        {
+          "type": "BEHAVIORAL",
+          "name": "HEALTH[e]TEEN"
+        },
+        {
+          "type": "BEHAVIORAL",
+          "name": "HEALTH[e]TEEN + CST"
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "BMI",
+          "timeFrame": "6 months"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Dietary behavior",
+          "timeFrame": "6 months"
+        },
+        {
+          "measure": "Sedentary behavior",
+          "timeFrame": "6 months"
+        },
+        {
+          "measure": "Physical activity",
+          "timeFrame": "6 months"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n* Student enrolled in Health, Biology, or Public Health course\n\nExclusion Criteria:\n\n* Cognitive ability unable to read or respond to questions in program",
+      "healthyVolunteers": true,
+      "sex": "ALL",
+      "minimumAge": "13 Years",
+      "maximumAge": "18 Years",
+      "stdAges": [
+        "CHILD",
+        "ADULT"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "Yale",
+          "city": "New Haven",
+          "country": "United States"
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Obesity"
+        },
+        {
+          "term": "Diabetes Mellitus, Type 2"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "term": "galactosylceramide sulfotransferase"
+        }
+      ]
+    }
+  }
+}

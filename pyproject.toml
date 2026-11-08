@@ -7,6 +7,7 @@ requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.115.0",
     "google-genai>=2.3.0",
+    "httpx>=0.28.0",
     "pydantic>=2.10.0",
     "pydantic-settings>=2.16.2",
     "pypdf>=7.0.0",
@@ -17,7 +18,6 @@ dependencies = [
 [dependency-groups]
 dev = [
     "fpdf2>=2.9.0",
-    "httpx>=0.28.0",
     "httpx2>=2.16.0",
     "mypy>=2.4.1",
     "pre-commit>=4.7.0",
@@ -31,6 +31,9 @@ dev = [
 # PEP 8 limit: ruff format wraps code to it, and E501 in ruff check flags
 # what the formatter cannot wrap (long strings, comments, docstrings).
 line-length = 79
+# Vendored agent skills (npx skills add): reformatting their code samples
+# would break the hashes pinned in skills-lock.json.
+extend-exclude = [".claude"]
 
 [tool.ruff.lint]
 extend-select = ["UP", "E501"]

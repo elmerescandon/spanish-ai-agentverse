@@ -1,0 +1,41 @@
+{
+  "trial_id": "NCT01779375",
+  "cache_key": "abe7de1817156965",
+  "read_at": "2026-11-08T03:47:56.354685Z",
+  "reply": {
+    "predicates": [
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 8.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "laboratory-based HbA1c ≤8.0% if treatment naïve"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 7.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "laboratory-based HbA1c must be ≤7.5% if on metformin for <3 months"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 7.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "≤7.0% if on metformin for 3-6 months"
+      },
+      {
+        "variable": "ALT",
+        "operator": ">",
+        "value": 3.0,
+        "unit": "times the upper limit of normal",
+        "scope": "EXCLUSION",
+        "source_text": "Serum alanine transaminase (ALT) more than 3 times the upper limit of normal"
+      }
+    ]
+  }
+}

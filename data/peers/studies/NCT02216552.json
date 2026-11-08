@@ -1,0 +1,172 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT02216552",
+      "briefTitle": "Resveratrol for the Treatment of Non Alcoholic Fatty Liver Disease and Insulin Resistance in Overweight Adolescents",
+      "officialTitle": "Safety and Efficacy of Resveratrol for the Treatment of Non-Alcoholic Fatty Liver Disease and Associated Insulin Resistance in Overweight and Obese Adolescents"
+    },
+    "statusModule": {
+      "overallStatus": "COMPLETED",
+      "startDateStruct": {
+        "date": "2015-08"
+      },
+      "completionDateStruct": {
+        "date": "2017-03-20"
+      },
+      "lastUpdatePostDateStruct": {
+        "date": "2017-05-05"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {
+        "name": "University of Manitoba",
+        "class": "OTHER"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": true
+    },
+    "conditionsModule": {
+      "conditions": [
+        "NAFLD",
+        "TYPE 2 DIABETES",
+        "METABOLIC SYNDROME"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE2",
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "PREVENTION",
+        "maskingInfo": {
+          "masking": "QUADRUPLE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 10,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "Resveratrol"
+        },
+        {
+          "label": "Placebo"
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DIETARY_SUPPLEMENT",
+          "name": "Resveratrol"
+        },
+        {
+          "type": "DIETARY_SUPPLEMENT",
+          "name": "Placebo"
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Safety/ Adverse Event Outcome",
+          "timeFrame": "One week"
+        },
+        {
+          "measure": "Safety/ Adverse Event Outcome",
+          "timeFrame": "Week 2"
+        },
+        {
+          "measure": "Safety/ Adverse Event Outcome",
+          "timeFrame": "Week 3"
+        },
+        {
+          "measure": "Safety/ Adverse Event Outcome",
+          "timeFrame": "Week 4"
+        },
+        {
+          "measure": "Safety/ Adverse Event Outcome",
+          "timeFrame": "Week 8"
+        },
+        {
+          "measure": "Efficacy Outcome",
+          "timeFrame": "Week 4"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Efficacy Outcome",
+          "timeFrame": "Week 4"
+        },
+        {
+          "measure": "Efficacy Outcome",
+          "timeFrame": "Week 4"
+        },
+        {
+          "measure": "Efficacy Outcome",
+          "timeFrame": "Week 1"
+        },
+        {
+          "measure": "Efficacy Outcome",
+          "timeFrame": "Week 2"
+        },
+        {
+          "measure": "Efficacy Outcome",
+          "timeFrame": "Week 3"
+        },
+        {
+          "measure": "Efficacy Outcome",
+          "timeFrame": "Week 4"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n* 13 to \\<18 years of age\n* BMI considered overweight (BMI \\> 25 kg/m2 ) or obese (BMI \\> 30 kg/m2 )\n* Confirmed 1H-MRS defined hepatic steatosis (\\>5.5% fat/water)\n* Parent/Guardian willing and able to provide written, signed informed consent, and subjects willing to co-sign parental consent\n* Sexually active subjects must be willing to use an acceptable method of contraception\n* Females of child bearing potential must have a negative pregnancy test at screening.\n\nExclusion Criteria:\n\n* The use of any chronic medications with the exception of oral birth control and natural health products with the exception of multivitamins.\n* Adolescents with altered insulin sensitivity or tissue lipid content unrelated to obesity and the metabolic syndrome, including:\n\ntype 2 diabetes; present or previous malignancy renal disease, hypertension (anyone who has BPs over the 99th percentile for age and gender) or liver disease;\n\n* significant weight loss (10% in last six months) or enrolled in weight loss program in the six months prior to the study;\n* self-reported history of alcohol consumption of greater than two drinks per day and/or drinking alcohol more than once weekly;\n* report using non-prescription recreational drugs;\n* allergies or sensitivities to any of the ingredients in the investigational product or placebo;\n* females breastfeeding at screening or planning on becoming pregnant at any time during the study;",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "13 Years",
+      "maximumAge": "18 Years",
+      "stdAges": [
+        "CHILD",
+        "ADULT"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "Children's Hospital Research Institute of Manitoba/University of Manitoba",
+          "city": "Winnipeg",
+          "country": "Canada"
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Non-alcoholic Fatty Liver Disease"
+        },
+        {
+          "term": "Diabetes Mellitus, Type 2"
+        },
+        {
+          "term": "Metabolic Syndrome"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Resveratrol"
+        }
+      ]
+    }
+  }
+}

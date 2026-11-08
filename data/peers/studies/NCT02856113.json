@@ -1,0 +1,514 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT02856113",
+      "briefTitle": "Phase 3 Alogliptin Pediatric Study",
+      "officialTitle": "A Multicenter, Randomized, Double-Blind, Placebo-Controlled Study to Evaluate the Efficacy and Safety of Alogliptin Compared With Placebo in Pediatric Subjects With Type 2 Diabetes Mellitus"
+    },
+    "statusModule": {
+      "overallStatus": "COMPLETED",
+      "startDateStruct": {
+        "date": "2016-10-14"
+      },
+      "completionDateStruct": {
+        "date": "2022-02-14"
+      },
+      "lastUpdatePostDateStruct": {
+        "date": "2022-10-19"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {
+        "name": "Takeda",
+        "class": "INDUSTRY"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": true
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Diabetes Mellitus, Type 2"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "QUADRUPLE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 152,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "Placebo"
+        },
+        {
+          "label": "Alogliptin 25 mg"
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "Alogliptin Benzoate"
+        },
+        {
+          "type": "DRUG",
+          "name": "Placebo"
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Change From Baseline in Glycosylated Hemoglobin (HbA1c) at Week 26",
+          "timeFrame": "Baseline and Week 26"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Change From Baseline in HbA1c at Weeks 12, 18, 39 and 52",
+          "timeFrame": "Baseline and Weeks 12, 18, 39 and 52"
+        },
+        {
+          "measure": "Percentage of Participants With Clinically Significant Physical Examination Findings",
+          "timeFrame": "From Day 1 to end of treatment period (up to 52 weeks)"
+        },
+        {
+          "measure": "Percentage of Participants With Abnormal Vital Signs Values",
+          "timeFrame": "From Day 1 to end of treatment period (up to 52 weeks)"
+        },
+        {
+          "measure": "Percentage of Participants With Abnormal 12-lead Electrocardiogram (ECG) Findings",
+          "timeFrame": "Week 26 and 52"
+        },
+        {
+          "measure": "Percentage of Participants With Treatment-emergent Adverse Events (TEAE)",
+          "timeFrame": "From the study start up to end of the study (up to 54 weeks)"
+        },
+        {
+          "measure": "Percentage of Participants With Total, Urinary and Respiratory Tract Infections and Hypersensitivity Reactions",
+          "timeFrame": "From Day 1 to end of treatment period (up to 52 weeks)"
+        },
+        {
+          "measure": "Percentage of Participants With Hypoglycemia",
+          "timeFrame": "From Day 1 to end of treatment period (up to 52 weeks)"
+        },
+        {
+          "measure": "Percentage of Participants With Abnormal Safety Laboratory Findings",
+          "timeFrame": "From Day 1 to end of treatment period (up to 52 weeks)"
+        },
+        {
+          "measure": "Change From Baseline in Biomarkers of Bone Turnover at Weeks 26 and 52",
+          "timeFrame": "Baseline, Weeks 26 and 52"
+        },
+        {
+          "measure": "Change From Baseline in CD26 (CD4+T Cells) Surface Antigen Levels at Weeks 26 and 52",
+          "timeFrame": "Baseline, Weeks 26 and 52"
+        },
+        {
+          "measure": "Change From Baseline in CD26 (CD8+T Cells) Surface Antigen Levels at Weeks 26 and 52",
+          "timeFrame": "Baseline, Weeks 26 and 52"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n1. Has a confirmed diagnosis of T2DM using American Diabetes Association (ADA) and World Health Organization (WHO) criteria (laboratory determinations of fasting plasma glucose \\[FPG\\] greater than or equal to \\[\\>=\\] 126 mg/dL, random glucose \\>=200 mg/dL \\[\\>=11.10 mmol/L\\], HbA1c \\>=6.5 percent (%), or 2-hour oral glucose tolerance test \\[OGTT\\] glucose \\>=200 mg/dL), documented in the participants' medical record.\n2. The participant and/or his/her legal representative (that is, parents or legal guardians) are able and willing to monitor their own blood glucose concentrations with a home glucose monitor and complete participant diaries.\n\nExclusion Criteria:\n\n1. Has a history of hypersensitivity or allergy to alogliptin, other dipeptidyl peptidase-4 (DPP-4) inhibitors, metformin, insulin or related compounds.\n2. Has a confirmed diagnosis of type 1 diabetes mellitus or maturity-onset diabetes of the young (MODY).\n3. Has a hemoglobin level \\<11.0 gram per deciliter (g/dL) (\\<110 gram per liter \\[g/L\\]) for males and \\<10.0 g/dL (\\<100 g/L) for females.\n4. Has a history of any hemoglobinopathy that may affect determination of HbA1c levels.\n5. Has a history of bariatric surgery.\n6. Has a history of proliferative diabetic retinopathy within the 6 months prior to Screening.\n7. Has had more than 1 episode of diabetic ketoacidosis (DKA) at any time after diagnosis of T2DM.\n8. Has a history of more than 1 episode of pancreatitis.\n9. Has serum creatinine \\>=1.5 mg/dL for male participants or \\>=1.4 mg/dL for female participants, or creatinine clearance \\<60 milliliter per minute (mL/min) based on calculation by central lab using the Schwartz formula for estimated glomerular filtration rate (eGFR) at screening Visit.\n10. Has a documented history of infection with human immunodeficiency virus or chronic active viral hepatitis.\n11. The participant and/or his/her legal representative (that is, parents or legal guardians) is unable to understand verbal or written English, or any other language for which a certified translation of the approved informed consent/assent is available.\n\nAdditional Criteria That Must be Met Prior to Randomization:\n\nFor participants who have had the diagnosis of T2DM for less than 1 year and/or who are taking insulin at Screening, additional criteria will need to be met prior to randomization:\n\n1. Must have an HbA1c level of \\>=6.5% to \\<11.0% if the participant is treatment naïve or on metformin alone or \\>=7.0% to \\<11.0% if the participant is on insulin alone or in combination with metformin.\n2. The participant must not have received any investigational compound within 30 days or 5 half-lives, whichever is longer, prior to randomization.\n3. Must not have received an antidiabetic agent other than metformin or insulin within the 12 weeks prior to randomization.\n4. Must not have received oral or parenteral steroids for more than 3 weeks (cumulatively) within the 6 months prior to randomization or have received a course of oral or parenteral steroids within the 2 months prior to randomization.\n5. Has a systolic blood pressure \\<160 millimeter of mercury (mmHg) and a diastolic pressure \\<100 mm Hg. (Antihypertensive medications will be allowed during the study).\n6. Has an alanine aminotransferase (ALT) level \\<3\\*upper limit of normal (ULN) or an ALT level \\<5 \\*ULN with a confirmed diagnosis of nonalcoholic fatty liver disease (NAFLD).7. Does not plan to leave the geographic area within 1 calendar year following randomization.\n\nFor participants who have had the diagnosis of T2DM for less than 1 year and/or who are taking insulin prior to randomization, the following criteria must also be met:\n\n8\\. Must have a fasting C-peptide concentration\\>=0.6 nanogram per milliliter (ng/mL) (\\>=0.20 nanomole per liter \\[nmol/L\\]) (drawn at least 1 week after treatment for ketosis or acidosis, if applicable).\n\n9\\. No presence of autoantibodies as documented by glutamic acid decarboxylase \\[GAD\\] 65 and islet antigen \\[IA\\]-2 antibodies below the upper limit of the normal reference ranges at randomization.\n\n10\\. Have a body mass index (BMI) greater than (\\>) 85th percentile, documented at randomization.",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "10 Years",
+      "maximumAge": "17 Years",
+      "stdAges": [
+        "CHILD"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "Arkansas Children's Hospital Research Institute",
+          "city": "Little Rock",
+          "country": "United States"
+        },
+        {
+          "facility": "Children's Hospital Los Angeles",
+          "city": "Los Angeles",
+          "country": "United States"
+        },
+        {
+          "facility": "Sherif Khamis",
+          "city": "Palmdale",
+          "country": "United States"
+        },
+        {
+          "facility": "Lucile Packard Children's Hospital at Stanford University",
+          "city": "Palo Alto",
+          "country": "United States"
+        },
+        {
+          "facility": "Touro University California",
+          "city": "Vallejo",
+          "country": "United States"
+        },
+        {
+          "facility": "Yale New Haven Hospital",
+          "city": "New Haven",
+          "country": "United States"
+        },
+        {
+          "facility": "Children's National Health System",
+          "city": "Washington D.C.",
+          "country": "United States"
+        },
+        {
+          "facility": "University of Florida",
+          "city": "Gainesville",
+          "country": "United States"
+        },
+        {
+          "facility": "Nemours Childrens Specialty Care - Jacksonville",
+          "city": "Jacksonville",
+          "country": "United States"
+        },
+        {
+          "facility": "Baptist Diabetes Associates Research",
+          "city": "Miami",
+          "country": "United States"
+        },
+        {
+          "facility": "University of South Florida/USF Health",
+          "city": "Tampa",
+          "country": "United States"
+        },
+        {
+          "facility": "Endocrine Consultants Research",
+          "city": "Columbus",
+          "country": "United States"
+        },
+        {
+          "facility": "Endocrine Consultants Research - Oak Hill Court",
+          "city": "Newnan",
+          "country": "United States"
+        },
+        {
+          "facility": "Ann & Robert H. Lurie Children's Hospital of Chicago",
+          "city": "Chicago",
+          "country": "United States"
+        },
+        {
+          "facility": "Indiana University",
+          "city": "Indianapolis",
+          "country": "United States"
+        },
+        {
+          "facility": "University of Iowa",
+          "city": "Iowa City",
+          "country": "United States"
+        },
+        {
+          "facility": "University of Kentucky Health Care",
+          "city": "Lexington",
+          "country": "United States"
+        },
+        {
+          "facility": "Pennington Biomedical Research Center",
+          "city": "Baton Rouge",
+          "country": "United States"
+        },
+        {
+          "facility": "Ochsner Baptist Medical Center",
+          "city": "New Orleans",
+          "country": "United States"
+        },
+        {
+          "facility": "University of Minnesota Masonic Children's Hospital - Pediatric Specialty Care Discovery Clinic",
+          "city": "Minneapolis",
+          "country": "United States"
+        },
+        {
+          "facility": "Gulfside Clinical Research",
+          "city": "Gulfport",
+          "country": "United States"
+        },
+        {
+          "facility": "Saint Louis University",
+          "city": "St Louis",
+          "country": "United States"
+        },
+        {
+          "facility": "Horizon View Medical Center",
+          "city": "Las Vegas",
+          "country": "United States"
+        },
+        {
+          "facility": "Saint Joseph's Regional Medical Center - Paterson",
+          "city": "Paterson",
+          "country": "United States"
+        },
+        {
+          "facility": "University of Rochester",
+          "city": "Rochester",
+          "country": "United States"
+        },
+        {
+          "facility": "Cincinnati Children's Hospital Medical Center",
+          "city": "Cincinnati",
+          "country": "United States"
+        },
+        {
+          "facility": "Greenville Health System - Patewood",
+          "city": "Greenville",
+          "country": "United States"
+        },
+        {
+          "facility": "Monument Health Clinical Research",
+          "city": "Rapid City",
+          "country": "United States"
+        },
+        {
+          "facility": "UT Le Bonheur Pediatric Specialists",
+          "city": "Memphis",
+          "country": "United States"
+        },
+        {
+          "facility": "University of Texas Southwestern Medical Center",
+          "city": "Dallas",
+          "country": "United States"
+        },
+        {
+          "facility": "Baylor College of Medicine Advanced Liver Therapies",
+          "city": "Houston",
+          "country": "United States"
+        },
+        {
+          "facility": "University of Virginia",
+          "city": "Charlottesville",
+          "country": "United States"
+        },
+        {
+          "facility": "Seattle Children's Hospital",
+          "city": "Seattle",
+          "country": "United States"
+        },
+        {
+          "facility": "Multicare Health System Institute for Research and Innovation",
+          "city": "Tacoma",
+          "country": "United States"
+        },
+        {
+          "facility": "Instituto de Estudos e Pesquisas Clinicas do Ceara",
+          "city": "Fortaleza",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Hospital Universitario Joao de Barros Barreto",
+          "city": "Belém",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Instituto da Crianca com Diabetes",
+          "city": "Porto Alegre",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Hospital Sirio Libanes",
+          "city": "São Paulo",
+          "country": "Brazil"
+        },
+        {
+          "facility": "The Chaim Sheba Medical Center",
+          "city": "Ramat Gan",
+          "country": "Israel"
+        },
+        {
+          "facility": "Hadassah University Hospital Mount Scopus",
+          "city": "Jerusalem",
+          "country": "Israel"
+        },
+        {
+          "facility": "Clalit Medical Center",
+          "city": "Tel Aviv",
+          "country": "Israel"
+        },
+        {
+          "facility": "Ospedale Policlinico SS Annunziata",
+          "city": "Chieti",
+          "country": "Italy"
+        },
+        {
+          "facility": "Azienda Ospedaliera Universitaria Federico II",
+          "city": "Naples",
+          "country": "Italy"
+        },
+        {
+          "facility": "Azienda Ospedaliero Universitaria Policlinico Paolo Giaccone",
+          "city": "Palermo",
+          "country": "Italy"
+        },
+        {
+          "facility": "Ospedale Pediatrico Bambino Gesu",
+          "city": "Roma",
+          "country": "Italy"
+        },
+        {
+          "facility": "Endo Clinic",
+          "city": "Guadalajara",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Desarrollo Etico en Investigacion Clinica",
+          "city": "Guadalajara",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Investigacion Biomedica para el Desarrollo de Farmacos S.A. de C.V.",
+          "city": "Zapopan",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Instituto Nacional de Pediatria",
+          "city": "Mexico City",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Mentrials, SA de CV",
+          "city": "Mexico City",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Centro de Atencion e Investigacion en Factores de Riesgo Cardiovascular Omega (Clinica Omega)",
+          "city": "Mexico City",
+          "country": "Mexico"
+        },
+        {
+          "facility": "IECSI-Centro Medico y de Investigacion Clinica",
+          "city": "Monterrey",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Centro Integral Medico Sjr",
+          "city": "San Juan del Río",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Ono Consultoria Medica Integral",
+          "city": "Aguascalientes",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Centro de Investigacion Cardiometabolica de Aguascalientes",
+          "city": "Aguascalientes",
+          "country": "Mexico"
+        },
+        {
+          "facility": "EL CIELO Medical Center",
+          "city": "Puebla City",
+          "country": "Mexico"
+        },
+        {
+          "facility": "MedPolonia",
+          "city": "Poznan",
+          "country": "Poland"
+        },
+        {
+          "facility": "Specjalistyczna Praktyka Lekarska ASPIRO",
+          "city": "Wroclaw",
+          "country": "Poland"
+        },
+        {
+          "facility": "Twoja Przychodnia - Centrum Medyczne Nowa Sol",
+          "city": "Nowa Sól",
+          "country": "Poland"
+        },
+        {
+          "facility": "Holmed",
+          "city": "Warsaw",
+          "country": "Poland"
+        },
+        {
+          "facility": "Sonomed",
+          "city": "Szczecin",
+          "country": "Poland"
+        },
+        {
+          "facility": "Saint Petersburg State Pediatric Medical Academy",
+          "city": "Saint Petersburg",
+          "country": "Russia"
+        },
+        {
+          "facility": "Republican Children's Clinical Hospital-Izhevsk",
+          "city": "Izhevsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Kuzbass Regional Clinical Hospital n.a. S.V. Belyaev",
+          "city": "Kemerovo",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novosibirsk State Medical University",
+          "city": "Novosibirsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Omsk Regional Children's Hospital",
+          "city": "Omsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Siberian State Medical University",
+          "city": "Tomsk",
+          "country": "Russia"
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Diabetes Mellitus, Type 2"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "term": "alogliptin"
+        }
+      ]
+    }
+  },
+  "documentSection": {
+    "largeDocumentModule": {
+      "largeDocs": [
+        {
+          "typeAbbrev": "Prot",
+          "hasProtocol": true,
+          "hasSap": false,
+          "label": "Study Protocol",
+          "date": "2020-08-17",
+          "filename": "Prot_000.pdf"
+        },
+        {
+          "typeAbbrev": "SAP",
+          "hasProtocol": false,
+          "hasSap": true,
+          "label": "Statistical Analysis Plan",
+          "date": "2021-04-20",
+          "filename": "SAP_001.pdf"
+        }
+      ]
+    }
+  }
+}

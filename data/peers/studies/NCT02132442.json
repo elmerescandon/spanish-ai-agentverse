@@ -1,0 +1,130 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT02132442",
+      "briefTitle": "Hepatic Dysfunction, Vitamin D Status, and Glycemic Control in Diabetes",
+      "officialTitle": "Hepatic Dysfunction, Vitamin D Status, and Glycemic Control in Diabetes"
+    },
+    "statusModule": {
+      "overallStatus": "COMPLETED",
+      "startDateStruct": {
+        "date": "2014-03"
+      },
+      "completionDateStruct": {
+        "date": "2016-10"
+      },
+      "lastUpdatePostDateStruct": {
+        "date": "2017-01-10"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {
+        "name": "University of Massachusetts, Worcester",
+        "class": "OTHER"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": true
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Type 2 Diabetes",
+        "Nonalcoholic Fatty Liver Disease",
+        "Vitamin D Deficiency"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "QUADRUPLE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 12,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "Vitamin D supplementation"
+        },
+        {
+          "label": "Placebo"
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DIETARY_SUPPLEMENT",
+          "name": "Ergocalciferol, placebo"
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Change in hepatic triglyceride content (HTGC)",
+          "timeFrame": "6 months"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Hemoglobin A1c",
+          "timeFrame": "6 months"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n1. Children: 10 - 17 years\n2. Adults: 18 - 50 years\n3. Type 2 diabetes \\> 6 mo duration\n4. 25-hydroxyvitamin D \\[25(OH)D\\] level of \\<20 ng/mL\n5. Hepatic triglyceride content (HTGC) value of \\>5.6%\n6. HbA1c of \\> 8%;\n7. Ability to take medication by mouth.\n\nExclusion Criteria:\n\n1. Pregnant or lactating women\n2. Mental deficiency (IQ \\<70)\n3. Chronic liver disease\n4. Disorders of vitamin D metabolism, kidney, or parathyroid disease;\n5. Calcium and/or vitamin D supplementation\n6. Mauriac syndrome\n7. Malabsorption of fat soluble vitamins\n8. Drug toxicity and alcoholism",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "10 Years",
+      "maximumAge": "50 Years",
+      "stdAges": [
+        "CHILD",
+        "ADULT"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "University of Massachusetts Medical School",
+          "city": "Worcester",
+          "country": "United States"
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Diabetes Mellitus, Type 2"
+        },
+        {
+          "term": "Non-alcoholic Fatty Liver Disease"
+        },
+        {
+          "term": "Vitamin D Deficiency"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Ergocalciferols"
+        },
+        {
+          "term": "Vitamin D"
+        }
+      ]
+    }
+  }
+}

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import HomePage from "@/app/page";
 
 describe("HomePage ProtocolAI editorial presentation with Three.js ASCII background", () => {
@@ -68,25 +67,33 @@ describe("HomePage ProtocolAI editorial presentation with Three.js ASCII backgro
 
     // Foundational Clinical Data & Validation Guardrails
     expect(
-      screen.getByText("Every finding points to real data")
+      screen.getByText("Every finding points to a source")
     ).toBeInTheDocument();
     expect(
       screen.getByText("Built so doctors stay in control")
     ).toBeInTheDocument();
   });
 
-  it("supports interactive clinician amendment approval in step 04", async () => {
-    const user = userEvent.setup();
+  it("describes a condition-agnostic process", () => {
     render(<HomePage />);
 
-    const approveButton = screen.getByRole("button", {
-      name: /Approve Amendment/i,
-    });
-    expect(approveButton).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Try demo" })).toHaveAttribute(
+      "href",
+      "/demo"
+    );
+    expect(screen.queryByText(/diabetes/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/MIMIC/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Synthea/i)).not.toBeInTheDocument();
+  });
 
-    await user.click(approveButton);
+  it("shows the decision card as review options, not a live approval", () => {
+    render(<HomePage />);
+
     expect(
-      screen.getByRole("button", { name: /Approved by Clinician/i })
+      screen.queryByRole("button", { name: /Approve Amendment/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Option: keep, with a written reason")
     ).toBeInTheDocument();
   });
 });

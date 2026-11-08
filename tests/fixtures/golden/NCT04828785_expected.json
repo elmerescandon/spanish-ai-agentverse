@@ -1,0 +1,54 @@
+{
+  "pdf_path": "data/protocols/demo/NCT04828785_protocol.pdf",
+  "design": {
+    "nct_id": "NCT04828785",
+    "target_enrollment": 200,
+    "phase": "PHASE2",
+    "arm_count": 2,
+    "allocation": "RANDOMIZED",
+    "site_count": 1,
+    "min_age_years": 18
+  },
+  "criteria": [
+    {
+      "kind": "INCLUSION",
+      "text_contains": "type 2 diabetes",
+      "page_number": 22
+    },
+    {
+      "kind": "INCLUSION",
+      "text_contains": "a1c",
+      "page_number": 22
+    },
+    {
+      "kind": "INCLUSION",
+      "text_contains": "hunger vital sign",
+      "page_number": 22
+    },
+    {
+      "kind": "INCLUSION",
+      "text_contains": "bmi",
+      "page_number": 22
+    },
+    {
+      "kind": "INCLUSION",
+      "text_contains": "18",
+      "page_number": 22
+    },
+    {
+      "kind": "EXCLUSION",
+      "text_contains": "bariatric",
+      "page_number": 22
+    },
+    {
+      "kind": "EXCLUSION",
+      "text_contains": "creatinine clearance",
+      "page_number": 22
+    },
+    {
+      "kind": "EXCLUSION",
+      "text_contains": "pregnan",
+      "page_number": 22
+    }
+  ]
+}

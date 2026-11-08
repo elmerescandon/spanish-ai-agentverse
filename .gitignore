@@ -50,3 +50,4 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 scratch/
+data/uploads/

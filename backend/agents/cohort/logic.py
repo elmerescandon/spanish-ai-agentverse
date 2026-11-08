@@ -1216,65 +1216,6 @@ def _build_recommendations(
                 )
             )
 
-        elif (
-            step.classification
-            == CriterionClassification.UNSIMULATABLE_NEEDS_REVIEW
-        ):
-            options = [
-                DoctorOption(
-                    option_id=f"{rule.criterion_id}-OPT-REVIEW",
-                    kind=DoctorOptionKind.MANUAL_CLINICAL_REVIEW,
-                    title="Physician Manual Review: Confirm or Clarify Rule",
-                    clinical_rationale=(
-                        rule.doctor_review_note
-                        or "Variable not present in standard NHANES cohort; "
-                        "requires physician verification."
-                    ),
-                    proposed_protocol_text=rule.original_text,
-                ),
-                DoctorOption(
-                    option_id=f"{rule.criterion_id}-OPT-KEEP",
-                    kind=DoctorOptionKind.KEEP_STRICT_WITH_JUSTIFICATION,
-                    title="Approve Criterion After Clinical Review",
-                    clinical_rationale=(
-                        "Confirm that this specialized criterion is "
-                        "clinically necessary and feasible at trial sites."
-                    ),
-                    proposed_protocol_text=rule.original_text,
-                ),
-            ]
-            review_rec_id = f"rec-review-{rule.criterion_id.lower()}"
-            cards.append(
-                CohortRecommendationCard(
-                    recommendation_id=review_rec_id,
-                    protocol_id=protocol_id,
-                    criterion_id=rule.criterion_id,
-                    severity=SeverityLevel.INFO,
-                    classification=step.classification,
-                    title=(
-                        f"Doctor Review Required: {rule.criterion_id} "
-                        f"not in standard NHANES variables"
-                    ),
-                    description=(
-                        f"Criterion '{rule.original_text}' references a "
-                        f"variable outside the 28 standardized NHANES "
-                        f"columns ({rule.unsimulatable_reason}). It was "
-                        f"not applied as an automatic filter; physician "
-                        f"review is requested to confirm accrual impact."
-                    ),
-                    original_criterion_text=rule.original_text,
-                    page_number=rule.page_number,
-                    quote=rule.quote,
-                    compiled_rule_summary=(
-                        "Not simulatable in NHANES (Doctor Review)"
-                    ),
-                    target_drop_pct=0.0,
-                    peer_benchmark_drop_pct=None,
-                    subgroup_impacts=[],
-                    doctor_options=options,
-                )
-            )
-
     return cards
 
 
@@ -1335,6 +1276,17 @@ def build_cohort_comparison_report(
         for r in rules
         if r.simulability == RuleSimulability.REQUIRES_DOCTOR_REVIEW
     ]
+    transparency_notices = [
+        (
+            f"[{r.criterion_id}]"
+            + (f" (Page {r.page_number})" if r.page_number is not None else "")
+            + f" '{r.original_text}': Variable not available in the 28 "
+            "standardized CDC NHANES columns. Passed through in cohort "
+            "simulation without filtering patients; disclosed for "
+            "physician transparency."
+        )
+        for r in unsimulatable
+    ]
     recommendations = _build_recommendations(
         protocol_id=protocol_id,
         patients=patients,
@@ -1357,6 +1309,7 @@ def build_cohort_comparison_report(
         compiled_rules=rules,
         attrition_funnel=funnel,
         unsimulatable_criteria_for_doctor=unsimulatable,
+        data_transparency_notices=transparency_notices,
         recommendations=recommendations,
         decision_audit_log=[],
     )

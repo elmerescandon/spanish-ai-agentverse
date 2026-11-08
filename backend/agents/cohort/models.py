@@ -118,7 +118,7 @@ class PatientRecord(BaseModel):
 
     patient_id: int
     cycle: str
-    age: int = Field(ge=10, le=120)
+    age: int = Field(ge=18, le=120)
     sex: str
     race: str
     diabetes_type: str
@@ -397,5 +397,6 @@ class CohortComparisonReport(BaseModel):
     compiled_rules: list[EligibilityRule]
     attrition_funnel: list[CriterionAttritionStep]
     unsimulatable_criteria_for_doctor: list[EligibilityRule]
+    data_transparency_notices: list[str] = Field(default_factory=list)
     recommendations: list[CohortRecommendationCard]
     decision_audit_log: list[DecisionTraceEntry] = Field(default_factory=list)

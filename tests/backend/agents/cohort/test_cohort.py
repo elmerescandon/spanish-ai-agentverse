@@ -54,11 +54,11 @@ def test_nhanes_cohort_loads_complete_nan_free_patients() -> None:
     patients = load_nhanes_diabetes_cohort()
     peers = load_peer_diabetes_protocols()
 
-    assert len(patients) >= 3400
-    assert len(peers) >= 5
+    assert len(patients) == 3485
+    assert len(peers) == 5
 
-    # Verify both pediatric (10-17) and senior (65+) patients are present
-    assert any(p.age < 18 for p in patients)
+    # Verify cohort is strictly adult (age >= 18) and includes seniors (65+)
+    assert all(p.age >= 18 for p in patients)
     assert any(p.age >= 65 for p in patients)
 
 
@@ -204,17 +204,21 @@ def test_part2_separates_normal_criteria_from_bottlenecks() -> None:
         for imp in funnel_by_id["EX-01"].subgroup_impacts
     )
 
-    # Unsimulatable ECG criterion must be flagged for doctor review
+    # Unsimulatable ECG criterion must be disclosed transparently, not as a
+    # fake bottleneck recommendation card without metrics
     assert (
         funnel_by_id["EX-02"].classification
         == CriterionClassification.UNSIMULATABLE_NEEDS_REVIEW
     )
     assert len(report.unsimulatable_criteria_for_doctor) == 1
+    assert len(report.data_transparency_notices) == 1
+    assert "EX-02" in report.data_transparency_notices[0]
 
-    # Recommendations must include bottleneck what-if cards and review card
+    # Recommendations must only include actionable bottleneck what-if cards
     rec_by_crit = {r.criterion_id: r for r in report.recommendations}
     assert "EX-01" in rec_by_crit
-    assert "EX-02" in rec_by_crit
+    assert "IN-03" in rec_by_crit
+    assert "EX-02" not in rec_by_crit
 
     egfr_card = rec_by_crit["EX-01"]
     relax_opt = egfr_card.doctor_options[0]
@@ -318,22 +322,27 @@ def test_llm_fallback_resolves_custom_criterion() -> None:
     assert rules[0].predicates[0].variable == CohortVariable.HBA1C
 
 
-def test_filter_cohort_supports_pediatric_and_fame_d_demo_protocols() -> None:
+def test_filter_cohort_supports_fame_d_demo_protocol() -> None:
     patients = load_nhanes_diabetes_cohort()
 
-    # Pediatric Canagliflozin demo protocol (NCT03170518: age 10-18)
-    ped_rules = compile_protocol_criteria(
+    # FAME-D demo protocol (NCT04828785: adults >= 18, food insecurity)
+    fame_d_rules = compile_protocol_criteria(
         [
             ProtocolCriterionInput(
                 criterion_id="IN-01",
                 kind=CriterionType.INCLUSION,
-                text="HbA1c of >= 6.5% to <= 11.0%",
-                page_number=15,
-            )
+                text="HbA1c >= 7.0% and <= 11.5%",
+                page_number=22,
+            ),
+            ProtocolCriterionInput(
+                criterion_id="IN-02",
+                kind=CriterionType.INCLUSION,
+                text="Positive screen on Hunger Vital Sign (food insecurity)",
+                page_number=22,
+            ),
         ],
-        min_age_years=10.0,
-        max_age_years=18.0,
+        min_age_years=18.0,
     )
-    ped_eligible, _ = filter_cohort(patients, ped_rules)
-    assert len(ped_eligible) > 0
-    assert all(10 <= p.age <= 18 for p in ped_eligible)
+    fame_d_eligible, _ = filter_cohort(patients, fame_d_rules)
+    assert len(fame_d_eligible) > 100
+    assert all(p.age >= 18 and p.food_insecure for p in fame_d_eligible)

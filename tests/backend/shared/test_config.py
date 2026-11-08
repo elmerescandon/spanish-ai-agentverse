@@ -76,7 +76,7 @@ def test_empty_env_var_falls_back_to_default(
 ) -> None:
     """Empty env values fall back to defaults rather than empty strings."""
     monkeypatch.setenv("GEMINI_MODEL", "")
-    settings = load_settings()
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
     assert settings.gemini_model == DEFAULT_GEMINI_MODEL
 
 

@@ -66,6 +66,16 @@ describe("report page", () => {
     ).toHaveAttribute("href", api.LATEST_REPORT_PDF_URL);
   });
 
+  it("shows a report-shaped placeholder until the review arrives", () => {
+    spyOn(api, "getLatestReview").mockReturnValue(new Promise(() => {}));
+    render(<ReportPage />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Loading report");
+    expect(
+      screen.queryByRole("link", { name: "Download report (PDF)" })
+    ).not.toBeInTheDocument();
+  });
+
   it("says so when no change has been accepted yet", async () => {
     spyOn(api, "getLatestReview").mockResolvedValue({ ...REVIEW, changes: [] });
     render(<ReportPage />);

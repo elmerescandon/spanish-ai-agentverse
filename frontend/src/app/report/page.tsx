@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import { DownloadReportLink } from "@/components/report/ReportLinks";
+import ReportLoading from "@/components/report/ReportLoading";
 import ReviewReport from "@/components/report/ReviewReport";
 import { getLatestReview, type ProtocolFieldsResponse } from "@/lib/api";
 
@@ -38,11 +39,7 @@ export default function ReportPage() {
         {state.status === "ready" && <DownloadReportLink />}
       </SiteHeader>
       <main className="mx-auto w-full max-w-4xl px-6 pb-12 pt-2 sm:px-10 lg:px-12">
-        {state.status === "loading" && (
-          <p role="status" className="pt-16 text-center font-sans text-sm text-zinc-500">
-            Loading report...
-          </p>
-        )}
+        {state.status === "loading" && <ReportLoading />}
         {state.status === "error" && (
           <div className="space-y-3 pt-16 text-center">
             <p role="alert" className="font-sans text-sm text-rose-700">

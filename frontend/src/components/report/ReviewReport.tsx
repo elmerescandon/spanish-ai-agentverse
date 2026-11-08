@@ -71,7 +71,7 @@ export default function ReviewReport({
   const sections = groupFieldsBySection(review.fields);
 
   return (
-    <article className="space-y-12 pb-16 pt-8">
+    <article className="report-reveal space-y-12 pb-16 pt-8">
       <div className="space-y-2">
         <p className="font-sans text-xs uppercase tracking-wider text-zinc-500">
           Final protocol review

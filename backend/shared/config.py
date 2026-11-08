@@ -19,7 +19,7 @@ DEFAULT_ALLOWED_ORIGINS: tuple[str, ...] = (
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 )
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-4-argon"
 ENV_FILE_PATH = ".env"
 ENV_FILE_ENCODING = "utf-8"
 

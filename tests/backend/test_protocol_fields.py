@@ -2,7 +2,7 @@
 
 import pytest
 
-from backend.agents.protocol_comparison.demo import DemoComparison
+from backend.agents.protocol_comparison.agent import ProtocolComparison
 from backend.agents.protocol_comparison.dimensions import DimensionId
 from backend.agents.protocol_comparison.step_data import to_step_data
 from backend.api.protocol_fields import (
@@ -125,23 +125,17 @@ def test_format_number_drops_a_trailing_zero_only() -> None:
 
 
 @pytest.fixture
-async def comparison() -> DemoComparison:
+async def comparison() -> ProtocolComparison:
     return await flagged_demo_comparison()
 
 
 @pytest.fixture
-def peers_step(comparison: DemoComparison) -> StepData:
-    return to_step_data(
-        _document(),
-        comparison.draft_trial_id,
-        comparison.protocol_date,
-        comparison.results,
-        comparison.cards,
-    )
+def peers_step(comparison: ProtocolComparison) -> StepData:
+    return to_step_data(_document(), comparison)
 
 
 def test_starting_fields_hold_the_draft_values_with_units(
-    comparison: DemoComparison,
+    comparison: ProtocolComparison,
 ) -> None:
     fields = {
         f.field: f for f in starting_comparison_fields(comparison.results)
@@ -155,7 +149,7 @@ def test_starting_fields_hold_the_draft_values_with_units(
 
 
 def test_every_value_option_on_the_peers_step_has_one_offer(
-    comparison: DemoComparison, peers_step: StepData
+    comparison: ProtocolComparison, peers_step: StepData
 ) -> None:
     offers = offered_values(comparison.cards, peers_step)
 

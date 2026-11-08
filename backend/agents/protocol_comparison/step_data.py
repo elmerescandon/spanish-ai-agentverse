@@ -5,19 +5,21 @@ Recommendation says (title, severity, claim, facts), then adds what the
 /demo page shows: evidence, a reasoning trace, options, a peer table and
 a chart.
 
-The draft's values come from its registry record. A value whose quote
-also appears in the uploaded PDF is cited from the protocol with its
-page; the rest are cited from the registry record, with a step warning.
+The draft's values come from the parsed protocol, so each is cited from
+it: on the page of its parser citation, else the page where its quote
+appears in the PDF or in a parsed eligibility criterion.
 """
 
 import re
 from collections.abc import Sequence
-from datetime import date
 
-from pydantic import TypeAdapter
+from pydantic import JsonValue, TypeAdapter
 from pydantic_core import to_jsonable_python
 
-from backend.agents.protocol_comparison.agent import AGENT_NAME
+from backend.agents.protocol_comparison.agent import (
+    AGENT_NAME,
+    ProtocolComparison,
+)
 from backend.agents.protocol_comparison.comparison import (
     Category,
     CategoryResult,
@@ -25,6 +27,10 @@ from backend.agents.protocol_comparison.comparison import (
     PeerEvidence,
 )
 from backend.agents.protocol_comparison.dimensions import DimensionId
+from backend.agents.protocol_comparison.eligibility import (
+    LabReading,
+    ReadingStatus,
+)
 from backend.agents.protocol_comparison.recommendations import (
     Finding,
     formatted_value,
@@ -64,6 +70,7 @@ from backend.api.schemas import (
 from backend.clients.clinicaltrials_gov import (
     NCT_ID_PATTERN,
     STUDY_PAGE_URL_TEMPLATE,
+    PeerSearchQuery,
 )
 from backend.shared.messages import ProtocolDocument
 
@@ -73,12 +80,30 @@ REGISTRY_URL = "https://clinicaltrials.gov"
 # Source texts quote the verbatim part, e.g. registry minimumAge "10 Years".
 QUOTED_TEXT_PATTERN = re.compile(r'"([^"]+)"')
 WHITESPACE_PATTERN = re.compile(r"\s+")
+# Splits registry phases for display: "PHASE3" reads as "phase 3".
+PHASE_DIGIT_PATTERN = re.compile(r"(\D)(\d)")
 # Short quotes such as "10 Years" turn up anywhere in a protocol, so only
-# quotes this long are looked up in the PDF; shorter ones cite the registry.
+# quotes this long are looked up in the PDF; shorter ones get no page.
 MIN_PDF_QUOTE_LENGTH = 25
 ELIGIBILITY_SECTION = "Eligibility criteria"
 SAMPLE_SIZE_SECTION = "Sample size"
 DETAIL_MAP_ADAPTER: TypeAdapter[DetailMap] = TypeAdapter(DetailMap)
+TABLE_DECIMALS = 2  # the UI prints table cells as given
+# Why the draft's lab limits (HbA1c, ALT/AST, eGFR) have no values.
+DRAFT_LAB_WARNINGS = {
+    ReadingStatus.NO_TEXT: (
+        "The parser found no eligibility criteria, so the draft's lab "
+        "limits were not compared."
+    ),
+    ReadingStatus.FAILED: (
+        "Reading lab limits from the eligibility criteria failed; the "
+        "draft's lab limits were not compared."
+    ),
+    ReadingStatus.NOT_READ: (
+        "No LLM was available to read lab limits from the eligibility "
+        "criteria; the draft's lab limits were not compared."
+    ),
+}
 
 
 def quoted_text(source: str) -> str:
@@ -92,13 +117,21 @@ def _normalised(text: str) -> str:
 
 
 def find_quote_page(document: ProtocolDocument, quote: str) -> int | None:
-    """The first page whose text contains the quote, ignoring spacing."""
-    if len(quote) < MIN_PDF_QUOTE_LENGTH:
-        return None
+    """The first page whose text contains the quote, ignoring spacing.
+
+    Falls back to the cited page of the first parsed eligibility
+    criterion containing it, since PDF text can break a criterion apart.
+    Short quotes skip the page search but not the criteria: lab-limit
+    quotes are taken from the criteria, so they match there.
+    """
     wanted = _normalised(quote)
-    for page in document.pages:
-        if wanted in _normalised(page.text):
-            return page.page_number
+    if len(quote) >= MIN_PDF_QUOTE_LENGTH:
+        for page in document.pages:
+            if wanted in _normalised(page.text):
+                return page.page_number
+    for criterion in document.eligibility_criteria or []:
+        if criterion.citation and wanted in _normalised(criterion.text):
+            return criterion.citation.page_number
     return None
 
 
@@ -122,34 +155,21 @@ def _draft_evidence(
     result: DimensionComparison,
     decision_id: str,
     document: ProtocolDocument,
-    draft_trial_id: str,
 ) -> Evidence | None:
     if result.draft_value is None:
         return None
     quote = quoted_text(result.draft_value.source)
-    page = find_quote_page(document, quote)
-    evidence_id = f"{decision_id}-draft"
-    if page is not None:
-        return Evidence(
-            evidence_id=evidence_id,
-            source=EvidenceSource.PROTOCOL,
-            document=document.title,
-            page=page,
-            quote=quote,
-            is_verified=True,
-            section_title=_section(result),
-            context=result.draft_value.source,
-        )
+    page = result.draft_value.page_number or find_quote_page(document, quote)
     return Evidence(
-        evidence_id=evidence_id,
-        source=EvidenceSource.AACT,
-        document=draft_trial_id,
+        evidence_id=f"{decision_id}-draft",
+        source=EvidenceSource.PROTOCOL,
+        document=document.title,
+        page=page,
         quote=quote,
-        # The readers only keep quotes found in the registry record.
-        is_verified=True,
+        # Verified means located on a page of the uploaded PDF.
+        is_verified=page is not None,
         section_title=_section(result),
         context=result.draft_value.source,
-        url=_study_url(draft_trial_id),
     )
 
 
@@ -431,11 +451,10 @@ def _decision(
     card: SuggestionCard | None,
     recommendation: Recommendation,
     document: ProtocolDocument,
-    draft_trial_id: str,
 ) -> Decision | None:
     """One dimension as a Decision; None when there is no evidence."""
     decision_id = recommendation.recommendation_id
-    draft = _draft_evidence(result, decision_id, document, draft_trial_id)
+    draft = _draft_evidence(result, decision_id, document)
     peers = [
         peer_evidence
         for peer in result.evidence
@@ -454,9 +473,6 @@ def _decision(
         ),
         None,
     )
-    is_protocol_quote = (
-        draft is not None and draft.source == EvidenceSource.PROTOCOL
-    )
     return Decision(
         decision_id=decision_id,
         step_id=StepId.PEERS,
@@ -473,7 +489,7 @@ def _decision(
                 start_page=draft.page,
                 end_page=draft.page,
             )
-            if is_protocol_quote and draft is not None
+            if draft is not None and draft.page is not None
             else None
         ),
         impact=_impact(result, finding == Finding.FLAGGED),
@@ -508,8 +524,16 @@ def _dimension_table(
                 "effective_peers": (
                     None if official is None else round(official.n_eff, 2)
                 ),
-                "peer_p10": None if peer_range is None else peer_range.low,
-                "peer_p90": None if peer_range is None else peer_range.high,
+                "peer_p10": (
+                    None
+                    if peer_range is None
+                    else round(peer_range.low, TABLE_DECIMALS)
+                ),
+                "peer_p90": (
+                    None
+                    if peer_range is None
+                    else round(peer_range.high, TABLE_DECIMALS)
+                ),
             }
         )
     return DataTable(
@@ -531,28 +555,29 @@ def _dimension_table(
 def _warnings(
     decisions: Sequence[Decision],
     cards: Sequence[SuggestionCard],
-    draft_trial_id: str,
+    draft_lab_reading: LabReading,
 ) -> list[StepWarning]:
     warnings = []
-    draft_evidence = [
-        evidence
-        for decision in decisions
-        for evidence in decision.evidence
-        if evidence.evidence_id.endswith("-draft")
-    ]
-    from_pdf = sum(
-        evidence.source == EvidenceSource.PROTOCOL
-        for evidence in draft_evidence
-    )
-    if from_pdf < len(draft_evidence):
+    if draft_lab_reading.status != ReadingStatus.READ:
         warnings.append(
             StepWarning(
-                code="DRAFT_FROM_REGISTRY",
+                code=f"DRAFT_LABS_{draft_lab_reading.status.value}",
+                message=DRAFT_LAB_WARNINGS[draft_lab_reading.status],
+            )
+        )
+    unpaged = [
+        evidence.quote
+        for decision in decisions
+        for evidence in decision.evidence
+        if evidence.evidence_id.endswith("-draft") and evidence.page is None
+    ]
+    if unpaged:
+        warnings.append(
+            StepWarning(
+                code="DRAFT_VALUE_WITHOUT_PAGE",
                 message=(
-                    "Draft values are read from registry record "
-                    f"{draft_trial_id}, not parsed from the uploaded PDF; "
-                    f"{from_pdf} of {len(draft_evidence)} were also found "
-                    "verbatim in the PDF."
+                    f"{len(unpaged)} draft value(s) could not be placed on "
+                    "a page of the uploaded PDF."
                 ),
             )
         )
@@ -578,18 +603,35 @@ def _warnings(
     return warnings
 
 
+def describe_peer_search(query: PeerSearchQuery) -> str:
+    """The registry search in words, so a reviewer can see the peers."""
+    phases = " or ".join(
+        PHASE_DIGIT_PATTERN.sub(r"\1 \2", phase.replace("_", " ").lower())
+        for phase in query.phases
+    )
+    return (
+        f"{query.condition}, {phases}, {query.population.lower()} trials "
+        f"started since {query.started_on_or_after.isoformat()}"
+    )
+
+
 def to_step_data(
-    document: ProtocolDocument,
-    draft_trial_id: str,
-    protocol_date: date,
-    results: Sequence[DimensionComparison],
-    cards: Sequence[SuggestionCard],
+    document: ProtocolDocument, comparison: ProtocolComparison
 ) -> StepData:
     """The comparison as the /demo PEERS step, one Decision per dimension.
 
     A dimension with no evidence at all (neither the draft nor any peer
     states it) has no Decision; it is still listed in the step's table.
+    The step is PARTIAL when the draft's lab limits could not be read or
+    a reasoning call failed.
     """
+    results = comparison.results
+    cards = comparison.cards
+    draft_lab_reading = comparison.draft_lab_reading
+    peer_search = comparison.peer_search
+    excluded_nct_ids: list[JsonValue] = [
+        nct_id for nct_id in sorted(peer_search.exclude_nct_ids)
+    ]
     recommendations = to_recommendations(document.protocol_id, results, cards)
     cards_by_dimension = {
         card.comparison.dimension.dimension_id: card for card in cards
@@ -605,7 +647,6 @@ def to_step_data(
                 cards_by_dimension.get(result.dimension.dimension_id),
                 recommendation,
                 document,
-                draft_trial_id,
             )
         )
         is not None
@@ -613,9 +654,10 @@ def to_step_data(
     peer_count = len(results[0].evidence) if results else 0
     official_flags = sum(card.is_official_flag for card in cards)
     to_review = len(cards) - official_flags
-    has_failed_reasoning = any(
-        card.reasoning_status == ReasoningStatus.FAILED for card in cards
-    )
+    is_partial = draft_lab_reading.status in (
+        ReadingStatus.FAILED,
+        ReadingStatus.NOT_READ,
+    ) or any(card.reasoning_status == ReasoningStatus.FAILED for card in cards)
     return StepData(
         id=StepId.PEERS,
         title=STEP_TITLE,
@@ -650,20 +692,16 @@ def to_step_data(
             ),
         ],
         decisions=decisions,
-        status=(
-            StepStatus.PARTIAL
-            if has_failed_reasoning
-            else StepStatus.COMPLETED
-        ),
+        status=StepStatus.PARTIAL if is_partial else StepStatus.COMPLETED,
         agent=AGENT_NAME,
-        warnings=_warnings(decisions, cards, draft_trial_id),
+        warnings=_warnings(decisions, cards, draft_lab_reading),
         data_sources=[
             DataSource(
                 source=EvidenceSource.AACT,
-                name="ClinicalTrials.gov peer snapshot",
+                name="ClinicalTrials.gov peer search",
                 description=(
-                    "Peer trials that started before the protocol date "
-                    f"({protocol_date.isoformat()}), cached in data/peers."
+                    "Built from the protocol's parsed phase and ages: "
+                    f"{describe_peer_search(peer_search)}."
                 ),
                 url=REGISTRY_URL,
                 record_count=peer_count,
@@ -671,8 +709,17 @@ def to_step_data(
         ],
         tables=[_dimension_table(results, recommendations)],
         details={
-            "draft_trial_id": draft_trial_id,
-            "draft_url": _study_url(draft_trial_id),
-            "protocol_date": protocol_date.isoformat(),
+            "draft_protocol_id": document.protocol_id,
+            "draft_lab_reading": draft_lab_reading.status.value,
+            "review_date": comparison.review_date.isoformat(),
+            "peer_search": {
+                "condition": peer_search.condition,
+                "phases": list(peer_search.phases),
+                "population": peer_search.population.value,
+                "started_on_or_after": (
+                    peer_search.started_on_or_after.isoformat()
+                ),
+                "excluded_nct_ids": excluded_nct_ids,
+            },
         },
     )

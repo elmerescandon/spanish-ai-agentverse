@@ -68,7 +68,7 @@ async def test_demo_review_accepts_an_offered_value_and_pulls_the_result(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        agent_runners, "compare_demo_draft", flagged_demo_comparison
+        agent_runners, "compare_with_registry_peers", flagged_demo_comparison
     )
     reset_mock_state()
     hba1c_field = comparison_field(DimensionId.HBA1C_UPPER_BOUND)

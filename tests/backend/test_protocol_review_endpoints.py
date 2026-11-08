@@ -40,7 +40,7 @@ def _flagged_comparison(
 ) -> Generator[None]:
     """The PEERS step offers HbA1c values, and mock state starts clean."""
     monkeypatch.setattr(
-        agent_runners, "compare_demo_draft", flagged_demo_comparison
+        agent_runners, "compare_with_registry_peers", flagged_demo_comparison
     )
     reset_mock_state()
     yield
@@ -195,7 +195,9 @@ def test_several_flagged_values_are_accepted_and_all_pulled(
     client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        agent_runners, "compare_demo_draft", out_of_line_demo_comparison
+        agent_runners,
+        "compare_with_registry_peers",
+        out_of_line_demo_comparison,
     )
     protocol_id = _upload(client, tmp_path)
     _run_peers(client, protocol_id)
@@ -231,7 +233,9 @@ def test_second_offer_for_the_same_field_replaces_the_first(
     client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        agent_runners, "compare_demo_draft", out_of_line_demo_comparison
+        agent_runners,
+        "compare_with_registry_peers",
+        out_of_line_demo_comparison,
     )
     protocol_id = _upload(client, tmp_path)
     _run_peers(client, protocol_id)

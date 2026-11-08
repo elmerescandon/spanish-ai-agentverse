@@ -58,7 +58,10 @@ JUDGEMENT_BATCH_INSTRUCTIONS = (
     "criterion_ids.\n"
     '- Always cite any FDA draft guidance as "FDA draft guidance '
     '(non-binding)".\n'
-    "- Set confidence between 0.0 and 1.0 reflecting your certainty."
+    "- Set confidence between 0.0 and 1.0 reflecting your certainty.\n"
+    "- Keep answers short: a passed or not_applicable verdict needs only a "
+    "finding of at most 15 words and no evidence; a fired verdict needs a "
+    "finding of at most 30 words and at most 2 evidence quotes."
 )
 
 LIBRARY_MATCH_INSTRUCTIONS = (
@@ -88,5 +91,6 @@ SECOND_OPINION_INSTRUCTIONS = (
     "- Set confirmed = false when the quote is taken out of context, the "
     "searched pages actually contain the required information, or the "
     "rule's trigger does not apply.\n"
-    "- Provide a concise reason and your confidence between 0.0 and 1.0."
+    "- Give a one-sentence reason (at most 25 words) and your confidence "
+    "between 0.0 and 1.0."
 )

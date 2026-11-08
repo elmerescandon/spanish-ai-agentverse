@@ -9,8 +9,9 @@ memory, so the API must run as one long-lived server process.
 import dataclasses
 import hashlib
 import logging
+import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from backend.agents.completeness.agent import check_protocol
@@ -36,15 +37,22 @@ class CheckRun:
 
     report: ComplianceReport
     started_at: datetime
-    completed_at: datetime
+    # Monotonic, so a wall-clock adjustment mid-run cannot make it negative.
+    duration_seconds: float
+
+    @property
+    def completed_at(self) -> datetime:
+        """Start time plus the measured duration."""
+        return self.started_at + timedelta(seconds=self.duration_seconds)
 
 
 async def _run_check(
     document: ProtocolDocument, llm: JsonGenerator
 ) -> CheckRun:
     started_at = datetime.now(UTC)
+    start = time.monotonic()
     report = await check_protocol(document, llm)
-    return CheckRun(report, started_at, datetime.now(UTC))
+    return CheckRun(report, started_at, time.monotonic() - start)
 
 
 def _create_gemini_client() -> GeminiClient:

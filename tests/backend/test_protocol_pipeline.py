@@ -1,5 +1,6 @@
 """Tests for the shared /demo pipeline: run-once checks and failures."""
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -64,3 +65,28 @@ async def test_parse_with_every_facet_failing_raises_analysis_failed(
 
     with pytest.raises(AnalysisFailedError):
         await ProtocolPipeline(llm=UnavailableLlm()).parse(pdf_path)
+
+
+async def test_check_duration_survives_the_wall_clock_going_back(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    readings = iter(
+        [
+            datetime(2026, 11, 8, 7, 0, tzinfo=UTC),
+            datetime(2026, 11, 8, 6, 5, tzinfo=UTC),
+        ]
+    )
+
+    class _JumpingClock:
+        @staticmethod
+        def now(_tz: object) -> datetime:
+            return next(readings)
+
+    monkeypatch.setattr(protocol_pipeline, "datetime", _JumpingClock)
+
+    run = await ProtocolPipeline(llm=UnavailableLlm()).check(
+        _document("proto-a", "Trial")
+    )
+
+    assert run.duration_seconds >= 0
+    assert run.completed_at >= run.started_at

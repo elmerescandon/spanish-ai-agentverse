@@ -188,11 +188,7 @@ async def run_checklist_agent(document: ProtocolDocument) -> StepData:
         )
         raise
     step = to_check_step(
-        run.report,
-        load_rule_catalogue(),
-        page_count=document.page_count,
-        started_at=run.started_at,
-        completed_at=run.completed_at,
+        run, load_rule_catalogue(), page_count=document.page_count
     )
     return _step_logged(document, step)
 

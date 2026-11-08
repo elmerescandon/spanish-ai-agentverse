@@ -7,7 +7,6 @@ confidence), matching the guidelines' summary order.
 
 from collections import Counter
 from collections.abc import Sequence
-from datetime import datetime
 from enum import StrEnum
 
 from pydantic import JsonValue
@@ -17,6 +16,7 @@ from backend.agents.completeness.logic import (
     compute_run_result,
 )
 from backend.agents.completeness.rules import RuleCatalogue
+from backend.api.protocol_pipeline import CheckRun
 from backend.api.schemas import (
     ChangeType,
     Chart,
@@ -58,6 +58,7 @@ AGENT_LABEL = "Completeness"
 STEP_TITLE = "Completeness & Consistency"
 GOOD_SCORE = 80.0  # score at or above which the protocol reads as ready
 FAIR_SCORE = 60.0  # score at or above which gaps are fixable, below: risk
+MILLISECONDS_PER_SECOND = 1000
 CRITERION_FAMILIES = frozenset({RuleFamily.ELQ, RuleFamily.EX})
 
 SEVERITY_BY_RULE_SEVERITY: dict[RuleSeverity, Severity] = {
@@ -412,13 +413,10 @@ def _gate_details(gate: GateResult) -> dict[str, JsonValue]:
 
 
 def to_check_step(
-    report: ComplianceReport,
-    catalogue: RuleCatalogue,
-    page_count: int,
-    started_at: datetime,
-    completed_at: datetime,
+    run: CheckRun, catalogue: RuleCatalogue, page_count: int
 ) -> StepData:
-    """Map a completeness report to the /demo CHECK section."""
+    """Map a completeness check run to the /demo CHECK section."""
+    report = run.report
     findings = report.findings
     ranked = _rank(findings)
     statuses = Counter(f.status for f in findings)
@@ -508,9 +506,9 @@ def to_check_step(
         decisions=[_decision(f, report, catalogue) for f in ranked],
         status=StepStatus.PARTIAL if is_partial else StepStatus.COMPLETED,
         agent=AGENT_LABEL,
-        started_at=started_at,
-        completed_at=completed_at,
-        duration_ms=int((completed_at - started_at).total_seconds() * 1000),
+        started_at=run.started_at,
+        completed_at=run.completed_at,
+        duration_ms=round(run.duration_seconds * MILLISECONDS_PER_SECOND),
         warnings=warnings,
         data_sources=[
             DataSource(

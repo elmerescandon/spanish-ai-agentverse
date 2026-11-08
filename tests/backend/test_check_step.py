@@ -1,6 +1,6 @@
 """Unit tests for the completeness report to /demo CHECK step mapping."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 import pytest
 
@@ -11,6 +11,7 @@ from backend.agents.completeness.logic import (
 )
 from backend.agents.completeness.rules import load_rule_catalogue
 from backend.api.check_step import GapKind, gap_kind, to_check_step
+from backend.api.protocol_pipeline import CheckRun
 from backend.api.schemas import ChangeType, Decision, StepData, StepId
 from backend.shared.messages import (
     CheckMethod,
@@ -25,7 +26,7 @@ from backend.shared.messages import (
 )
 
 STARTED_AT = datetime(2026, 11, 8, 9, 0, tzinfo=UTC)
-COMPLETED_AT = STARTED_AT + timedelta(minutes=4)
+DURATION_SECONDS = 240.0
 ENDPOINT_QUOTE = "The primary endpoint is HbA1c at an unspecified time."
 CRITERION_QUOTE = "Poorly controlled hypertension"
 SEARCHED = (
@@ -116,11 +117,9 @@ def _report() -> ComplianceReport:
 @pytest.fixture
 def step() -> StepData:
     return to_check_step(
-        _report(),
+        CheckRun(_report(), STARTED_AT, DURATION_SECONDS),
         load_rule_catalogue(),
         page_count=40,
-        started_at=STARTED_AT,
-        completed_at=COMPLETED_AT,
     )
 
 
@@ -236,11 +235,9 @@ def test_step_lists_every_rule_and_flags_a_partial_run(step: StepData) -> None:
 def test_mapping_is_pure_and_repeatable() -> None:
     def build() -> StepData:
         return to_check_step(
-            _report(),
+            CheckRun(_report(), STARTED_AT, DURATION_SECONDS),
             load_rule_catalogue(),
             page_count=40,
-            started_at=STARTED_AT,
-            completed_at=COMPLETED_AT,
         )
 
     assert build() == build()

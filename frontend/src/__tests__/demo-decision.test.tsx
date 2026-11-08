@@ -25,7 +25,7 @@ describe("DecisionView agent output", () => {
     const evidence = ingestDecision.evidence[0];
     expect(screen.getByText(evidence.quote)).toBeInTheDocument();
     expect(
-      screen.getAllByText(`p. ${evidence.page}`).length
+      screen.getAllByText(new RegExp(`p\\. ${evidence.page}`)).length
     ).toBeGreaterThan(0);
   });
 
@@ -36,9 +36,7 @@ describe("DecisionView agent output", () => {
     expect(screen.queryByText(firstStep, { exact: false })).toBeNull();
 
     await user.click(
-      screen.getByRole("button", {
-        name: `Show reasoning (${ingestDecision.trace.length} steps)`,
-      })
+      screen.getByRole("button", { name: "Expand" })
     );
     expect(
       screen.getByText(firstStep, { exact: false })

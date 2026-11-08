@@ -311,6 +311,62 @@ describe("demo pipeline step bar flow", () => {
     expect(finding).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("shows inline accept/decline only on actionable recommendations and lets cohort options be chosen", async () => {
+    const user = userEvent.setup();
+    render(<DemoPage />);
+    await loadPreset(user);
+    await waitForAllStepsDone();
+
+    expect(
+      screen.queryByRole("button", { name: /Replay demo/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Your clinical decision/i)
+    ).not.toBeInTheDocument();
+
+    // Informational ingestion finding has no Accept/Decline controls.
+    await user.click(
+      screen.getByRole("button", { name: /Eligibility criteria extracted/ })
+    );
+    expect(
+      screen.queryByRole("button", { name: /Accept/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Decline/i })
+    ).not.toBeInTheDocument();
+
+    // Cohort Comparison finding shows both comparative options and allows accepting either one.
+    await user.click(screen.getByRole("button", { name: "Cohort Comparison" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: /eGFR exclusion removes the most patients/,
+      })
+    );
+
+    const opt1 = screen.getByRole("button", {
+      name: /Accept Relax to clinical standard: lower cut-off to 30 and stratify/,
+    });
+    const opt2 = screen.getByRole("button", {
+      name: /Accept Align with peer trials lower decile: lower cut-off to 30 without stratifying/,
+    });
+    expect(opt1).toBeInTheDocument();
+    expect(opt2).toBeInTheDocument();
+
+    await user.click(opt2);
+    expect(opt2).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByText(/1 of \d+ recommendations reviewed/)
+    ).toBeInTheDocument();
+
+    const declineBtn = screen.getByRole("button", {
+      name: /Decline Align with peer trials lower decile/,
+    });
+    await user.click(declineBtn);
+    expect(
+      declineBtn
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("jumps to the earlier step and opens the finding a finding builds on", async () => {
     const user = userEvent.setup();
     render(<DemoPage />);

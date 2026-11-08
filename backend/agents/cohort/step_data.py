@@ -268,13 +268,26 @@ def _options_for_card(
     card: CohortRecommendationCard,
     page: int | None,
 ) -> tuple[list[DecisionOption], ProposedChange | None]:
-    """Map DoctorOptions into DecisionOptions and pick first ProposedChange."""
+    """Map the 2 comparative DoctorOptions into DecisionOptions."""
     section_title = _section_title_for_criterion(card.criterion_id)
     path = f"{section_title}, {card.criterion_id}"
     options: list[DecisionOption] = []
     first_proposed_change: ProposedChange | None = None
 
-    for opt in card.doctor_options:
+    comparative_options = [
+        opt
+        for opt in card.doctor_options
+        if opt.kind
+        in {
+            DoctorOptionKind.RELAX_TO_PEER_STANDARD,
+            DoctorOptionKind.RELAX_TO_PEER_MEDIAN,
+        }
+    ]
+    source_options = (
+        comparative_options if comparative_options else card.doctor_options
+    )
+
+    for opt in source_options:
         after_text = opt.proposed_protocol_text or (
             opt.what_if_simulation.proposed_protocol_wording
             if opt.what_if_simulation is not None

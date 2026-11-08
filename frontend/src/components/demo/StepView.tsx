@@ -10,7 +10,12 @@ import {
   resolveDurationMs,
 } from "@/lib/demo/format";
 import { MAX_STEP_METRICS } from "@/lib/demo/traceability";
-import type { Decision, StepData, StepStatus } from "@/lib/demo/types";
+import type {
+  Decision,
+  ReviewStatus,
+  StepData,
+  StepStatus,
+} from "@/lib/demo/types";
 import ChartView from "./ChartView";
 import Collapsible from "./Collapsible";
 import DataSourceList from "./DataSourceList";
@@ -45,6 +50,7 @@ export interface StepViewProps {
   expandedDecisionIds?: ReadonlySet<string>;
   onToggleDecision: (decisionId: string) => void;
   renderDecision: (decision: Decision) => ReactNode;
+  getReviewStatus?: (decisionId: string) => ReviewStatus | undefined;
 }
 
 /** "Completeness agent · 4.2 s · 10:31:04–10:31:08", empty parts dropped. */
@@ -103,6 +109,7 @@ export default function StepView({
   expandedDecisionIds = new Set<string>(),
   onToggleDecision,
   renderDecision,
+  getReviewStatus,
 }: StepViewProps) {
   const charts = step.charts ?? [];
   const tables = step.tables ?? [];
@@ -165,19 +172,19 @@ export default function StepView({
         >
           <SectionTitle>Findings</SectionTitle>
           <ul className="divide-y divide-zinc-200/60">
-            {step.decisions.map((decision, index) => {
+            {step.decisions.map((decision) => {
               const meta = findingMeta(decision);
               const isExpanded = expandedDecisionIds.has(
                 decision.decision_id
               );
               const panelId = `finding-${decision.decision_id}`;
+              const reviewStatus = getReviewStatus?.(decision.decision_id);
               return (
                 <li
                   key={decision.decision_id}
                   id={`finding-row-${decision.decision_id}`}
                   // Clears the sticky header and step bar when jumped to.
-                  className="review-card scroll-mt-44 rounded-xl border p-3"
-                  style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
+                  className="scroll-mt-44"
                 >
                   <button
                     type="button"
@@ -202,6 +209,14 @@ export default function StepView({
                       )}
                     </span>
                     <span className="shrink-0 space-y-1 text-right font-sans text-sm">
+                      {reviewStatus === "accepted" && (
+                        <span className="block text-emerald-700">
+                          ✓ Accepted
+                        </span>
+                      )}
+                      {reviewStatus === "rejected" && (
+                        <span className="block text-zinc-500">Declined</span>
+                      )}
                       {decision.severity !== "info" && (
                         <span
                           className={`block ${

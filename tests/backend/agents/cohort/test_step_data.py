@@ -130,6 +130,7 @@ async def test_decision_proposed_change_and_recommended_option() -> None:
     assert decision.references
     assert decision.impact
 
+    assert len(decision.options) == 2
     recommended = [opt for opt in decision.options if opt.is_recommended]
     assert len(recommended) == 1
     assert recommended[0].impact

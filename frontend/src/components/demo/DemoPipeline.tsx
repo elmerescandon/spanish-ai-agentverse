@@ -6,6 +6,7 @@ import DecisionView from "./DecisionView";
 import StepBar, { type StepBarState } from "./StepBar";
 import StepView from "./StepView";
 import {
+  LATEST_REPORT_PDF_URL,
   RECOMMENDATION_ENDPOINTS,
   uploadProtocolFile,
   type RecommendationFetcher,
@@ -318,7 +319,7 @@ export default function DemoPipeline({
         ) : (
           <span />
         )}
-        {nextItem && (
+        {nextItem ? (
           <button
             type="button"
             disabled={nextItem.state === "running"}
@@ -327,6 +328,14 @@ export default function DemoPipeline({
           >
             Next: {nextItem.title} →
           </button>
+        ) : (
+          <a
+            href={LATEST_REPORT_PDF_URL}
+            download
+            className="cursor-pointer text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900"
+          >
+            Download report (PDF)
+          </a>
         )}
       </nav>
     </div>

@@ -1,12 +1,14 @@
 """Tests for storing protocols, accepting changes and the final pull."""
 
 import asyncio
+import io
 from collections.abc import Generator
 from pathlib import Path
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from pypdf import PdfReader
 
 from backend.agents.protocol_comparison.comparison import Category
 from backend.agents.protocol_comparison.dimensions import DimensionId
@@ -275,3 +277,38 @@ def test_database_failure_returns_503_with_the_reason(
 
     assert response.status_code == 503
     assert "protocol database failed" in response.json()["detail"]
+
+
+def _pdf_text(content: bytes) -> str:
+    reader = PdfReader(io.BytesIO(content))
+    return "\n".join(page.extract_text() for page in reader.pages)
+
+
+def test_report_pdf_is_404_before_any_upload(client: TestClient) -> None:
+    response = client.get("/api/protocols/latest/report.pdf")
+
+    assert response.status_code == 404
+    assert "No uploaded protocol" in response.json()["detail"]
+
+
+def test_report_pdf_holds_the_latest_upload_and_its_changes(
+    client: TestClient, tmp_path: Path
+) -> None:
+    older_dir, latest_dir = tmp_path / "older", tmp_path / "latest"
+    older_dir.mkdir()
+    latest_dir.mkdir()
+    older_id = _upload(client, older_dir)
+    latest_id = _upload(client, latest_dir)
+    _run_peers(client, latest_id)
+    _accept(client, latest_id, HBA1C_FIELD, RECENT_VALUE)
+
+    response = client.get("/api/protocols/latest/report.pdf")
+
+    assert response.status_code == 200, response.text
+    assert response.headers["content-type"] == "application/pdf"
+    assert f"{latest_id}-report.pdf" in response.headers["content-disposition"]
+    text = _pdf_text(response.content)
+    assert latest_id in text
+    assert older_id not in text
+    assert "Accepted changes (1)" in text
+    assert f"{HBA1C_FIELD}: 11 -> 10" in text

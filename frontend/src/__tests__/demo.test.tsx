@@ -278,6 +278,30 @@ describe("demo pipeline step bar flow", () => {
     ).toBeInTheDocument();
   });
 
+  it("offers the PDF report download only on the last step", async () => {
+    const user = userEvent.setup();
+    render(<DemoPage />);
+    await loadPreset(user);
+
+    const stepNavigation = () =>
+      within(screen.getByRole("navigation", { name: "Step navigation" }));
+    const reportLink = () =>
+      stepNavigation().queryByRole("link", { name: "Download report (PDF)" });
+    expect(reportLink()).not.toBeInTheDocument();
+
+    while (stepNavigation().queryByRole("button", { name: /^Next:/ })) {
+      const nextButton = stepNavigation().getByRole("button", {
+        name: /^Next:/,
+      });
+      await waitFor(() => expect(nextButton).toBeEnabled(), {
+        timeout: SLOW_STEP_TIMEOUT_MS,
+      });
+      await user.click(nextButton);
+    }
+
+    expect(reportLink()).toHaveAttribute("href", api.LATEST_REPORT_PDF_URL);
+  });
+
   it("opens a finding in place and folds it by click or Esc", async () => {
     const user = userEvent.setup();
     render(<DemoPage />);

@@ -344,3 +344,6 @@ export async function getProtocolFields(
   }
   return res.json();
 }
+
+// The most recent upload's fields and accepted changes, as a PDF download.
+export const LATEST_REPORT_PDF_URL = "/api/protocols/latest/report.pdf";

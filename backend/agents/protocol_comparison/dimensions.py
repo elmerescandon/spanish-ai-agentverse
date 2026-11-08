@@ -1,9 +1,9 @@
-"""Comparison dimensions and how to read them from a registry record.
+"""Comparison dimensions and how to read them from a trial.
 
-A trial (draft or peer) is reduced to a TrialProfile: the value of each
-dimension it states, where that value came from, its start date and its
-drug classes. The comparison only sees profiles, so the draft's values
-can later come from the parsed protocol instead of the registry.
+A trial is reduced to a TrialProfile: the value of each dimension it
+states, where that value came from, its start date and its drug classes.
+Peers are read from their registry record; the draft under review is
+read from its parsed protocol. The comparison only sees profiles.
 """
 
 import dataclasses
@@ -16,10 +16,14 @@ from enum import StrEnum
 
 from backend.agents.protocol_comparison.logic import (
     classify_drug_classes,
+    classify_drug_names,
+    identify_drug_names,
     identify_drugs,
+    is_placebo,
 )
 from backend.agents.protocol_comparison.rules import DrugClass
 from backend.clients.clinicaltrials_gov import OverallStatus, StudyRecord
+from backend.shared.messages import CitedValue, ProtocolDocument
 
 logger = logging.getLogger(__name__)
 
@@ -62,10 +66,15 @@ class StricterWhen(StrEnum):
 
 @dataclass(frozen=True)
 class DimensionValue:
-    """One trial's value for a dimension, and where it was read from."""
+    """One trial's value for a dimension, and where it was read from.
+
+    page_number is the protocol page the value is cited from, when it
+    was read from the parsed protocol with a page citation.
+    """
 
     value: float
     source: str
+    page_number: int | None = None
 
 
 @dataclass(frozen=True)
@@ -249,4 +258,67 @@ def profile_registry_study(study: StudyRecord) -> TrialProfile:
         drug_classes=classify_drug_classes(study),
         is_ongoing=status.overall_status in ONGOING_STATUSES,
         values=values,
+    )
+
+
+def _protocol_value(
+    cited: CitedValue[float] | CitedValue[int] | None, field_name: str
+) -> DimensionValue | None:
+    if cited is None:
+        return None
+    return DimensionValue(
+        value=float(cited.value),
+        source=f'protocol {field_name} "{cited.citation.quote}"',
+        page_number=cited.citation.page_number,
+    )
+
+
+def _protocol_drug_names(document: ProtocolDocument) -> list[str]:
+    """Lower-case non-placebo arm names, matched like registry names."""
+    if document.interventions is None:
+        return []
+    return [
+        arm.name.lower()
+        for arm in document.interventions.arms
+        if not is_placebo(arm.name)
+    ]
+
+
+def profile_protocol_document(document: ProtocolDocument) -> TrialProfile:
+    """Reduce the parsed protocol under review to its registry values.
+
+    Ages and enrollment come from the parser's design facet (enrollment
+    falls back to the statistics facet's sample size); drugs come from
+    the intervention arms. Lab limits are read from the eligibility
+    criteria separately (see eligibility.py). The draft has no start
+    date or status: those only weight peers.
+    """
+    design = document.design
+    statistics = document.statistics
+    candidates = {
+        DimensionId.MINIMUM_AGE: _protocol_value(
+            design.min_age_years if design else None, "minimum age"
+        ),
+        DimensionId.MAXIMUM_AGE: _protocol_value(
+            design.max_age_years if design else None, "maximum age"
+        ),
+        DimensionId.ENROLLMENT: _protocol_value(
+            design.target_enrollment if design else None, "target enrollment"
+        )
+        or _protocol_value(
+            statistics.sample_size if statistics else None, "sample size"
+        ),
+    }
+    drug_names = _protocol_drug_names(document)
+    return TrialProfile(
+        trial_id=document.protocol_id,
+        start_date=None,
+        drugs=identify_drug_names(drug_names),
+        drug_classes=classify_drug_names(drug_names),
+        is_ongoing=False,
+        values={
+            dimension_id: value
+            for dimension_id, value in candidates.items()
+            if value is not None
+        },
     )

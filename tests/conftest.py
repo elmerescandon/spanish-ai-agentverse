@@ -8,10 +8,17 @@ import pytest
 from fpdf import FPDF
 from pydantic import BaseModel
 
+from backend.agents.protocol_comparison.demo import load_demo_peers
+from backend.agents.protocol_comparison.peer_store import (
+    PeerSource,
+    PeerStore,
+)
+from backend.api import agent_runners
 from backend.api.protocol_pipeline import (
     ProtocolPipeline,
     set_protocol_pipeline,
 )
+from backend.clients.clinicaltrials_gov import PeerSearchQuery, StudyRecord
 from backend.clients.gemini import (
     GeminiClient,
     JsonGenerator,
@@ -149,3 +156,23 @@ def _offline_protocol_pipeline(
         set_protocol_pipeline(OfflineProtocolPipeline())
     yield
     set_protocol_pipeline(None)
+
+
+async def search_committed_demo_peers(
+    _query: PeerSearchQuery,
+) -> list[StudyRecord]:
+    """Offline stand-in for a registry search: the committed demo peers."""
+    return load_demo_peers(PeerStore())
+
+
+@pytest.fixture(autouse=True)
+def _offline_peer_search(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Keep API tests off ClinicalTrials.gov; live tests search for real."""
+    if request.node.get_closest_marker("live") is None:
+        monkeypatch.setattr(
+            agent_runners,
+            "_peer_source",
+            PeerSource(PeerStore(), search=search_committed_demo_peers),
+        )

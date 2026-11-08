@@ -74,6 +74,8 @@ DESIGN_INSTRUCTIONS = (
     "matching the TrialDesignFacts schema. Wrap each present value in "
     '{"value": ..., "citation": {"page_number": ..., "quote": ...}} and '
     "return null for any field not stated in the document.\n"
+    "- official_title: the full official or scientific study title as "
+    "printed, quoted from the page where it appears.\n"
     f"- phase: one of {ALLOWED_PHASES}. Report the phase stated in the "
     'document (for example, "Phase II" -> "PHASE2", "Phase 3" -> '
     '"PHASE3"). For a behavioral or non-drug trial with no phase stated, '

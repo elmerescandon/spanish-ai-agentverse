@@ -1,5 +1,7 @@
 """Unit tests for the parser's pure facet logic."""
 
+from pathlib import Path
+
 from pydantic import BaseModel
 
 from backend.agents.parser.logic import (
@@ -15,6 +17,8 @@ from backend.agents.parser.logic import (
     build_repair_prompt,
     collect_citations,
     count_verified,
+    derive_protocol_id,
+    derive_title,
     format_pages_for_prompt,
     normalize_design_facts,
     sort_sections,
@@ -499,3 +503,34 @@ def test_registry_contains_all_four_facets() -> None:
         FacetName.SECTIONS,
         FacetName.ENDPOINTS,
     ]
+
+
+def test_derive_protocol_id_prefers_nct_id_then_file_stem() -> None:
+    pdf_path = Path("/tmp/fame_d_protocol.pdf")
+    with_nct = TrialDesignFacts(
+        nct_id=CitedValue[str](
+            value="NCT04828785", citation=_citation(VERIFIABLE_QUOTE)
+        )
+    )
+
+    assert derive_protocol_id(with_nct, pdf_path) == "NCT04828785"
+    assert derive_protocol_id(TrialDesignFacts(), pdf_path) == (
+        "fame_d_protocol"
+    )
+    assert derive_protocol_id(None, pdf_path) == "fame_d_protocol"
+
+
+def test_derive_title_prefers_official_title_then_file_stem() -> None:
+    pdf_path = Path("/tmp/fame_d_protocol.pdf")
+    with_title = TrialDesignFacts(
+        official_title=CitedValue[str](
+            value="Food As Medicine for Diabetes",
+            citation=_citation(VERIFIABLE_QUOTE),
+        )
+    )
+
+    assert derive_title(with_title, pdf_path) == (
+        "Food As Medicine for Diabetes"
+    )
+    assert derive_title(TrialDesignFacts(), pdf_path) == "fame_d_protocol"
+    assert derive_title(None, pdf_path) == "fame_d_protocol"

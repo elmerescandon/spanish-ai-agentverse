@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from google import genai
 from google.genai.errors import ContinuationInterruptedError
@@ -75,12 +75,12 @@ class _FakeSdkClient:
         self.aio = _FakeAio(self.interactions_double)
 
 
-def _make_request() -> httpx.Request:
-    return httpx.Request("POST", TEST_URL)
+def _make_request() -> httpx2.Request:
+    return httpx2.Request("POST", TEST_URL)
 
 
-def _make_response(status_code: int) -> httpx.Response:
-    return httpx.Response(status_code, request=_make_request())
+def _make_response(status_code: int) -> httpx2.Response:
+    return httpx2.Response(status_code, request=_make_request())
 
 
 @pytest.fixture(autouse=True)
@@ -289,10 +289,10 @@ async def test_exhausted_time_budget_is_not_retried() -> None:
 async def test_sdk_does_not_retry_on_its_own() -> None:
     request_count = 0
 
-    def _always_503(_request: httpx.Request) -> httpx.Response:
+    def _always_503(_request: httpx2.Request) -> httpx2.Response:
         nonlocal request_count
         request_count += 1
-        return httpx.Response(
+        return httpx2.Response(
             HTTP_SERVICE_UNAVAILABLE,
             json={
                 "error": {
@@ -303,7 +303,7 @@ async def test_sdk_does_not_retry_on_its_own() -> None:
         )
 
     client = GeminiClient(api_key=TEST_API_KEY, model=TEST_MODEL)
-    mock_http = httpx.AsyncClient(transport=httpx.MockTransport(_always_503))
+    mock_http = httpx2.AsyncClient(transport=httpx2.MockTransport(_always_503))
     sdk_client: genai.Client = client._sdk_client
     sdk_client._api_client._async_httpx_client = mock_http
 

@@ -1,9 +1,8 @@
-"""Shared parser contract: domain models, uAgents envelopes, JSON helpers."""
+"""Shared contract: the typed models every part of the backend exchanges."""
 
 from enum import StrEnum
 
-from pydantic import BaseModel, Field, TypeAdapter
-from uagents import Model as UAgentModel
+from pydantic import BaseModel, Field
 
 
 class FacetName(StrEnum):
@@ -138,6 +137,7 @@ class EligibilityExtraction(BaseModel):
 class TrialDesignFacts(BaseModel):
     """Result schema for the DESIGN facet."""
 
+    official_title: CitedValue[str] | None = None
     phase: CitedValue[TrialPhase] | None = None
     allocation: CitedValue[AllocationType] | None = None
     intervention_model: CitedValue[InterventionModelType] | None = None
@@ -229,54 +229,3 @@ class ProtocolDocument(BaseModel):
     schedule: list[ScheduledVisit] | None = None
     statistics: StatisticalAssumptions | None = None
     extraction_warnings: list[ExtractionWarning] = Field(default_factory=list)
-
-
-class ParseProtocolRequest(UAgentModel):
-    """uAgents request envelope to parse a protocol PDF."""
-
-    review_id: str
-    pdf_path: str
-
-
-class ParseProtocolResponse(UAgentModel):
-    """uAgents response envelope carrying a serialized ProtocolDocument."""
-
-    review_id: str
-    document_json: str
-
-
-class ExtractCriteriaRequest(UAgentModel):
-    """uAgents request envelope to extract criteria from peer-trial text."""
-
-    request_id: str
-    eligibility_text: str
-
-
-class ExtractCriteriaResponse(UAgentModel):
-    """uAgents response envelope carrying serialized eligibility criteria."""
-
-    request_id: str
-    criteria_json: str
-
-
-class AgentError(UAgentModel):
-    """uAgents error envelope sent when an agent handler fails."""
-
-    review_id: str
-    agent_name: str
-    error_message: str
-
-
-CRITERIA_LIST_ADAPTER: TypeAdapter[list[EligibilityCriterion]] = TypeAdapter(
-    list[EligibilityCriterion]
-)
-
-
-def encode_criteria(criteria: list[EligibilityCriterion]) -> str:
-    """Serialize a list of eligibility criteria to a JSON string."""
-    return CRITERIA_LIST_ADAPTER.dump_json(criteria).decode("utf-8")
-
-
-def decode_criteria(raw_json: str) -> list[EligibilityCriterion]:
-    """Validate a JSON string into a list of eligibility criteria."""
-    return CRITERIA_LIST_ADAPTER.validate_json(raw_json)

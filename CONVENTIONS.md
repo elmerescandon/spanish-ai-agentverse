@@ -74,10 +74,10 @@ URGENCY_THRESHOLD = 0.7  # score above which triage escalates to a doctor
 
 - **Fail loudly.** No bare `except:`, no `except Exception: pass`. Catch specific exceptions, and log or re-raise.
 - **Error messages say what was expected and what was received:** `ValueError(f"score must be in [0, 1], got {score}")`, not `ValueError("bad score")`.
-- **Validate at the boundary.** Anything from outside (agent messages, API responses, LLM output, user input) is parsed into a Pydantic model before use. Inside, code is still fully typed, but doesn't re-check data that was already validated.
+- **Validate at the boundary.** Anything from outside (uploaded files, API responses, LLM output, user input) is parsed into a Pydantic model before use. Inside, code is still fully typed, but doesn't re-check data that was already validated.
 - **`assert` for internal invariants only**, things that can't happen if our code is correct: `assert 0 <= score <= 1`. Never for validating outside input: `python -O` strips asserts.
 - **Timeouts and retries on every external call**, especially LLM calls. Retry with backoff; give up after `MAX_RETRIES`.
-- **Agents never go silent.** If a handler fails, log the traceback and send the caller an error message, so the other agent isn't left waiting forever.
+- **Agents fail loudly to their caller.** An agent's entry point raises a specific exception, listed in its docstring; the caller (API or orchestrator) logs the traceback and turns it into a visible error, so a review never hangs or silently returns nothing.
 - **Use `logging`, not `print`.** Include the agent name and the relevant ids in log lines. Format: what happened, then the state as key=value: `logger.info("triage scored: patient_id=%s score=%.2f", patient_id, score)`.
 
 ## Tests
@@ -85,7 +85,7 @@ URGENCY_THRESHOLD = 0.7  # score above which triage escalates to a doctor
 Tests check the logic thoroughly and intelligently, not just line coverage.
 
 - **Test behaviour, not implementation.** Assert on outputs and effects, not on which private function was called.
-- **Hit the edges:** empty input, malformed messages, boundary values (exactly at a threshold), an LLM returning garbage or timing out.
+- **Hit the edges:** empty input, malformed input, boundary values (exactly at a threshold), an LLM returning garbage or timing out.
 - **Mock the LLM and network** so tests are fast and deterministic. One optional live smoke test is fine, marked `@pytest.mark.live`: skipped by default and in CI, run by hand with `make test-live` (real keys from `.env`) before the demo. `make demo` runs it first, so the demo can't start without it passing.
 - **The demo path must have an end-to-end test.** It's the one flow that can't break at 3am.
 - **Test names describe the scenario:** `test_triage_escalates_when_score_above_threshold`, not `test_triage_2`.
@@ -140,12 +140,12 @@ Frontend and backend split; inside the backend, one folder per agent. Which agen
 │   ├── api/                  # HTTP routes the frontend calls
 │   ├── agents/
 │   │   └── <agent_name>/
-│   │       ├── agent.py      # uAgent setup + handlers: wiring only
+│   │       ├── agent.py      # async entry points callers use: I/O wiring
 │   │       ├── logic.py      # pure functions, no I/O
 │   │       └── prompts.py    # prompt constants
 │   ├── clients/              # LLM + external API wrappers: timeouts, retries
 │   ├── shared/
-│   │   ├── messages.py       # every agent message schema: the contract
+│   │   ├── messages.py       # every shared data model: the contract
 │   │   └── config.py         # loads .env into typed settings
 │   └── main.py               # starts API + agents
 ├── tests/
@@ -162,13 +162,12 @@ Frontend and backend split; inside the backend, one folder per agent. Which agen
 
 - **The frontend talks only to `backend/api`**, never to agents directly. The API is the one contract the frontend depends on.
 - **Every external call goes through `clients/`**: one place for timeouts, retries and mocking in tests.
-- **Agents import from `shared/` and `clients/`, never from each other.** They talk only through messages.
+- **Agents import from `shared/` and `clients/`, never from each other.** The API or orchestrator calls each agent's async entry point directly (e.g. `await parse_protocol(...)`, several at once with `asyncio.gather`) and passes `messages.py` models between them.
 - **New agent = copy an existing folder**, rename, add its tests. Frontend tests live in `frontend/` with its own tooling.
 
 ## [TO BE COMPLETED] Agents
 
-- **All message schemas live in one shared module** (e.g. `shared/messages.py`). It is the contract between agents: changes go through the team, not one person's branch.
+- **All shared data models live in one module** (`shared/messages.py`). It is the contract between agents: changes go through the team, not one person's branch.
 - **One clear role per agent**, describable in one sentence ("triages symptoms and escalates urgent cases" is fine). Put that sentence in the agent's module docstring. Don't split further than you need: every extra agent is more messages to define and debug.
-- **Handlers are safe to run twice.** Messages can be retried or duplicated; don't double-charge, double-send or double-write.
+- **Entry points are safe to call twice.** A retried call must not double-charge, double-send or double-write.
 - **Prompts live in their own files or constants**, since you'll tweak them all weekend and want them in one place. A one-line instruction inline is fine; anything longer goes in the agent's `prompts.py`.
-- **Agent addresses and seeds come from `.env`**, never hard-coded.

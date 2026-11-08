@@ -1,26 +1,40 @@
 """Unit tests for the generic facet extraction engine (LLM mocked)."""
 
+from pathlib import Path
+
+import pytest
 from pydantic import BaseModel
 
-from backend.agents.parser.agent import extract_facet
+from backend.agents.parser.agent import (
+    AllFacetsFailedError,
+    extract_eligibility_criteria,
+    extract_facet,
+    parse_protocol,
+)
 from backend.agents.parser.logic import (
     ELIGIBILITY_FACET,
     SECTIONS_FACET,
     Facet,
 )
 from backend.clients.gemini import LlmCallFailedError, ThinkingLevel
+from backend.clients.pdf_reader import UnreadablePdfError
 from backend.shared.messages import (
     Citation,
+    CitedValue,
     CriterionKind,
     EligibilityCriterion,
     EligibilityExtraction,
+    Endpoint,
+    EndpointKind,
+    EndpointList,
     FacetName,
     M11Heading,
     PageText,
     ProtocolSection,
     SectionMap,
+    TrialDesignFacts,
 )
-from tests.conftest import FakeJsonGenerator
+from tests.conftest import FakeJsonGenerator, make_pdf
 
 PAGES = [
     PageText(
@@ -297,3 +311,161 @@ async def test_sections_facet_end_to_end_with_fake_llm() -> None:
         True,
     ]
     assert outcome.warnings == []
+
+
+PDF_PAGE_ONE = (
+    "1 PROTOCOL SUMMARY\n"
+    "Official Title: Food As Medicine for Diabetes Study Protocol.\n"
+    "National Clinical Trial Identified Number: NCT 04828785.\n"
+    "We will enroll N=200 participants into 2 arms in this clinical trial."
+)
+PDF_PAGE_TWO = (
+    "5 TARGET POPULATION AND STUDY SAMPLE\n"
+    "Inclusion Criteria: Participants must have HbA1c >= 8.0% at screening.\n"
+    "Primary Outcome: Change in Hemoglobin A1c at 6 months after baseline."
+)
+PDF_TITLE_QUOTE = "Official Title: Food As Medicine for Diabetes"
+PDF_NCT_QUOTE = "National Clinical Trial Identified Number: NCT 04828785"
+PDF_CRITERION_QUOTE = "Participants must have HbA1c >= 8.0% at screening"
+PDF_SECTION_QUOTE = "1 PROTOCOL SUMMARY Official Title: Food As Medicine"
+PDF_ENDPOINT_QUOTE = "Primary Outcome: Change in Hemoglobin A1c at 6 months"
+
+
+def _scripted_four_facet_responses() -> list[BaseModel | Exception]:
+    eligibility = EligibilityExtraction(
+        criteria=[
+            EligibilityCriterion(
+                criterion_id="raw-1",
+                kind=CriterionKind.INCLUSION,
+                text="HbA1c >= 8.0% at screening",
+                citation=Citation(page_number=2, quote=PDF_CRITERION_QUOTE),
+            )
+        ]
+    )
+    design = TrialDesignFacts(
+        official_title=CitedValue[str](
+            value="Food As Medicine for Diabetes Study Protocol",
+            citation=Citation(page_number=1, quote=PDF_TITLE_QUOTE),
+        ),
+        nct_id=CitedValue[str](
+            value="NCT 04828785",
+            citation=Citation(page_number=1, quote=PDF_NCT_QUOTE),
+        ),
+    )
+    sections = SectionMap(
+        sections=[
+            ProtocolSection(
+                heading=M11Heading.PROTOCOL_SUMMARY,
+                title="1 PROTOCOL SUMMARY",
+                start_page=1,
+                end_page=1,
+                summary="Summarizes the FAME-D trial.",
+                citation=Citation(page_number=1, quote=PDF_SECTION_QUOTE),
+            )
+        ]
+    )
+    endpoints = EndpointList(
+        endpoints=[
+            Endpoint(
+                kind=EndpointKind.PRIMARY,
+                description="Change in Hemoglobin A1c",
+                time_frame="6 months",
+                citation=Citation(page_number=2, quote=PDF_ENDPOINT_QUOTE),
+            )
+        ]
+    )
+    return [eligibility, design, sections, endpoints]
+
+
+async def test_parse_protocol_assembles_all_facets(tmp_path: Path) -> None:
+    pdf_path = make_pdf(tmp_path, [PDF_PAGE_ONE, PDF_PAGE_TWO])
+    llm = FakeJsonGenerator(_scripted_four_facet_responses())
+
+    document = await parse_protocol(pdf_path, llm)
+
+    assert document.protocol_id == "NCT04828785"
+    assert document.title == "Food As Medicine for Diabetes Study Protocol"
+    assert document.page_count == 2
+    assert document.eligibility_criteria is not None
+    assert document.eligibility_criteria[0].criterion_id == "IN-01"
+    assert document.design is not None
+    assert document.sections is not None
+    assert document.endpoints is not None
+    assert document.extraction_warnings == []
+
+
+async def test_one_failed_facet_still_returns_document(
+    tmp_path: Path,
+) -> None:
+    pdf_path = make_pdf(tmp_path, [PDF_PAGE_ONE, PDF_PAGE_TWO])
+    responses = _scripted_four_facet_responses()
+    responses[3] = LlmCallFailedError("ENDPOINTS timed out")
+    llm = FakeJsonGenerator(responses)
+
+    document = await parse_protocol(pdf_path, llm)
+
+    assert document.eligibility_criteria is not None
+    assert document.design is not None
+    assert document.sections is not None
+    assert document.endpoints is None
+    assert any(
+        w.facet == FacetName.ENDPOINTS for w in document.extraction_warnings
+    )
+
+
+async def test_all_facets_failed_raises(tmp_path: Path) -> None:
+    pdf_path = make_pdf(tmp_path, [PDF_PAGE_ONE, PDF_PAGE_TWO])
+    llm = FakeJsonGenerator([LlmCallFailedError("LLM down") for _ in range(4)])
+
+    with pytest.raises(AllFacetsFailedError):
+        await parse_protocol(pdf_path, llm)
+
+
+async def test_parse_protocol_raises_on_scanned_pdf_without_llm_calls(
+    tmp_path: Path,
+) -> None:
+    scanned_pdf = make_pdf(tmp_path, ["", ""])
+    llm = FakeJsonGenerator([])
+
+    with pytest.raises(UnreadablePdfError):
+        await parse_protocol(scanned_pdf, llm)
+
+    assert llm.prompts == []
+
+
+async def test_parse_protocol_raises_on_missing_file(tmp_path: Path) -> None:
+    llm = FakeJsonGenerator([])
+
+    with pytest.raises(OSError):
+        await parse_protocol(tmp_path / "does_not_exist.pdf", llm)
+
+
+async def test_extract_eligibility_criteria_returns_uncited_criteria() -> None:
+    peer_text = (
+        "Inclusion Criteria: Participants must have HbA1c ≥ 8.0% at the "
+        "screening visit and be aged 18 years or older."
+    )
+    raw_extraction = EligibilityExtraction(
+        criteria=[
+            EligibilityCriterion(
+                criterion_id="x",
+                kind=CriterionKind.INCLUSION,
+                text="HbA1c >= 8.0% at the screening visit",
+                citation=Citation(page_number=1, quote=VERIFIABLE_QUOTE),
+            )
+        ]
+    )
+    llm = FakeJsonGenerator([raw_extraction])
+
+    criteria = await extract_eligibility_criteria(peer_text, llm)
+
+    assert len(criteria) == 1
+    assert criteria[0].criterion_id == "IN-01"
+    assert criteria[0].citation is None
+
+
+async def test_extract_eligibility_criteria_raises_when_facet_fails() -> None:
+    llm = FakeJsonGenerator([LlmCallFailedError("LLM down")])
+
+    with pytest.raises(AllFacetsFailedError):
+        await extract_eligibility_criteria("Inclusion Criteria: adults.", llm)

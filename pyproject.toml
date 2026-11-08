@@ -1,19 +1,19 @@
 [project]
 name = "spanish-ai-agentverse"
 version = "0.1.0"
-description = "Multi-agent system built on Fetch.ai uAgents for the Agentverse UCL hackathon"
+description = "Multi-agent clinical protocol review built with Gemini for the AgentVerse UCL hackathon"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "google-genai>=2.3.0",
     "pydantic-settings>=2.16.2",
     "pypdf>=7.0.0",
-    "uagents==0.26.1",
 ]
 
 [dependency-groups]
 dev = [
     "fpdf2>=2.9.0",
+    "httpx2>=2.16.0",
     "mypy>=2.4.1",
     "pre-commit>=4.7.0",
     "pytest>=9.2.0",
@@ -39,7 +39,3 @@ markers = [
 ]
 addopts = "-m 'not live and not extended'"
 pythonpath = ["."]
-
-[[tool.mypy.overrides]]
-module = ["uagents", "uagents.*"]
-ignore_missing_imports = true

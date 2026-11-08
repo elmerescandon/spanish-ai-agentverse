@@ -1,28 +1,91 @@
 """Parser agent: turns a protocol PDF into a citation-verified document.
 
-This task adds the generic facet engine; the uAgent wiring comes later.
+Other parts of the backend call parse_protocol() directly.
 """
 
+import asyncio
 import logging
+from collections.abc import Sequence
+from pathlib import Path
+from typing import overload
 
 from pydantic import BaseModel
 
 from backend.agents.parser.logic import (
+    ELIGIBILITY_FACET,
+    FACETS,
+    AnyFacet,
     Facet,
     FacetOutcome,
+    all_facets_failed,
+    assemble_document,
     build_facet_prompt,
     build_repair_prompt,
     count_verified,
+    derive_protocol_id,
+    derive_title,
     unverified_citations,
     verify_result,
 )
 from backend.clients.gemini import JsonGenerator, LlmCallFailedError
-from backend.shared.messages import PageText
+from backend.clients.pdf_reader import read_pdf_pages
+from backend.shared.messages import (
+    EligibilityCriterion,
+    EligibilityExtraction,
+    EndpointList,
+    FacetName,
+    PageText,
+    ProtocolDocument,
+    SectionMap,
+    TrialDesignFacts,
+)
 
 logger = logging.getLogger(__name__)
 
 AGENT_NAME = "parser"
 MAX_CITATION_REPAIR_ROUNDS = 1  # one re-ask; a third call rarely helps
+
+
+class AllFacetsFailedError(RuntimeError):
+    """Raised when every requested parser facet failed to extract a result."""
+
+
+@overload
+async def extract_facet(
+    facet: Facet[EligibilityExtraction],
+    pages: list[PageText],
+    llm: JsonGenerator,
+) -> FacetOutcome: ...
+
+
+@overload
+async def extract_facet(
+    facet: Facet[TrialDesignFacts],
+    pages: list[PageText],
+    llm: JsonGenerator,
+) -> FacetOutcome: ...
+
+
+@overload
+async def extract_facet(
+    facet: Facet[SectionMap],
+    pages: list[PageText],
+    llm: JsonGenerator,
+) -> FacetOutcome: ...
+
+
+@overload
+async def extract_facet(
+    facet: Facet[EndpointList],
+    pages: list[PageText],
+    llm: JsonGenerator,
+) -> FacetOutcome: ...
+
+
+@overload
+async def extract_facet[ResultT: BaseModel](
+    facet: Facet[ResultT], pages: list[PageText], llm: JsonGenerator
+) -> FacetOutcome: ...
 
 
 async def extract_facet[ResultT: BaseModel](
@@ -94,3 +157,66 @@ async def extract_facet[ResultT: BaseModel](
     return FacetOutcome(
         facet=facet.name, result=best_result, warnings=warnings
     )
+
+
+async def parse_protocol(
+    pdf_path: Path,
+    llm: JsonGenerator,
+    facets: Sequence[AnyFacet] = FACETS,
+) -> ProtocolDocument:
+    """Parse a protocol PDF across all facets into a ProtocolDocument.
+
+    One failed facet leaves its field None with a warning; the call only
+    fails as a whole when it can't produce a document at all.
+
+    Raises:
+        UnreadablePdfError: the file is scanned, corrupt or not a PDF.
+        ValueError: the PDF has more pages than the parser accepts.
+        OSError: the file doesn't exist or can't be read.
+        AllFacetsFailedError: every facet failed (e.g. Gemini is down).
+    """
+    pages = await asyncio.to_thread(read_pdf_pages, pdf_path)
+    outcome_list = await asyncio.gather(
+        *(extract_facet(facet, pages, llm) for facet in facets)
+    )
+    outcomes = {outcome.facet: outcome for outcome in outcome_list}
+    if all_facets_failed(outcomes):
+        raise AllFacetsFailedError(
+            f"all {len(outcomes)} parser facet(s) failed for {pdf_path}"
+        )
+
+    design_outcome = outcomes.get(FacetName.DESIGN)
+    design = (
+        design_outcome.result
+        if design_outcome is not None
+        and isinstance(design_outcome.result, TrialDesignFacts)
+        else None
+    )
+    protocol_id = derive_protocol_id(design, pdf_path)
+    title = derive_title(design, pdf_path)
+    return assemble_document(protocol_id, title, pages, outcomes)
+
+
+async def extract_eligibility_criteria(
+    eligibility_text: str, llm: JsonGenerator
+) -> list[EligibilityCriterion]:
+    """Extract uncited eligibility criteria from raw peer-trial text.
+
+    Quotes are still checked against the text; citations are then
+    dropped because a page number is meaningless without a PDF.
+
+    Raises:
+        AllFacetsFailedError: the eligibility facet failed.
+    """
+    pages = [PageText(page_number=1, text=eligibility_text)]
+    outcome = await extract_facet(ELIGIBILITY_FACET, pages, llm)
+    if outcome.result is None or not isinstance(
+        outcome.result, EligibilityExtraction
+    ):
+        raise AllFacetsFailedError(
+            "ELIGIBILITY facet failed on peer-trial text"
+        )
+    return [
+        criterion.model_copy(update={"citation": None})
+        for criterion in outcome.result.criteria
+    ]

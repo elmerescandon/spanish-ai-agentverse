@@ -22,7 +22,6 @@ class Settings(BaseSettings):
 
     gemini_api_key: SecretStr
     gemini_model: str = DEFAULT_GEMINI_MODEL
-    parser_agent_seed: SecretStr
 
 
 def load_settings() -> Settings:

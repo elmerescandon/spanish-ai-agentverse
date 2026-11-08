@@ -6,6 +6,7 @@ rules), so adding a key point to extract never needs new engine code.
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from pydantic import BaseModel
 
@@ -402,3 +403,28 @@ FACETS: tuple[AnyFacet, ...] = (
     SECTIONS_FACET,
     ENDPOINTS_FACET,
 )
+
+
+def derive_protocol_id(design: TrialDesignFacts | None, pdf_path: Path) -> str:
+    """Return the normalized NCT ID when present, otherwise the file stem."""
+    if design is not None and design.nct_id is not None:
+        nct_value = design.nct_id.value.strip()
+        if nct_value:
+            return nct_value
+    return pdf_path.stem
+
+
+def derive_title(design: TrialDesignFacts | None, pdf_path: Path) -> str:
+    """Return the extracted official title when present, else the file stem."""
+    if design is not None and design.official_title is not None:
+        title_value = design.official_title.value.strip()
+        if title_value:
+            return title_value
+    return pdf_path.stem
+
+
+def all_facets_failed(outcomes: dict[FacetName, FacetOutcome]) -> bool:
+    """Return True if outcomes is non-empty and all facet results are None."""
+    return bool(outcomes) and all(
+        outcome.result is None for outcome in outcomes.values()
+    )

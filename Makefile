@@ -1,4 +1,4 @@
-.PHONY: install dev run format lint test test-extended test-live check demo
+.PHONY: install dev run parse format lint test test-extended test-live check demo
 
 install:
 	uv sync
@@ -9,6 +9,9 @@ dev:
 
 run:
 	uv run python -m backend.main
+
+parse:
+	uv run python -m backend.agents.parser $(PDF)
 
 format:
 	uv run ruff format .

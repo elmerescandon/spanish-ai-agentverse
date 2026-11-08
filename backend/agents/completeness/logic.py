@@ -10,12 +10,12 @@ from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
+from functools import cache
 from typing import assert_never
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.agents.completeness.prompts import (
-    INSTRUCTIONS_SEPARATOR,
     JUDGEMENT_BATCH_INSTRUCTIONS,
     LIBRARY_MATCH_INSTRUCTIONS,
     SECOND_OPINION_INSTRUCTIONS,
@@ -26,6 +26,7 @@ from backend.agents.completeness.rules import (
     RequiredInput,
     RuleCatalogue,
     RuleDefinition,
+    load_rule_catalogue,
 )
 from backend.shared.citations import make_citation_verifier
 from backend.shared.messages import (
@@ -57,6 +58,10 @@ from backend.shared.messages import (
     TrialPhase,
     TrialProfile,
 )
+from backend.shared.prompting import (
+    INSTRUCTIONS_SEPARATOR,
+    format_pages_for_prompt,
+)
 
 SEVERITY_WEIGHTS: dict[RuleSeverity, int] = {
     RuleSeverity.S1: 10,
@@ -70,14 +75,6 @@ UNASSESSED_STATUSES = frozenset(
 )
 REGISTRATION_GATE_FAMILIES = (RuleFamily.REG,)
 REVIEW_GATE_FAMILIES = (RuleFamily.EST, RuleFamily.XS, RuleFamily.DM)
-# S1 rules per family in the full guidelines. Gates only look at S1 rules,
-# so a gate is complete once all S1 rules of its families are evaluated.
-GATE_S1_RULE_TOTALS: dict[RuleFamily, int] = {
-    RuleFamily.REG: 19,
-    RuleFamily.EST: 14,
-    RuleFamily.XS: 10,
-    RuleFamily.DM: 16,
-}
 DRUG_INTERVENTIONS = frozenset(
     {InterventionType.DRUG, InterventionType.BIOLOGIC}
 )
@@ -158,7 +155,6 @@ PROFILE_HEADINGS = frozenset(
     }
 )
 PROFILE_FALLBACK_PAGE_COUNT = 15  # title page + synopsis, without sections
-PAGE_MARKER_TEMPLATE = "=== PAGE {page_number} ==="
 
 
 class JudgementStatus(StrEnum):
@@ -1212,14 +1208,17 @@ def select_profile_pages(document: ProtocolDocument) -> list[PageText]:
     return [page for page in document.pages if page.page_number in wanted]
 
 
-# [TO REFACTOR:(alex)]: duplicates the parser's format_pages_for_prompt;
-# move both to backend/shared once the parser's step-3 work has merged.
-def format_pages_for_prompt(pages: Sequence[PageText]) -> str:
-    """Render pages with the 1-based markers citations refer to."""
-    return "\n".join(
-        f"{PAGE_MARKER_TEMPLATE.format(page_number=page.page_number)}\n"
-        f"{page.text}"
-        for page in pages
+@cache
+def _catalogue_s1_counts() -> Counter[RuleFamily]:
+    """S1 rules per family in the default catalogue.
+
+    Gates only look at S1 rules, so a gate is complete once every S1 rule
+    of its families has been evaluated.
+    """
+    return Counter(
+        rule.family
+        for rule in load_rule_catalogue().rules
+        if rule.severity == RuleSeverity.S1
     )
 
 
@@ -1243,7 +1242,7 @@ def _compute_gate(
     )
     evaluated_per_family = Counter(item.family for item in gate_findings)
     is_missing_rules = any(
-        evaluated_per_family[family] < GATE_S1_RULE_TOTALS[family]
+        evaluated_per_family[family] < _catalogue_s1_counts()[family]
         for family in families
     )
     has_unassessed = any(

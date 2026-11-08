@@ -1,23 +1,12 @@
 """Prompt text for the completeness checker's Gemini calls."""
 
-from enum import StrEnum
-
 from backend.shared.messages import (
     ControlType,
     DiabetesType,
     DrugClass,
     InterventionType,
 )
-
-INSTRUCTIONS_SEPARATOR = "\n---\n"
-
-
-# [TO REFACTOR:(alex)]: same helper as the parser's prompts.quoted_values;
-# move to backend/shared once the parser's step-3 work has merged.
-def quoted_values(enum_class: type[StrEnum]) -> str:
-    """List an enum's values as the JSON strings Gemini must return."""
-    return ", ".join(f'"{member.value}"' for member in enum_class)
-
+from backend.shared.prompting import quoted_values
 
 TRIAL_PROFILE_INSTRUCTIONS = (
     "Classify this clinical trial protocol into JSON matching the "

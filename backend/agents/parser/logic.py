@@ -12,7 +12,6 @@ from pydantic import BaseModel
 
 from backend.agents.parser.prompts import (
     COMMON_EXTRACTION_RULES,
-    INSTRUCTIONS_SEPARATOR,
     REPAIR_INSTRUCTIONS,
 )
 from backend.clients.gemini import ThinkingLevel
@@ -35,8 +34,11 @@ from backend.shared.messages import (
     SynopsisConsistencyExtraction,
     TrialDesignFacts,
 )
+from backend.shared.prompting import (
+    INSTRUCTIONS_SEPARATOR,
+    format_pages_for_prompt,
+)
 
-PAGE_MARKER_TEMPLATE = "=== PAGE {page_number} ==="
 EMPTY_FACET_WARNING = "facet ran but found no items in the document"
 
 type SanityRule[ResultT: BaseModel] = Callable[[ResultT, int], list[str]]
@@ -62,15 +64,6 @@ class FacetOutcome:
     facet: FacetName
     result: BaseModel | None
     warnings: list[str]
-
-
-def format_pages_for_prompt(pages: list[PageText]) -> str:
-    """Render pages with 1-based markers that citations refer to."""
-    return "\n".join(
-        f"{PAGE_MARKER_TEMPLATE.format(page_number=page.page_number)}\n"
-        f"{page.text}"
-        for page in pages
-    )
 
 
 def build_facet_prompt(facet_instructions: str, pages: list[PageText]) -> str:

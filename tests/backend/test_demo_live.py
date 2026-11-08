@@ -1,4 +1,4 @@
-"""End-of-PR smoke test: FAME-D PDF -> /demo upload -> CHECK step.
+"""End-of-PR smoke test: demo PDF -> /demo upload -> CHECK step.
 
 Real Gemini calls on a full protocol (several minutes): run with
 `make test-live`, once at the end of the PR.
@@ -19,7 +19,13 @@ from tests.conftest import make_live_gemini_client
 
 logger = logging.getLogger(__name__)
 
-FAME_D_PDF_PATH = Path("data/protocols/demo/NCT04828785_protocol.pdf")
+DEMO_DIRECTORY = Path("data/protocols/demo")
+# Both demo protocols are adult type 2 diabetes trials: FAME-D (meals)
+# and a canagliflozin drug trial, so drug-only rules apply to one of them.
+DEMO_PDF_PATHS = [
+    DEMO_DIRECTORY / "NCT04828785_protocol.pdf",
+    DEMO_DIRECTORY / "NCT03170518_protocol.pdf",
+]
 REQUEST_TIMEOUT_SECONDS = 1200.0  # full parse or full check, with margin
 
 
@@ -31,7 +37,10 @@ def _reset_state() -> Generator[None]:
 
 
 @pytest.mark.live
-async def test_fame_d_upload_and_check_fill_the_demo_sections() -> None:
+@pytest.mark.parametrize("pdf_path", DEMO_PDF_PATHS, ids=lambda p: p.stem)
+async def test_demo_upload_and_check_fill_the_demo_sections(
+    pdf_path: Path,
+) -> None:
     make_live_gemini_client()  # skips the test when no API key is set
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(
@@ -43,8 +52,8 @@ async def test_fame_d_upload_and_check_fill_the_demo_sections() -> None:
             "/api/upload-file",
             files={
                 "file": (
-                    FAME_D_PDF_PATH.name,
-                    FAME_D_PDF_PATH.read_bytes(),
+                    pdf_path.name,
+                    pdf_path.read_bytes(),
                     "application/pdf",
                 )
             },
@@ -59,7 +68,8 @@ async def test_fame_d_upload_and_check_fill_the_demo_sections() -> None:
         step = StepData.model_validate(check_response.json())
 
     logger.info(
-        "live check: score=%s decisions=%d duration_seconds=%.0f",
+        "live check: pdf=%s score=%s decisions=%d duration_seconds=%.0f",
+        pdf_path.name,
         step.headline.value,
         len(step.decisions),
         (step.duration_ms or 0) / 1000,
@@ -69,7 +79,7 @@ async def test_fame_d_upload_and_check_fill_the_demo_sections() -> None:
     [checklist] = step.tables
     assert len(checklist.rows) == len(load_rule_catalogue().rules)
     statuses = {row["rule_id"]: row["status"] for row in checklist.rows}
-    assert statuses["DM-43"] == "not_applicable"  # FAME-D is type 2
+    assert statuses["DM-43"] == "not_applicable"  # type 1 only
     for decision in step.decisions:
         assert decision.step_id == "check"
         assert all(e.is_verified and e.page for e in decision.evidence)

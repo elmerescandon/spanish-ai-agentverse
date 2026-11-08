@@ -4,8 +4,6 @@ Facet-specific instructions live next to each facet definition; the rules
 here apply to all of them, so citations can be checked against the PDF.
 """
 
-from enum import StrEnum
-
 from backend.shared.messages import (
     AllocationType,
     AnalysisSetType,
@@ -26,14 +24,7 @@ from backend.shared.messages import (
     SubgroupDimension,
     TrialPhase,
 )
-
-INSTRUCTIONS_SEPARATOR = "\n---\n"
-
-
-def quoted_values(enum_class: type[StrEnum]) -> str:
-    """List an enum's values as the JSON strings Gemini must return."""
-    return ", ".join(f'"{member.value}"' for member in enum_class)
-
+from backend.shared.prompting import quoted_values
 
 ALLOWED_CRITERION_KINDS = quoted_values(CriterionKind)
 ALLOWED_PHASES = quoted_values(TrialPhase)

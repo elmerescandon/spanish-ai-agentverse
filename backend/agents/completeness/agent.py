@@ -31,7 +31,6 @@ from backend.agents.completeness.logic import (
     finding_from_outcome,
     format_judgement_batch_prompt,
     format_library_prompt,
-    format_pages_for_prompt,
     format_second_opinion_prompt,
     pre_decide,
     resolve_judgement_batch,
@@ -40,7 +39,6 @@ from backend.agents.completeness.logic import (
     unassessable_batch,
 )
 from backend.agents.completeness.prompts import (
-    INSTRUCTIONS_SEPARATOR,
     TRIAL_PROFILE_INSTRUCTIONS,
 )
 from backend.agents.completeness.rules import (
@@ -63,6 +61,10 @@ from backend.shared.messages import (
     RuleFinding,
     RuleStatus,
     TrialProfile,
+)
+from backend.shared.prompting import (
+    INSTRUCTIONS_SEPARATOR,
+    format_pages_for_prompt,
 )
 
 logger = logging.getLogger(__name__)

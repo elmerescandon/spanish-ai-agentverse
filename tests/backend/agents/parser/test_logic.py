@@ -32,7 +32,6 @@ from backend.agents.parser.logic import (
     count_verified,
     derive_protocol_id,
     derive_title,
-    format_pages_for_prompt,
     verify_result,
 )
 from backend.shared.messages import (
@@ -70,6 +69,7 @@ from backend.shared.messages import (
     SynopsisConsistencyExtraction,
     TrialDesignFacts,
 )
+from backend.shared.prompting import format_pages_for_prompt
 
 PAGES = [
     PageText(

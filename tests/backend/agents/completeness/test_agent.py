@@ -11,6 +11,7 @@ from backend.agents.completeness.agent import (
     extract_trial_profile,
 )
 from backend.agents.completeness.logic import (
+    SECOND_OPINION_BATCH_SIZE,
     CheckOutcome,
     JudgementStatus,
     JudgementVerdict,
@@ -510,7 +511,8 @@ def _fires_on_absence(
 
 
 async def test_second_opinion_runs_in_groups_that_fail_independently() -> None:
-    rule_ids = [f"XS-{index:02d}" for index in range(1, 13)]
+    group_size = SECOND_OPINION_BATCH_SIZE
+    rule_ids = [f"XS-{index:02d}" for index in range(1, group_size + 3)]
     catalogue = RuleCatalogue(
         rules=tuple(_absence_rule(rule_id) for rule_id in rule_ids)
     )
@@ -519,7 +521,7 @@ async def test_second_opinion_runs_in_groups_that_fail_independently() -> None:
             SecondOpinionVerdict(
                 rule_id=rule_id, confirmed=True, reason="ok", confidence=0.9
             )
-            for rule_id in rule_ids[10:]
+            for rule_id in rule_ids[group_size:]
         ]
     )
     llm = FakeJsonGenerator(
@@ -540,8 +542,12 @@ async def test_second_opinion_runs_in_groups_that_fail_independently() -> None:
 
     by_id = {finding.rule_id: finding for finding in report.findings}
     assert sum("Flags to verify:" in prompt for prompt in llm.prompts) == 2
-    assert all(by_id[rule_id].confidence == 0.5 for rule_id in rule_ids[:10])
-    assert all(by_id[rule_id].confidence == 0.9 for rule_id in rule_ids[10:])
+    assert all(
+        by_id[rule_id].confidence == 0.5 for rule_id in rule_ids[:group_size]
+    )
+    assert all(
+        by_id[rule_id].confidence == 0.9 for rule_id in rule_ids[group_size:]
+    )
     assert all(f.status == RuleStatus.FIRED for f in report.findings)
 
 

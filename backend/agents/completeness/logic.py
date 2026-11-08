@@ -141,10 +141,12 @@ SECOND_OPINION_FAILURE_CONFIDENCE_CAP = 0.5
 SECOND_OPINION_FAILURE_NOTE = (
     " (second opinion unavailable; confidence capped at 0.5)"
 )
-MAX_RULES_PER_BATCH = 8
+# Small calls finish fast, and they all run at once, so the check takes
+# about as long as one short call; bigger batches make every call slower.
+MAX_RULES_PER_BATCH = 4
 MAX_JUDGEMENT_BATCHES = 8
-LIBRARY_ITEMS_PER_CALL = 10  # exclusion-library items matched per call
-SECOND_OPINION_BATCH_SIZE = 10  # flags per call, so one failure stays local
+LIBRARY_ITEMS_PER_CALL = 5  # exclusion-library items matched per call
+SECOND_OPINION_BATCH_SIZE = 5  # flags per call; a failure stays local too
 # Where trial-level facts (intervention, population, control) are stated.
 PROFILE_HEADINGS = frozenset(
     {

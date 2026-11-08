@@ -1,11 +1,13 @@
-"""Tests for the shared /demo pipeline: run-once checks and failures."""
+"""Tests for the shared /demo pipeline: run-once jobs, storage, failures."""
 
+import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from backend.agents.completeness.rules import load_rule_catalogue
+from backend.agents.parser.facets import FACETS
 from backend.api import protocol_pipeline
 from backend.api.protocol_pipeline import (
     AnalysisFailedError,
@@ -31,6 +33,13 @@ PAGE_TEXT = (
     "A randomised, double-blind trial of a new oral drug compared with "
     "placebo in adults with type 2 diabetes on stable metformin."
 )
+
+
+class _NoKeySettings:
+    gemini_model = "gemini-4-argon"
+
+    def require_gemini_api_key(self) -> str:
+        raise ValueError("GEMINI_API_KEY is not set")
 
 
 def _document(protocol_id: str, title: str) -> ProtocolDocument:
@@ -106,12 +115,6 @@ async def test_check_joins_the_run_started_after_upload() -> None:
 async def test_missing_api_key_fails_with_a_clear_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    class _NoKeySettings:
-        gemini_model = "gemini-4-argon"
-
-        def require_gemini_api_key(self) -> str:
-            raise ValueError("GEMINI_API_KEY is not set")
-
     monkeypatch.setattr(protocol_pipeline, "load_settings", _NoKeySettings)
 
     with pytest.raises(AnalysisFailedError, match="GEMINI_API_KEY"):
@@ -284,3 +287,108 @@ async def test_app_pipeline_uses_the_configured_cache_directory(
     await get_protocol_pipeline().parse(demo_pdf(pdf_dir))
 
     assert len(list((tmp_path / "parse").glob("*.json"))) == 1
+
+
+async def test_same_pdf_parsed_twice_calls_gemini_once(tmp_path: Path) -> None:
+    pdf_path = demo_pdf(tmp_path)
+    llm = FakeJsonGenerator(scripted_facet_responses())
+    pipeline = ProtocolPipeline(llm=llm)
+
+    first = await pipeline.parse(pdf_path)
+    second = await pipeline.parse(pdf_path)
+
+    assert first == second
+    assert len(llm.prompts) == len(FACETS)
+
+
+async def test_identical_content_under_another_name_is_a_cache_hit(
+    tmp_path: Path,
+) -> None:
+    pdf_path = demo_pdf(tmp_path)
+    renamed_copy = tmp_path / "renamed_upload.pdf"
+    renamed_copy.write_bytes(pdf_path.read_bytes())
+    llm = FakeJsonGenerator(scripted_facet_responses())
+    pipeline = ProtocolPipeline(llm=llm)
+
+    await pipeline.parse(pdf_path)
+    await pipeline.parse(renamed_copy)
+
+    assert len(llm.prompts) == len(FACETS)
+
+
+async def test_concurrent_requests_for_same_pdf_share_one_parse(
+    tmp_path: Path,
+) -> None:
+    pdf_path = demo_pdf(tmp_path)
+    llm = FakeJsonGenerator(scripted_facet_responses())
+    pipeline = ProtocolPipeline(llm=llm)
+
+    first, second = await asyncio.gather(
+        pipeline.parse(pdf_path), pipeline.parse(pdf_path)
+    )
+
+    assert first == second
+    assert len(llm.prompts) == len(FACETS)
+
+
+async def test_failed_parse_is_retried_on_the_next_request(
+    tmp_path: Path,
+) -> None:
+    pdf_path = demo_pdf(tmp_path)
+    gemini_down = [LlmCallFailedError("LLM down") for _ in FACETS]
+    llm = FakeJsonGenerator(gemini_down + scripted_facet_responses())
+    pipeline = ProtocolPipeline(llm=llm)
+
+    with pytest.raises(AnalysisFailedError):
+        await pipeline.parse(pdf_path)
+    document = await pipeline.parse(pdf_path)
+
+    assert document.design is not None
+    assert len(llm.prompts) == 2 * len(FACETS)
+
+
+async def test_each_caller_gets_an_independent_copy(tmp_path: Path) -> None:
+    pipeline = ProtocolPipeline(
+        llm=FakeJsonGenerator(scripted_facet_responses())
+    )
+    pdf_path = demo_pdf(tmp_path)
+
+    first = await pipeline.parse(pdf_path)
+    original_title = first.title
+    first.title = "edited by one review"
+    second = await pipeline.parse(pdf_path)
+
+    assert second.title == original_title
+
+
+async def test_missing_pdf_raises_without_calling_gemini(
+    tmp_path: Path,
+) -> None:
+    llm = FakeJsonGenerator([])
+
+    with pytest.raises(OSError):
+        await ProtocolPipeline(llm=llm).parse(tmp_path / "missing.pdf")
+
+    assert llm.prompts == []
+
+
+async def test_stored_results_are_served_without_an_api_key(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pdf_path = demo_pdf(tmp_path)
+    cache_dir = tmp_path / "cache"
+    parsed = await ProtocolPipeline(
+        llm=FakeJsonGenerator(scripted_facet_responses()),
+        store_directory=cache_dir,
+    ).parse(pdf_path)
+    await ProtocolPipeline(
+        llm=EmptyAnswersLlm(), store_directory=cache_dir
+    ).check(parsed)
+    monkeypatch.setattr(protocol_pipeline, "load_settings", _NoKeySettings)
+    keyless = ProtocolPipeline(store_directory=cache_dir)
+
+    document = await keyless.parse(pdf_path)
+    run = await keyless.check(document)
+
+    assert document == parsed
+    assert len(run.report.findings) == len(load_rule_catalogue().rules)

@@ -23,9 +23,8 @@ import backend.agents.parser
 from backend.agents.completeness.agent import check_protocol
 from backend.agents.parser.agent import (
     AllFacetsFailedError,
-    CachedProtocolParser,
-    has_failed_facets,
-    hash_file_contents,
+    is_fully_parsed,
+    parse_protocol,
 )
 from backend.clients.gemini import (
     GeminiClient,
@@ -48,7 +47,7 @@ COMPLETENESS_PACKAGE_DIRECTORY = Path(
 ).parent
 FINGERPRINT_GLOBS: tuple[str, ...] = ("*.py", "*.toml")
 EXCLUDED_DIRECTORY_PART = "__pycache__"
-LOG_KEY_PREFIX_LENGTH = 12
+HASH_CHUNK_BYTES = 1024 * 1024  # stream large PDFs while hashing
 
 
 class AnalysisFailedError(RuntimeError):
@@ -66,11 +65,6 @@ class CheckRun(BaseModel):
     duration_seconds: float
     # Gemini calls that failed; such a run is shown but never reused.
     failed_llm_calls: int = 0
-
-    @property
-    def is_complete(self) -> bool:
-        """True when no Gemini call failed, so the run can be reused."""
-        return self.failed_llm_calls == 0
 
     @property
     def completed_at(self) -> datetime:
@@ -131,40 +125,40 @@ class _FailureCountingLlm:
 async def _load_or_run[ModelT: BaseModel](
     store: ResultStore[ModelT] | None,
     key: str,
-    run: Callable[[], Awaitable[tuple[ModelT, bool]]],
+    run: Callable[[], Awaitable[ModelT]],
+    is_reusable: Callable[[ModelT], bool],
 ) -> ModelT:
-    """Load from store if present; otherwise run and save if complete."""
-    if store is None:
-        value, _ = await run()
-        return value
-    cached = await asyncio.to_thread(store.load, key)
-    if cached is not None:
-        logger.info(
-            "result store hit: model=%s key=%s",
-            type(cached).__name__,
-            key[:LOG_KEY_PREFIX_LENGTH],
-        )
-        return cached
-    value, is_complete = await run()
-    if is_complete:
+    """Return the stored result for key, or run the job and store it.
+
+    Only a reusable (complete) result is stored.
+    """
+    if store is not None:
+        stored = await asyncio.to_thread(store.load, key)
+        if stored is not None:
+            return stored
+    value = await run()
+    if store is not None and is_reusable(value):
         await asyncio.to_thread(store.save, key, value)
     return value
 
 
+def _is_complete_check(run: CheckRun) -> bool:
+    return run.failed_llm_calls == 0
+
+
 async def _run_check(
     document: ProtocolDocument, llm: JsonGenerator
-) -> tuple[CheckRun, bool]:
-    wrapper = _FailureCountingLlm(llm)
+) -> CheckRun:
+    counting_llm = _FailureCountingLlm(llm)
     started_at = datetime.now(UTC)
     start = time.monotonic()
-    report = await check_protocol(document, wrapper)
-    run = CheckRun(
+    report = await check_protocol(document, counting_llm)
+    return CheckRun(
         report=report,
         started_at=started_at,
         duration_seconds=time.monotonic() - start,
-        failed_llm_calls=wrapper.failure_count,
+        failed_llm_calls=counting_llm.failure_count,
     )
-    return run, run.is_complete
 
 
 def _create_gemini_client() -> GeminiClient:
@@ -189,16 +183,40 @@ def _document_content_key(document: ProtocolDocument) -> str:
     return hashlib.sha256(content.model_dump_json().encode()).hexdigest()
 
 
-def _store_key(content_key: str, fingerprint: str) -> str:
-    """Combine a content hash and a code fingerprint into a store key."""
-    return hashlib.sha256(f"{content_key}:{fingerprint}".encode()).hexdigest()
+def _hash_file_contents(pdf_path: Path) -> str:
+    """Return the SHA-256 hex digest of a file's bytes."""
+    digest = hashlib.sha256()
+    with pdf_path.open("rb") as pdf_file:
+        while chunk := pdf_file.read(HASH_CHUNK_BYTES):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _open_store[ModelT: BaseModel](
+    store_directory: Path | None,
+    name: str,
+    model: type[ModelT],
+    package_directory: Path,
+    model_name: str,
+) -> ResultStore[ModelT] | None:
+    """A store versioned by the code that produces model, or None."""
+    if store_directory is None:
+        return None
+    return ResultStore(
+        store_directory / name,
+        model,
+        version=code_fingerprint(package_directory, model, model_name),
+    )
 
 
 class ProtocolPipeline:
     """Parses uploads and runs the completeness check, once per input.
 
-    The Gemini client is created on first use, so the server starts
-    without an API key and the first request reports the missing key.
+    Each job runs once per content key and is shared by every request for
+    it; a complete result is reused, and also kept on disk when
+    store_directory is set. An incomplete one is returned but run again
+    next time. The Gemini client is created when a job first needs it, so
+    the server starts, and serves stored results, without an API key.
     """
 
     def __init__(
@@ -208,28 +226,26 @@ class ProtocolPipeline:
         model_name: str = DEFAULT_GEMINI_MODEL,
     ) -> None:
         self._llm = llm
-        self._parser: CachedProtocolParser | None = None
-        self._checks = SharedTaskCache[CheckRun](
-            "completeness", is_reusable=lambda run: run.is_complete
+        self._parses = SharedTaskCache[ProtocolDocument](
+            "parse", is_reusable=is_fully_parsed
         )
-        if store_directory is not None:
-            self._parse_store: ResultStore[ProtocolDocument] | None = (
-                ResultStore(store_directory / "parse", ProtocolDocument)
-            )
-            self._check_store: ResultStore[CheckRun] | None = ResultStore(
-                store_directory / "check", CheckRun
-            )
-            self._parse_fingerprint = code_fingerprint(
-                PARSER_PACKAGE_DIRECTORY, ProtocolDocument, model_name
-            )
-            self._check_fingerprint = code_fingerprint(
-                COMPLETENESS_PACKAGE_DIRECTORY, CheckRun, model_name
-            )
-        else:
-            self._parse_store = None
-            self._check_store = None
-            self._parse_fingerprint = ""
-            self._check_fingerprint = ""
+        self._checks = SharedTaskCache[CheckRun](
+            "completeness", is_reusable=_is_complete_check
+        )
+        self._parse_store = _open_store(
+            store_directory,
+            "parse",
+            ProtocolDocument,
+            PARSER_PACKAGE_DIRECTORY,
+            model_name,
+        )
+        self._check_store = _open_store(
+            store_directory,
+            "check",
+            CheckRun,
+            COMPLETENESS_PACKAGE_DIRECTORY,
+            model_name,
+        )
 
     def _client(self) -> JsonGenerator:
         if self._llm is None:
@@ -239,36 +255,37 @@ class ProtocolPipeline:
     async def parse(self, pdf_path: Path) -> ProtocolDocument:
         """Parse a protocol PDF into a ProtocolDocument.
 
+        PDFs are keyed by a hash of their bytes, so a renamed copy is
+        still a hit (its ID and title come from the first parse). Each
+        caller gets its own deep copy, so one review editing its document
+        can't change another's.
+
         Raises:
+            OSError: the file can't be read.
             UnreadablePdfError: the file is not a readable PDF.
             AnalysisFailedError: Gemini is not configured, or every parser
                 facet failed.
         """
-        if self._parser is None:
-            self._parser = CachedProtocolParser(self._client())
-        parser = self._parser
-        key = ""
-        if self._parse_store is not None:
-            content_key = await asyncio.to_thread(hash_file_contents, pdf_path)
-            key = _store_key(content_key, self._parse_fingerprint)
-
-        async def run_parse() -> tuple[ProtocolDocument, bool]:
-            document = await parser.parse(pdf_path)
-            return document, not has_failed_facets(document)
-
+        key = await asyncio.to_thread(_hash_file_contents, pdf_path)
         try:
-            return await _load_or_run(self._parse_store, key, run_parse)
+            document = await self._parses.get_or_run(
+                key,
+                lambda: _load_or_run(
+                    self._parse_store,
+                    key,
+                    lambda: parse_protocol(pdf_path, self._client()),
+                    is_fully_parsed,
+                ),
+            )
         except AllFacetsFailedError as error:
             raise AnalysisFailedError(str(error)) from error
+        return document.model_copy(deep=True)
 
     def start_check(self, document: ProtocolDocument) -> None:
         """Start checking a parsed protocol in the background.
 
         The upload calls this so the check runs while the user reads the
         INGEST step; check() on the same content then joins this run.
-
-        Raises:
-            AnalysisFailedError: Gemini is not configured.
         """
         self._checks.run_in_background(*self._check_job(document))
 
@@ -295,14 +312,12 @@ class ProtocolPipeline:
         self, document: ProtocolDocument
     ) -> tuple[str, JobFactory[CheckRun]]:
         """The cache key and job that check one document's content."""
-        llm = self._client()
-        content_key = _document_content_key(document)
-        key = _store_key(content_key, self._check_fingerprint)
-        return (
+        key = _document_content_key(document)
+        return key, lambda: _load_or_run(
+            self._check_store,
             key,
-            lambda: _load_or_run(
-                self._check_store, key, lambda: _run_check(document, llm)
-            ),
+            lambda: _run_check(document, self._client()),
+            _is_complete_check,
         )
 
 

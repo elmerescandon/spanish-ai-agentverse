@@ -21,16 +21,17 @@
 
 ---
 
-More than half of trial protocols need amendments mid-study. **ProtocolAI**
+Three in four trial protocols need a substantial amendment. **ProtocolAI**
 checks a draft type 2 diabetes protocol against regulatory guidelines,
 peer trials and real patient data, then gives doctors clear cards to act
 on.
 
-| 57% | 45% | 18% |
+| 76% | 23% | 19% |
 | :---: | :---: | :---: |
-| Need major amendments | Could have been avoided | Close early for low enrollment |
+| Need at least one substantial amendment | Of amendments are avoidable | End early or miss their enrolment target |
 
-<sub>Sources: Getz et al., Tufts CSDD (2024); Wong et al., JNCI (2020).</sub>
+<sub>Sources: Getz et al., TIRS (2024), 950 protocols; Carlisle et al.,
+Clinical Trials (2015), 2,579 Phase 2–3 trials.</sub>
 
 ## How it works
 

@@ -41,9 +41,9 @@ describe("HomePage ProtocolAI editorial presentation with Three.js ASCII backgro
     expect(viewer).toBeInTheDocument();
 
     // 3 Key Problem Metrics
-    expect(screen.getByText("57%")).toBeInTheDocument();
-    expect(screen.getByText("45%")).toBeInTheDocument();
-    expect(screen.getByText("18%")).toBeInTheDocument();
+    expect(screen.getByText("76%")).toBeInTheDocument();
+    expect(screen.getByText("23%")).toBeInTheDocument();
+    expect(screen.getByText("19%")).toBeInTheDocument();
 
     // Multi-Agent Pipeline Architecture Steps
     expect(

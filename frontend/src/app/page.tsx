@@ -210,7 +210,7 @@ export default function HomePage() {
           </h1>
 
           <p className="text-base sm:text-lg text-zinc-600 leading-relaxed font-sans max-w-xl">
-            More than half of trial protocols need amendments mid-study.
+            Three in four trial protocols need a substantial amendment.
             ProtocolAI reads a draft protocol, checks it against regulatory
             guidance, compares it with similar registered trials and
             simulates who would qualify, then gives clinicians clear cards to
@@ -238,13 +238,13 @@ export default function HomePage() {
                 style={serifFont}
                 className="text-5xl sm:text-6xl text-zinc-950 font-normal block leading-none"
               >
-                57%
+                76%
               </span>
               <p className="text-sm font-medium text-zinc-900">
-                Need major amendments
+                Need at least one substantial amendment
               </p>
               <p className="text-xs text-zinc-500 leading-relaxed">
-                Over half change after the trial starts, adding months.
+                Most change after the trial starts, adding months.
               </p>
             </div>
 
@@ -253,13 +253,13 @@ export default function HomePage() {
                 style={serifFont}
                 className="text-5xl sm:text-6xl text-emerald-800 font-normal block leading-none"
               >
-                45%
+                23%
               </span>
               <p className="text-sm font-medium text-zinc-900">
-                Could have been avoided
+                Of amendments are avoidable
               </p>
               <p className="text-xs text-zinc-500 leading-relaxed">
-                Nearly half come from flaws visible before launch.
+                Nearly a quarter come from flaws visible before launch.
               </p>
             </div>
 
@@ -268,10 +268,10 @@ export default function HomePage() {
                 style={serifFont}
                 className="text-5xl sm:text-6xl text-rose-800 font-normal block leading-none"
               >
-                18%
+                19%
               </span>
               <p className="text-sm font-medium text-zinc-900">
-                Close early for low enrollment
+                End early or miss their enrolment target
               </p>
               <p className="text-xs text-zinc-500 leading-relaxed">
                 Criteria that are too narrow leave trials short of patients.
@@ -279,7 +279,8 @@ export default function HomePage() {
             </div>
           </div>
           <p className="pt-4 font-sans text-xs text-zinc-400">
-            Sources: Getz et al., Tufts CSDD (2024); Wong et al., JNCI (2020).
+            Sources: Getz et al., TIRS (2024); Carlisle et al., Clinical
+            Trials (2015).
           </p>
         </div>
       </section>

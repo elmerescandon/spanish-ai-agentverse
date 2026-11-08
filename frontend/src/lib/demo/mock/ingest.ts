@@ -508,7 +508,7 @@ export const INGEST_STEP: StepData = {
       decision_owner: "Protocol Author",
       review_status: "pending",
       tags: ["eligibility", "extraction"],
-      tables: [criteriaListTable, criteriaTable],
+      tables: [criteriaTable],
     },
     {
       decision_id: "d-ing-02",

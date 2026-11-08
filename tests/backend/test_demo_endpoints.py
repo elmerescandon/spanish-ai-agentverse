@@ -6,11 +6,14 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from backend.agents.cohort.models import CohortComparisonReport
 from backend.agents.protocol_comparison.demo import DemoComparison
 from backend.agents.protocol_comparison.peer_store import PeerStoreError
 from backend.api import agent_runners
 from backend.api.routes import reset_mock_state
+from backend.clients.cohort_data import CohortDataError
 from backend.main import app
+from backend.shared.messages import ProtocolDocument
 from tests.conftest import make_pdf
 
 STEP_ROUTES = {
@@ -191,5 +194,42 @@ def test_protocol_recommendation_returns_500_when_peer_cache_missing(
     protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
     response = client.post(
         "/api/protocol-recommendation", json={"protocol_id": protocol_id}
+    )
+    assert response.status_code == 500
+
+
+def test_cohort_recommendation_serves_the_cohort_agent(
+    client: TestClient, tmp_path: Path
+) -> None:
+    protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
+    body = client.post(
+        "/api/cohort-recommendation", json={"protocol_id": protocol_id}
+    ).json()
+    assert body["agent"] == "cohort_comparison"
+    assert body["data_sources"][0]["source"] == "nhanes"
+    assert body["data_sources"][0]["record_count"] > 0
+    assert body["tables"]
+    assert body["charts"]
+    assert all(
+        decision["decision_id"].startswith("rec-cohort-")
+        for decision in body["decisions"]
+    )
+
+
+def test_cohort_recommendation_returns_500_when_cohort_data_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def missing_cohort(
+        document: ProtocolDocument,
+    ) -> CohortComparisonReport:
+        raise CohortDataError("expected NHANES cohort file, found none")
+
+    monkeypatch.setattr(
+        agent_runners, "analyze_protocol_document_cohort", missing_cohort
+    )
+    client = TestClient(app, raise_server_exceptions=False)
+    protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
+    response = client.post(
+        "/api/cohort-recommendation", json={"protocol_id": protocol_id}
     )
     assert response.status_code == 500

@@ -109,7 +109,7 @@ export default function DemoPipeline({
 
   if (!isLoaded) {
     return (
-      <div className="mx-auto max-w-xl space-y-6 pt-12">
+      <div className="mx-auto flex min-h-[80vh] max-w-xl flex-col justify-center space-y-8">
         <h1 className="text-center font-serif text-4xl font-normal tracking-tight text-zinc-900">
           Analyze a draft protocol
         </h1>

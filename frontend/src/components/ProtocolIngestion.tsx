@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, DragEvent, useRef, useState } from "react";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2, Upload } from "lucide-react";
 import {
   createProtocol,
   type PipelineStep,
@@ -270,7 +270,13 @@ export default function ProtocolIngestion({
       )}
 
       {/* Single Specific Card */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 space-y-6">
+      <div
+        className={
+          isCompact
+            ? "space-y-6"
+            : "bg-white dark:bg-zinc-900 rounded-2xl p-8 space-y-6"
+        }
+      >
         {!isCompact && (
           <div className="space-y-1">
             <h2 className="font-serif text-lg font-normal text-zinc-900 dark:text-zinc-100">
@@ -295,7 +301,71 @@ export default function ProtocolIngestion({
         />
 
         {/* Step Content: Upload Dropzone OR Animated Loaded File View */}
-        {!uploadedFile ? (
+        {!uploadedFile && isCompact ? (
+          // One box for both paths: drop or browse a file, or use the preset.
+          <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onClick={() => fileInputRef.current?.click()}
+            className={`group flex cursor-pointer flex-col items-center gap-6 rounded-2xl border border-dashed px-8 py-14 text-center transition-all duration-300 ${
+              isDragging
+                ? "scale-[1.01] border-emerald-500 bg-emerald-50/60"
+                : "border-zinc-300 bg-zinc-50/60 hover:border-emerald-400 hover:bg-emerald-50/30"
+            }`}
+          >
+            <span
+              className={`flex h-12 w-12 items-center justify-center rounded-full bg-white ring-1 transition-all duration-300 group-hover:-translate-y-0.5 ${
+                isDragging
+                  ? "-translate-y-0.5 text-emerald-600 ring-emerald-400"
+                  : "text-zinc-500 ring-zinc-200 group-hover:text-emerald-600 group-hover:ring-emerald-300"
+              }`}
+            >
+              <Upload className="h-5 w-5" strokeWidth={1.5} aria-hidden />
+            </span>
+
+            <div className="space-y-1">
+              <p className="font-sans text-sm text-zinc-800">
+                Drop your protocol here, or{" "}
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                  disabled={isProcessing || isAnalyzing}
+                  className="cursor-pointer font-medium text-emerald-700 underline decoration-emerald-300 underline-offset-4 transition-colors hover:text-emerald-800"
+                >
+                  browse
+                </button>
+              </p>
+              <p className="font-sans text-xs text-zinc-400">
+                PDF, JSON or TXT
+              </p>
+            </div>
+
+            <div
+              aria-hidden
+              className="flex w-full max-w-[240px] items-center gap-3 font-sans text-[11px] uppercase tracking-wider text-zinc-400"
+            >
+              <span className="h-px flex-1 bg-zinc-200" />
+              or
+              <span className="h-px flex-1 bg-zinc-200" />
+            </div>
+
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                handleRunPreselected();
+              }}
+              disabled={isProcessing || isAnalyzing}
+              className="cursor-pointer rounded-lg bg-zinc-900 px-5 py-2.5 font-sans text-xs font-medium tracking-wide text-white transition-all hover:bg-zinc-800 active:scale-[0.99] disabled:opacity-50"
+            >
+              Try the sample protocol
+            </button>
+          </div>
+        ) : !uploadedFile ? (
           <div
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -375,8 +445,9 @@ export default function ProtocolIngestion({
           </div>
         )}
 
-        {/* Action Bar: Preselected Button OR Next Process Steps once Ready */}
-        {uploadedFile?.status !== "Ready" ? (
+        {/* Action Bar: Preselected Button OR Next Process Steps once Ready.
+            Compact mode keeps the preset inside the drop zone instead. */}
+        {isCompact ? null : uploadedFile?.status !== "Ready" ? (
           <div className="pt-1 flex justify-center">
             <button
               type="button"

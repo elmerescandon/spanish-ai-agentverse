@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DemoPage from "@/app/demo/page";
 import StepBar from "@/components/demo/StepBar";
 import StepView from "@/components/demo/StepView";
+import * as api from "@/lib/api";
 import { MOCK_PROTOCOL_PAGE_COUNT, MOCK_STEPS } from "@/lib/demo/mock";
 import {
   findTraceabilityErrors,
@@ -17,7 +18,7 @@ const SLOW_STEP_TIMEOUT_MS = 4000;
 
 async function loadPreset(user: User) {
   await user.click(
-    screen.getByRole("button", { name: /Run Preselected Protocol/ })
+    screen.getByRole("button", { name: "Try the sample protocol" })
   );
 }
 
@@ -89,11 +90,40 @@ describe("demo pipeline step bar flow", () => {
       screen.getByRole("heading", { name: "Analyze a draft protocol" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Run Preselected Protocol/ })
+      screen.getByRole("button", { name: "Try the sample protocol" })
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("navigation", { name: "Pipeline steps" })
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "browse" })
+    ).toBeInTheDocument();
+  });
+
+  it("opens the pipeline after a file is uploaded through the box", async () => {
+    spyOn(api, "createProtocol").mockResolvedValue({
+      protocol_id: "proto-upl-1",
+      title: "Uploaded Draft",
+      status: "ready",
+      data: {},
+    });
+    const user = userEvent.setup();
+    render(<DemoPage />);
+
+    await user.upload(
+      screen.getByLabelText("Upload protocol file"),
+      new File(['{"title": "Uploaded Draft"}'], "draft.json", {
+        type: "application/json",
+      })
+    );
+
+    await waitFor(
+      () =>
+        expect(
+          screen.getByRole("navigation", { name: "Pipeline steps" })
+        ).toBeInTheDocument(),
+      { timeout: SLOW_STEP_TIMEOUT_MS }
+    );
   });
 
   it("shows the step bar on the first step after a preset loads", async () => {

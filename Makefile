@@ -1,4 +1,4 @@
-.PHONY: install dev dev-frontend run parse format lint test test-extended test-live check demo
+.PHONY: install dev dev-frontend run parse format lint test test-extended test-live check demo demo-peers
 
 install:
 	uv sync
@@ -41,3 +41,7 @@ test-live:
 check: format lint test
 
 demo: test-live run
+
+# Re-fetch the demo's peer trials into data/peers (needs network)
+demo-peers:
+	uv run python -m backend.agents.protocol_comparison.demo

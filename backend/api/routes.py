@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, UploadFile, status
+from fastapi import APIRouter, HTTPException, Response, UploadFile, status
 
 from backend.agents.protocol_comparison.demo import demo_recommendations
 from backend.agents.protocol_comparison.peer_store import PeerStoreError
@@ -26,6 +26,7 @@ from backend.api.protocol_fields import (
     starting_comparison_fields,
 )
 from backend.api.protocol_pipeline import get_protocol_pipeline
+from backend.api.report_pdf import render_review_pdf
 from backend.api.schemas import (
     FieldChange,
     FieldChangeRequest,
@@ -48,6 +49,7 @@ from backend.clients.document_store import get_document_store
 from backend.clients.pdf_reader import UnreadablePdfError
 from backend.clients.protocol_db import (
     ProtocolRecord,
+    ProtocolReview,
     StoredField,
     get_protocol_db,
 )
@@ -475,6 +477,10 @@ async def get_protocol_fields(protocol_id: str) -> ProtocolFieldsResponse:
     review = await get_protocol_db().load_review(protocol_id)
     if review is None:
         raise _protocol_not_found(protocol_id)
+    return _fields_response(review)
+
+
+def _fields_response(review: ProtocolReview) -> ProtocolFieldsResponse:
     return ProtocolFieldsResponse(
         protocol_id=review.protocol.protocol_id,
         title=review.protocol.title,
@@ -488,4 +494,68 @@ async def get_protocol_fields(protocol_id: str) -> ProtocolFieldsResponse:
             FieldChange.model_validate(item, from_attributes=True)
             for item in review.changes
         ],
+    )
+
+
+async def _load_latest_review() -> ProtocolReview:
+    """The most recent upload's review.
+
+    Raises:
+        HTTPException: 404 when no protocol has been uploaded yet.
+        ProtocolStoreError: the database failed (answered with 503).
+    """
+    protocol_db = get_protocol_db()
+    protocol_id = await protocol_db.latest_protocol_id()
+    review = (
+        None
+        if protocol_id is None
+        else await protocol_db.load_review(protocol_id)
+    )
+    if review is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No uploaded protocol to report on yet",
+        )
+    return review
+
+
+@router.get("/protocols/latest/review", response_model=ProtocolFieldsResponse)
+async def get_latest_review() -> ProtocolFieldsResponse:
+    """Return the most recent upload's fields and accepted changes.
+
+    Raises:
+        HTTPException: 404 when no protocol has been uploaded yet.
+        ProtocolStoreError: the database failed (answered with 503).
+    """
+    return _fields_response(await _load_latest_review())
+
+
+@router.get(
+    "/protocols/latest/report.pdf",
+    response_class=Response,
+    responses={200: {"content": {"application/pdf": {}}}},
+)
+async def download_latest_report() -> Response:
+    """Download the most recent upload's fields and changes as a PDF.
+
+    Raises:
+        HTTPException: 404 when no protocol has been uploaded yet.
+        ProtocolStoreError: the database failed (answered with 503).
+    """
+    review = await _load_latest_review()
+    pdf_bytes = render_review_pdf(review, datetime.now(UTC))
+    logger.info(
+        "report pdf built: protocol_id=%s bytes=%d",
+        review.protocol.protocol_id,
+        len(pdf_bytes),
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{review.protocol.protocol_id}'
+                '-report.pdf"'
+            )
+        },
     )

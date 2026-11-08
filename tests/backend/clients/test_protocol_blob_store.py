@@ -301,3 +301,24 @@ async def test_blob_store_matches_sqlite_store_semantics(
     assert blob_review.fields == sqlite_review.fields
     assert blob_review.changes == sqlite_review.changes
     assert blob_review == sqlite_review
+
+
+async def test_latest_protocol_is_the_last_one_saved_in_both_stores(
+    tmp_path: Path, fake_blob: FakeBlobBackend
+) -> None:
+    stores: list[ReviewStore] = [
+        ProtocolDb(tmp_path / "db.sqlite"),
+        BlobProtocolStore(),
+    ]
+    for store in stores:
+        assert await store.latest_protocol_id() is None
+        await _stored_protocol(store)  # offers.json must not count
+        later = replace(
+            RECORD,
+            protocol_id="proto-2",
+            uploaded_at=UPLOADED_AT + timedelta(hours=1),
+        )
+        await store.save_protocol(later, PROTOCOL_FIELDS)
+        await store.save_offers(PROTOCOL_ID, [], [OFFER])
+
+        assert await store.latest_protocol_id() == "proto-2"

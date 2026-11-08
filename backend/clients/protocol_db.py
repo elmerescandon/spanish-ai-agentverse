@@ -285,6 +285,18 @@ class ProtocolDb:
             )
         )
 
+    async def latest_protocol_id(self) -> str | None:
+        """The most recently uploaded protocol's id; None if none yet."""
+
+        def latest(connection: sqlite3.Connection) -> str | None:
+            row = connection.execute(
+                "SELECT protocol_id FROM protocols "
+                "ORDER BY uploaded_at DESC LIMIT 1"
+            ).fetchone()
+            return None if row is None else str(row[0])
+
+        return await self._run(latest)
+
     async def offers_for(
         self, protocol_id: str, field: str
     ) -> list[OfferedValue]:
@@ -439,6 +451,8 @@ class ReviewStore(Protocol):
     ) -> FieldChangeRecord | None: ...
 
     async def load_review(self, protocol_id: str) -> ProtocolReview | None: ...
+
+    async def latest_protocol_id(self) -> str | None: ...
 
 
 _protocol_db: ReviewStore | None = None

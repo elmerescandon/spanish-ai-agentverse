@@ -3,7 +3,12 @@ import path from "path";
 import { describe, expect, it } from "bun:test";
 import { DEFAULT_PROTOCOL, DEFAULT_RECOMMENDATIONS } from "@/app/page";
 import {
+  FIELD_CHANGE_KEYS,
+  FIELD_CHANGE_REQUEST_KEYS,
+  FIELD_CHANGE_RESPONSE_KEYS,
   PIPELINE_STEPS,
+  PROTOCOL_FIELD_KEYS,
+  PROTOCOL_FIELDS_RESPONSE_KEYS,
   PROTOCOL_STATUSES,
   PROTOCOL_SUMMARY_KEYS,
   RECOMMENDATION_KEYS,
@@ -26,7 +31,11 @@ import {
   UPLOAD_FILE_RESPONSE_KEYS,
 } from "@/lib/demo/types";
 import { MOCK_STEPS, MOCK_UPLOAD_RESPONSE } from "@/lib/demo/mock";
-import { MOCK_PROTOCOL, MOCK_RECOMMENDATIONS } from "./fixtures";
+import {
+  MOCK_PROTOCOL,
+  MOCK_PROTOCOL_FIELDS,
+  MOCK_RECOMMENDATIONS,
+} from "./fixtures";
 
 interface OpenApiSchemaProperty {
   type?: string;
@@ -186,6 +195,44 @@ describe("Frontend <-> Backend API Schema & Component Contract Alignment", () =>
           expect(TRACE_KINDS).toContain(entry.kind);
         }
       }
+    }
+  });
+
+  it("aligns the protocol review routes and models with the frontend", () => {
+    const keysOf = (name: string) =>
+      Object.keys(schemas[name]?.properties ?? {}).sort();
+
+    expect(
+      Object.keys(openApi.paths["/api/protocols/{protocol_id}/changes"] ?? {})
+    ).toContain("post");
+    expect(
+      Object.keys(openApi.paths["/api/protocols/{protocol_id}/fields"] ?? {})
+    ).toContain("get");
+    expect(keysOf("FieldChangeRequest")).toEqual(
+      [...FIELD_CHANGE_REQUEST_KEYS].sort()
+    );
+    expect(keysOf("ProtocolField")).toEqual([...PROTOCOL_FIELD_KEYS].sort());
+    expect(keysOf("FieldChange")).toEqual([...FIELD_CHANGE_KEYS].sort());
+    expect(keysOf("FieldChangeResponse")).toEqual(
+      [...FIELD_CHANGE_RESPONSE_KEYS].sort()
+    );
+    expect(keysOf("ProtocolFieldsResponse")).toEqual(
+      [...PROTOCOL_FIELDS_RESPONSE_KEYS].sort()
+    );
+  });
+
+  it("keeps the protocol fields fixture within the backend keys", () => {
+    const keysOf = (name: string) =>
+      Object.keys(schemas[name]?.properties ?? {}).sort();
+
+    expect(Object.keys(MOCK_PROTOCOL_FIELDS).sort()).toEqual(
+      keysOf("ProtocolFieldsResponse")
+    );
+    for (const item of MOCK_PROTOCOL_FIELDS.fields) {
+      expect(Object.keys(item).sort()).toEqual(keysOf("ProtocolField"));
+    }
+    for (const change of MOCK_PROTOCOL_FIELDS.changes) {
+      expect(Object.keys(change).sort()).toEqual(keysOf("FieldChange"));
     }
   });
 });

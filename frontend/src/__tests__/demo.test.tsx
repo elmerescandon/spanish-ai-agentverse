@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DemoPage from "@/app/demo/page";
 import StepBar from "@/components/demo/StepBar";
@@ -233,14 +233,14 @@ describe("demo pipeline step bar flow", () => {
     const stepContent = () =>
       screen.getByRole("region", { name: /Data Ingestion|Completeness/ })
         .parentElement!;
-    expect(stepContent()).not.toHaveClass("animate-file-change");
+    expect(stepContent()).not.toHaveClass("animate-step-forward");
 
     const finding = screen.getByRole("button", {
       name: /Eligibility criteria extracted/,
     });
     await user.click(finding);
     await user.click(finding);
-    expect(stepContent()).not.toHaveClass("animate-file-change");
+    expect(stepContent()).not.toHaveClass("animate-step-forward");
 
     await waitFor(
       () =>
@@ -250,7 +250,32 @@ describe("demo pipeline step bar flow", () => {
       { timeout: SLOW_STEP_TIMEOUT_MS }
     );
     await user.click(screen.getByRole("button", { name: "Next step" }));
-    expect(stepContent()).toHaveClass("animate-file-change");
+    expect(stepContent()).toHaveClass("animate-step-forward");
+
+    await user.click(screen.getByRole("button", { name: "Previous step" }));
+    expect(stepContent()).toHaveClass("animate-step-back");
+  });
+
+  it("moves between steps from the buttons at the end of a step", async () => {
+    const user = userEvent.setup();
+    render(<DemoPage />);
+    await loadPreset(user);
+
+    const stepNavigation = () =>
+      within(screen.getByRole("navigation", { name: "Step navigation" }));
+    expect(
+      stepNavigation().queryByRole("button", { name: /Previous/ })
+    ).not.toBeInTheDocument();
+
+    const nextButton = () =>
+      stepNavigation().getByRole("button", { name: /^Next:/ });
+    await waitFor(() => expect(nextButton()).toBeEnabled(), {
+      timeout: SLOW_STEP_TIMEOUT_MS,
+    });
+    await user.click(nextButton());
+    expect(
+      stepNavigation().getByRole("button", { name: /^← Previous:/ })
+    ).toBeInTheDocument();
   });
 
   it("opens a finding in place and folds it by click or Esc", async () => {

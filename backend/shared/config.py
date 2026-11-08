@@ -22,6 +22,7 @@ DEFAULT_ALLOWED_ORIGINS: tuple[str, ...] = (
 )
 DEFAULT_GEMINI_MODEL = "gemini-4-argon"
 DEFAULT_RESULT_CACHE_DIR = "data/cache"
+DEFAULT_PROTOCOL_DB_PATH = "data/protocols.db"
 ENV_FILE_PATH = ".env"
 ENV_FILE_ENCODING = "utf-8"
 
@@ -80,6 +81,9 @@ class Settings(BaseSettings):
 
     # On-disk cache directory for finished protocol parses and checks
     result_cache_dir: Path = Path(DEFAULT_RESULT_CACHE_DIR)
+
+    # SQLite file holding each protocol's fields and accepted changes
+    protocol_db_path: Path = Path(DEFAULT_PROTOCOL_DB_PATH)
 
     # Clinical Data Sources
     aact_db_url: SecretStr | None = None

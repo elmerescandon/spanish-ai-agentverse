@@ -102,12 +102,8 @@ def test_check_step_reports_rules_with_evidence_and_review_fields(
     assert step["duration_ms"] is not None
     for decision in step["decisions"]:
         assert decision["review_status"] == "pending"
-        assert [
-            option["is_recommended"] for option in decision["options"]
-        ] == [
-            True,
-            False,
-        ]
+        assert decision["options"] == []
+        assert decision["proposed_change"] is None
         evidence_ids = {item["evidence_id"] for item in decision["evidence"]}
         for entry in decision["trace"]:
             assert set(entry["evidence_ids"]) <= evidence_ids

@@ -10,6 +10,7 @@ run in parallel and a retried call is safe.
 
 import logging
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import date
 from typing import cast
 
@@ -28,6 +29,7 @@ from backend.agents.protocol_comparison.agent import (
     AGENT_NAME as COMPARISON_AGENT_NAME,
 )
 from backend.agents.protocol_comparison.agent import (
+    ProtocolComparison,
     SessionLabReadingCache,
     compare_with_registry_peers,
 )
@@ -224,18 +226,28 @@ def _comparison_llm(document: ProtocolDocument) -> JsonGenerator | None:
         return None
 
 
+@dataclass(frozen=True)
+class ComparisonStep:
+    """Theo's comparison and the PEERS section built from it."""
+
+    comparison: ProtocolComparison
+    step: StepData
+
+
 async def run_protocol_comparison_agent(
     document: ProtocolDocument,
-) -> StepData:
+) -> ComparisonStep:
     """Return the PEERS section (comparison with similar trials).
 
     Searches ClinicalTrials.gov for peers matching the protocol's parsed
     phase and ages, then compares its parsed values (ages, enrollment,
     drugs, and lab limits Gemini reads from the eligibility criteria)
     with theirs. Searches and readings are kept in memory, so a repeat
-    call neither searches nor calls Gemini again, and nothing is written
-    to disk (the deployed filesystem is read-only). Without Gemini the
-    lab limits are left out, with a warning on the step.
+    call neither searches nor calls Gemini again. Without Gemini the lab
+    limits are left out, with a warning on the step. The comparison is
+    returned too, so the caller can store the values it offers; the
+    runner itself writes nothing to disk (the deployed filesystem is
+    read-only).
 
     Raises:
         ClinicalTrialsGovError: the registry search failed; the route
@@ -259,7 +271,7 @@ async def run_protocol_comparison_agent(
         )
         raise
     step = comparison_step_data(document, comparison)
-    return _step_logged(document, step)
+    return ComparisonStep(comparison, _step_logged(document, step))
 
 
 def _cohort_card_to_decision(

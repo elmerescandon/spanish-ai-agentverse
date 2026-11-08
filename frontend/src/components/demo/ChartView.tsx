@@ -1,10 +1,18 @@
+"use client";
+
+import { useState } from "react";
 import type { ReactNode } from "react";
+import { ExpandButton } from "./DataTableView";
 import { formatWithUnit } from "@/lib/demo/format";
 import type { Chart, ChartPoint, ChartSeries } from "@/lib/demo/types";
 
 // One colour per series, in order; a chart rarely has more than three.
 const SERIES_COLORS = [
-  { bar: "bg-emerald-600", stroke: "stroke-emerald-600", band: "fill-emerald-600" },
+  {
+    bar: "bg-emerald-600",
+    stroke: "stroke-emerald-600",
+    band: "fill-emerald-600",
+  },
   { bar: "bg-zinc-400", stroke: "stroke-zinc-400", band: "fill-zinc-400" },
   { bar: "bg-amber-500", stroke: "stroke-amber-500", band: "fill-amber-500" },
   { bar: "bg-sky-600", stroke: "stroke-sky-600", band: "fill-sky-600" },
@@ -45,7 +53,7 @@ function makeScale(values: number[], isZeroIncluded: boolean): Scale {
 
 function pointValues(point: ChartPoint): number[] {
   return [point.value, point.lower, point.upper].filter(
-    (value): value is number => value != null
+    (value): value is number => value != null,
   );
 }
 
@@ -58,10 +66,7 @@ function collectLabels(series: readonly ChartSeries[]): string[] {
   return [...new Set(series.flatMap((one) => one.points.map((p) => p.label)))];
 }
 
-function findPoint(
-  series: ChartSeries,
-  label: string
-): ChartPoint | undefined {
+function findPoint(series: ChartSeries, label: string): ChartPoint | undefined {
   return series.points.find((point) => point.label === label);
 }
 
@@ -69,7 +74,7 @@ function formatRange(point: ChartPoint, unit?: string | null): string {
   if (point.lower == null || point.upper == null) return "";
   return ` (${formatWithUnit(point.lower, unit)}–${formatWithUnit(
     point.upper,
-    unit
+    unit,
   )})`;
 }
 
@@ -83,7 +88,7 @@ export function describeChart(chart: Chart): string {
           (point) =>
             `${point.label} ${formatWithUnit(point.value, chart.unit)}` +
             formatRange(point, chart.unit) +
-            (point.annotation ? ` (${point.annotation})` : "")
+            (point.annotation ? ` (${point.annotation})` : ""),
         )
         .join(", ");
       return `${one.name}: ${points}`;
@@ -92,22 +97,38 @@ export function describeChart(chart: Chart): string {
   return `${chart.title}. ${seriesText}`;
 }
 
-function Annotation({ point }: { point?: ChartPoint }) {
-  if (!point?.annotation) return null;
+/** Per-point notes and interval text: secondary, so behind a button. */
+function ChartNotes({ chart }: { chart: Chart }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const notes = chart.series.flatMap((one) =>
+    one.points
+      .filter((point) => point.annotation || formatRange(point, chart.unit))
+      .map((point) => ({ seriesName: one.name, point })),
+  );
+  if (notes.length === 0) return null;
   return (
-    <p className="font-sans text-[11px] italic text-zinc-500">
-      {point.label}: {point.annotation}
-    </p>
+    <div className="space-y-1">
+      <ExpandButton
+        isOpen={isOpen}
+        onToggle={() => setIsOpen((previous) => !previous)}
+        label={`Show notes (${notes.length})`}
+      />
+      {isOpen && (
+        <ul className="space-y-0.5 font-sans text-xs text-zinc-600">
+          {notes.map(({ seriesName, point }) => (
+            <li key={`${seriesName}-${point.label}`}>
+              {seriesName} · {point.label}
+              {formatRange(point, chart.unit)}
+              {point.annotation ? `: ${point.annotation}` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
-function RangeWhisker({
-  point,
-  scale,
-}: {
-  point: ChartPoint;
-  scale: Scale;
-}) {
+function RangeWhisker({ point, scale }: { point: ChartPoint; scale: Scale }) {
   if (point.lower == null || point.upper == null) return null;
   const left = scale.toPercent(Math.min(point.lower, point.upper));
   const right = scale.toPercent(Math.max(point.lower, point.upper));
@@ -169,7 +190,7 @@ function BarChart({ chart }: { chart: Chart }) {
               label={label}
               value={points
                 .map((point) =>
-                  point ? formatWithUnit(point.value, chart.unit) : "—"
+                  point ? formatWithUnit(point.value, chart.unit) : "—",
                 )
                 .join(" / ")}
             >
@@ -186,18 +207,15 @@ function BarChart({ chart }: { chart: Chart }) {
                       style={{
                         left: `${Math.min(zero, scale.toPercent(point.value))}%`,
                         width: `${Math.abs(
-                          scale.toPercent(point.value) - zero
+                          scale.toPercent(point.value) - zero,
                         )}%`,
                       }}
                     />
                     <RangeWhisker point={point} scale={scale} />
                   </div>
-                ) : null
+                ) : null,
               )}
             </Row>
-            {points.map((point, seriesIndex) => (
-              <Annotation key={seriesIndex} point={point} />
-            ))}
           </div>
         );
       })}
@@ -211,8 +229,8 @@ function StackedBarChart({ chart }: { chart: Chart }) {
   const totals = labels.map((label) =>
     chart.series.reduce(
       (sum, one) => sum + Math.max(0, findPoint(one, label)?.value ?? 0),
-      0
-    )
+      0,
+    ),
   );
   const scale = makeScale(totals, true);
   return (
@@ -232,7 +250,7 @@ function StackedBarChart({ chart }: { chart: Chart }) {
                       key={seriesIndex}
                       title={`${chart.series[seriesIndex].name}: ${formatWithUnit(
                         point.value,
-                        chart.unit
+                        chart.unit,
                       )}`}
                       className={`h-full ${colorFor(seriesIndex).bar}`}
                       style={{
@@ -241,7 +259,7 @@ function StackedBarChart({ chart }: { chart: Chart }) {
                         }%`,
                       }}
                     />
-                  ) : null
+                  ) : null,
                 )}
               </div>
               <p className="font-sans text-[10px] tabular-nums text-zinc-400">
@@ -250,17 +268,14 @@ function StackedBarChart({ chart }: { chart: Chart }) {
                     point
                       ? `${chart.series[seriesIndex].name} ${formatWithUnit(
                           point.value,
-                          chart.unit
+                          chart.unit,
                         )}`
-                      : null
+                      : null,
                   )
                   .filter(Boolean)
                   .join(" · ")}
               </p>
             </Row>
-            {points.map((point, seriesIndex) => (
-              <Annotation key={seriesIndex} point={point} />
-            ))}
           </div>
         );
       })}
@@ -284,7 +299,7 @@ function WaterfallChart({ chart }: { chart: Chart }) {
         });
         const scale = makeScale(
           steps.flatMap((step) => [step.from, step.to]),
-          true
+          true,
         );
         return (
           <div key={one.name} className="space-y-1.5">
@@ -300,7 +315,10 @@ function WaterfallChart({ chart }: { chart: Chart }) {
                   : "bg-emerald-600";
               const sign = !isStart && point.value > 0 ? "+" : "";
               return (
-                <div key={`${point.label}-${stepIndex}`} className="space-y-0.5">
+                <div
+                  key={`${point.label}-${stepIndex}`}
+                  className="space-y-0.5"
+                >
                   <Row
                     label={point.label}
                     value={
@@ -321,13 +339,12 @@ function WaterfallChart({ chart }: { chart: Chart }) {
                         style={{
                           left: `${scale.toPercent(Math.min(from, to))}%`,
                           width: `${Math.abs(
-                            scale.toPercent(to) - scale.toPercent(from)
+                            scale.toPercent(to) - scale.toPercent(from),
                           )}%`,
                         }}
                       />
                     </div>
                   </Row>
-                  <Annotation point={point} />
                 </div>
               );
             })}
@@ -352,7 +369,7 @@ function ComparisonChart({ chart }: { chart: Chart }) {
               label={label}
               value={points
                 .map((point) =>
-                  point ? formatWithUnit(point.value, chart.unit) : "—"
+                  point ? formatWithUnit(point.value, chart.unit) : "—",
                 )
                 .join(" / ")}
             >
@@ -369,13 +386,10 @@ function ComparisonChart({ chart }: { chart: Chart }) {
                         style={{ left: `${scale.toPercent(point.value)}%` }}
                       />
                     </span>
-                  ) : null
+                  ) : null,
                 )}
               </div>
             </Row>
-            {points.map((point, seriesIndex) => (
-              <Annotation key={seriesIndex} point={point} />
-            ))}
           </div>
         );
       })}
@@ -410,7 +424,10 @@ function VerticalPlot({
         </div>
         <div className="flex font-sans text-[10px] text-zinc-500">
           {labels.map((label, index) => (
-            <span key={`${label}-${index}`} className="min-w-0 flex-1 truncate text-center">
+            <span
+              key={`${label}-${index}`}
+              className="min-w-0 flex-1 truncate text-center"
+            >
               {index % labelStep === 0 ? label : ""}
             </span>
           ))}
@@ -480,13 +497,13 @@ function LineChart({ chart }: { chart: Chart }) {
         {chart.series.map((one, seriesIndex) => {
           const color = colorFor(seriesIndex);
           const ranged = one.points.filter(
-            (point) => point.lower != null && point.upper != null
+            (point) => point.lower != null && point.upper != null,
           );
           const band =
             ranged.length > 1
               ? [
                   ...ranged.map(
-                    (p) => `${xPercent(p.label)},${yPercent(p.upper!)}`
+                    (p) => `${xPercent(p.label)},${yPercent(p.upper!)}`,
                   ),
                   ...[...ranged]
                     .reverse()
@@ -517,7 +534,7 @@ function LineChart({ chart }: { chart: Chart }) {
             key={`${one.name}-${point.label}`}
             title={`${one.name} · ${point.label}: ${formatWithUnit(
               point.value,
-              chart.unit
+              chart.unit,
             )}`}
             className="absolute -translate-x-1/2 translate-y-1/2"
             style={{
@@ -536,7 +553,7 @@ function LineChart({ chart }: { chart: Chart }) {
               </span>
             )}
           </span>
-        ))
+        )),
       )}
     </VerticalPlot>
   );
@@ -564,15 +581,10 @@ export default function ChartView({ chart }: { chart: Chart }) {
   const visibleChart = { ...chart, series };
   // An unknown future kind still shows its numbers as plain bars.
   const Renderer = CHART_RENDERERS[chart.kind] ?? BarChart;
-  const annotations = series.flatMap((one) =>
-    one.points.filter((point) => point.annotation)
-  );
-  const isLineOrHistogram = chart.kind === "line" || chart.kind === "histogram";
-
   return (
     <figure className="space-y-2">
       <figcaption className="space-y-0.5">
-        <span className="block font-serif text-sm text-zinc-900">
+        <span className="block font-sans text-sm font-medium text-zinc-900">
           {chart.title}
         </span>
         {chart.description && (
@@ -595,7 +607,11 @@ export default function ChartView({ chart }: { chart: Chart }) {
           ))}
         </ul>
       )}
-      <div role="img" aria-label={describeChart(visibleChart)} className="space-y-1">
+      <div
+        role="img"
+        aria-label={describeChart(visibleChart)}
+        className="space-y-1"
+      >
         {chart.y_label && (
           <p className="font-sans text-[10px] text-zinc-400">{chart.y_label}</p>
         )}
@@ -606,14 +622,7 @@ export default function ChartView({ chart }: { chart: Chart }) {
           </p>
         )}
       </div>
-      {/* Bar-style charts annotate inline; vertical ones list notes here. */}
-      {isLineOrHistogram && annotations.length > 0 && (
-        <div className="space-y-0.5">
-          {annotations.map((point) => (
-            <Annotation key={point.label} point={point} />
-          ))}
-        </div>
-      )}
+      <ChartNotes chart={visibleChart} />
     </figure>
   );
 }

@@ -17,6 +17,7 @@ from backend.agents.completeness.checks.prechecks import (
     JudgementPrecheck,
 )
 from backend.agents.completeness.checks.registration import REGISTRATION_CHECKS
+from backend.agents.completeness.checks.structure import STRUCTURE_CHECKS
 from backend.agents.completeness.logic import DeterministicCheck
 
 __all__ = [
@@ -31,4 +32,5 @@ DETERMINISTIC_CHECKS: Mapping[str, DeterministicCheck] = {
     **CONSISTENCY_CHECKS,
     **DIABETES_CHECKS,
     **ELIGIBILITY_CHECKS,
+    **STRUCTURE_CHECKS,
 }

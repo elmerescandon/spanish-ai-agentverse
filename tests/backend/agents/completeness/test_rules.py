@@ -27,6 +27,7 @@ EXPECTED_RULE_IDS: frozenset[str] = frozenset(
     + [f"ELQ-{index:02d}" for index in range(1, 24)]
     + [f"EX-{index:02d}" for index in range(1, 51)]
     + [f"AMD-{index:02d}" for index in range(1, 8)]
+    + [f"M11-{index:02d}" for index in range(1, 72)]
 )
 EXPECTED_FAMILY_COUNTS: dict[RuleFamily, int] = {
     RuleFamily.XS: 22,
@@ -36,6 +37,7 @@ EXPECTED_FAMILY_COUNTS: dict[RuleFamily, int] = {
     RuleFamily.ELQ: 23,
     RuleFamily.EX: 50,
     RuleFamily.AMD: 7,
+    RuleFamily.M11: 71,
 }
 
 

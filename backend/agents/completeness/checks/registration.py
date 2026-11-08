@@ -7,6 +7,7 @@ from backend.agents.completeness.checks.common import (
     absence_fired_outcome,
     cannot_assess_outcome,
     extract_all_timepoints_weeks,
+    find_heading_citation,
     find_pattern_citation,
     fired_outcome,
     format_offenders,
@@ -34,6 +35,8 @@ INCLUSION_HEADING_PATTERN = re.compile(
     r"^[ \t]*(?:\d+(?:\.\d+)*\.?[ \t]+)?inclusion[ \t]+criteria\b",
     re.IGNORECASE | re.MULTILINE,
 )
+INCLUSION_TITLE_PATTERN = re.compile(r"inclusion\s+criteria", re.IGNORECASE)
+EXCLUSION_TITLE_PATTERN = re.compile(r"exclusion\s+criteria", re.IGNORECASE)
 EXCLUSION_HEADING_PATTERN = re.compile(
     r"^[ \t]*(?:\d+(?:\.\d+)*\.?[ \t]+)?exclusion[ \t]+criteria\b",
     re.IGNORECASE | re.MULTILINE,
@@ -422,17 +425,6 @@ def check_reg_23(
     )
 
 
-def _criteria_heading_citation(
-    document: ProtocolDocument, word: str, pattern: re.Pattern[str]
-) -> Citation | None:
-    for subsection in document.subsections or []:
-        if f"{word} criteria" in subsection.title.lower():
-            return subsection.citation
-    return find_pattern_citation(
-        document, pattern, (M11Heading.TRIAL_POPULATION,)
-    )
-
-
 def check_reg_32(
     document: ProtocolDocument, _profile: TrialProfile
 ) -> CheckOutcome:
@@ -441,11 +433,17 @@ def check_reg_32(
     A heading is a numbered subsection or a line that starts with the
     heading text; running text mentioning the criteria does not count.
     """
-    inclusion = _criteria_heading_citation(
-        document, "inclusion", INCLUSION_HEADING_PATTERN
+    inclusion = find_heading_citation(
+        document,
+        INCLUSION_TITLE_PATTERN,
+        INCLUSION_HEADING_PATTERN,
+        (M11Heading.TRIAL_POPULATION,),
     )
-    exclusion = _criteria_heading_citation(
-        document, "exclusion", EXCLUSION_HEADING_PATTERN
+    exclusion = find_heading_citation(
+        document,
+        EXCLUSION_TITLE_PATTERN,
+        EXCLUSION_HEADING_PATTERN,
+        (M11Heading.TRIAL_POPULATION,),
     )
     missing = [
         name

@@ -64,7 +64,7 @@ def test_judgement_prechecks_only_target_judgement_rules() -> None:
         if rule.check == CheckMethod.JUDGEMENT
     }
     assert set(JUDGEMENT_PRECHECKS) <= judgement_ids
-    assert len(JUDGEMENT_PRECHECKS) == 27
+    assert len(JUDGEMENT_PRECHECKS) == 33
 
 
 def test_precheck_est_07_not_applicable_without_secondary_endpoints() -> None:

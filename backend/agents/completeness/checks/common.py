@@ -363,23 +363,52 @@ def _extract_verbatim_snippet(text: str, start: int, end: int) -> str:
     return snippet
 
 
+def find_pattern_citations(
+    document: ProtocolDocument,
+    pattern: re.Pattern[str],
+    headings: Sequence[M11Heading] = (),
+    max_items: int = MAX_OFFENDERS_IN_FINDING,
+) -> list[Citation]:
+    """Return up to max_items verified citations, one per pattern match."""
+    verifier = make_citation_verifier(document.pages)
+    citations: list[Citation] = []
+    for page in section_pages(document, headings):
+        for match in pattern.finditer(page.text):
+            quote = _extract_verbatim_snippet(
+                page.text, match.start(), match.end()
+            )
+            candidate = verifier(
+                Citation(page_number=page.page_number, quote=quote)
+            )
+            if candidate.is_verified:
+                citations.append(candidate)
+                if len(citations) >= max_items:
+                    return citations
+    return citations
+
+
 def find_pattern_citation(
     document: ProtocolDocument,
     pattern: re.Pattern[str],
     headings: Sequence[M11Heading] = (),
 ) -> Citation | None:
     """Search section pages for pattern and return a verified Citation."""
-    verifier = make_citation_verifier(document.pages)
-    for page in section_pages(document, headings):
-        match = pattern.search(page.text)
-        if match is None:
-            continue
-        quote = _extract_verbatim_snippet(
-            page.text, match.start(), match.end()
-        )
-        candidate = verifier(
-            Citation(page_number=page.page_number, quote=quote)
-        )
-        if candidate.is_verified:
-            return candidate
-    return None
+    found = find_pattern_citations(document, pattern, headings, max_items=1)
+    return found[0] if found else None
+
+
+def find_heading_citation(
+    document: ProtocolDocument,
+    title_pattern: re.Pattern[str],
+    heading_line_pattern: re.Pattern[str],
+    headings: Sequence[M11Heading] = (),
+) -> Citation | None:
+    """Cite a heading: a subsection whose title matches, else a page line.
+
+    heading_line_pattern should anchor at line start, so running text that
+    merely mentions the words does not count as a heading.
+    """
+    for subsection in document.subsections or []:
+        if title_pattern.search(subsection.title) is not None:
+            return subsection.citation
+    return find_pattern_citation(document, heading_line_pattern, headings)

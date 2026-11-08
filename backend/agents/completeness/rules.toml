@@ -1,5 +1,5 @@
 # Completeness & Consistency Checker — Rule Catalogue
-# Families: REG (39), EST (26), XS (22), DM (45), ELQ (23), EX (50), AMD (7).
+# Families: REG (39), M11 (71), EST (26), XS (22), DM (45), ELQ (23), EX (50), AMD (7).
 # All titles, triggers (flag_if), and fixes are written in project-own wording
 # and cite public regulatory/registry standards.
 
@@ -592,6 +592,1075 @@ flag_if = "Summary text is written in the first person ('we', 'our'), or sponsor
 fix = "Rewrite in the third person and name organisations, not people, in sponsor fields."
 source = "ClinicalTrials.gov PRS Quality Control Review Criteria"
 source_tier = "registry_qc"
+# ---------------------------------------------------------------------------
+# Family M11: ICH M11 structural completeness (M11-01 to M11-71)
+# ---------------------------------------------------------------------------
+
+[[rule]]
+id = "M11-01"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Main M11 section missing, renamed or reordered"
+flag_if = "A level-1 M11 heading is missing, renamed or out of order instead of being kept with 'Not applicable'."
+fix = "Insert the missing heading marked 'Not applicable', or move the content under it."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-02"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "M11 subsection heading missing"
+flag_if = "A level-2 M11 heading is left out instead of being kept with 'Not applicable'."
+fix = "Restore the subsection heading and mark it 'Not applicable' where it does not apply."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-03"
+family = "M11"
+severity = "S1"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_DESIGN", "TRIAL_POPULATION"]
+check = "deterministic"
+title = "Template placeholders or instructions left in"
+flag_if = "The final protocol still contains insertion points such as '<Enter ...>', unresolved '[pick-list]' brackets or template instructions."
+fix = "Fill or remove every leftover placeholder and instruction, listed by location."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-04"
+family = "M11"
+severity = "S3"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Sponsor headings added in the wrong place"
+flag_if = "The sponsor adds a new level-1 heading, or inserts extra level-2 headings mid-section instead of at its end."
+fix = "Move added content under existing headings or to the end of the section."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-05"
+family = "M11"
+severity = "S3"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_POPULATION"]
+check = "deterministic"
+title = "Enrolled people called 'subjects'"
+flag_if = "The protocol calls enrolled people 'subjects' instead of 'participants'."
+fix = "Replace 'subject' with 'participant' throughout."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-06"
+family = "M11"
+severity = "S3"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_DESIGN", "ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Tables or figures unnumbered or uncaptioned"
+flag_if = "Tables or figures have no number or no caption."
+fix = "Number tables and figures in sequence and caption each one."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-07"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Title page core facts missing"
+flag_if = "The full title, sponsor protocol number, version number and date, or trial phase is missing from the title page."
+fix = "Add every core fact to the title page."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-08"
+family = "M11"
+severity = "S2"
+detection = ["F", "J"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Short title missing or unusable as brief title"
+flag_if = "There is no short title, or it could not serve as a plain-language registry brief title."
+fix = "Write a plain-language short title."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-09"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = ["INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Product code and nonproprietary name missing"
+flag_if = "The title page gives neither the investigational product's code nor its nonproprietary (INN) name."
+fix = "Add the product code and the nonproprietary name."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-10"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "Sponsor address, signatory or medical contact missing"
+flag_if = "The sponsor's legal address, the location of the sponsor approval signature, or the medical expert contact is not given."
+fix = "Add each item, or state where it can be found."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-11"
+family = "M11"
+severity = "S2"
+detection = ["F", "X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Known regulatory identifiers absent"
+flag_if = "Regulatory or registry identifiers (IND, EU CT number, NCT number, WHO UTN) that the trial has are not shown on the title page."
+fix = "List every identifier the trial has on the title page."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-12"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = ["IS_AMENDED"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OTHER"]
+check = "judgement"
+title = "Amendment details incomplete"
+flag_if = "An amended protocol lacks the amendment number, its scope (global or local), primary reason, summary, or the two impact questions on participant safety and rights and on data reliability."
+fix = "Complete the amendment table, including both impact questions."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-13"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = ["IS_AMENDED"]
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "OTHER"]
+check = "judgement"
+title = "Overview of changes lacks a rationale per change"
+flag_if = "The table of changes in an amendment does not give a reason for each change."
+fix = "Add a rationale for every change in the overview table."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-14"
+family = "M11"
+severity = "S2"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Summary objectives not in lay language"
+flag_if = "The objectives and estimands in the protocol summary are not written so a lay reader can follow them."
+fix = "Rewrite the summary objectives for a lay reader."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-15"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Overall design fields incomplete"
+flag_if = "The summary's overall design is missing fields such as population type, intervention model, control type, diagnosis, age limits with units, site scope, assignment method, stratification, number of arms, blinding or blinded roles."
+fix = "Fill every overall design field in the protocol summary."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-16"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Participant number not marked target or maximum"
+flag_if = "The number of participants is not marked as a target or a maximum, or not tied to randomised versus enrolled participants."
+fix = "State whether the number is a target or maximum and whether it counts randomised or enrolled people."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-17"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Treatment and participation durations missing"
+flag_if = "The planned duration of treatment and of each person's participation (including washout and follow-up) is not given."
+fix = "State both durations, worked out from the trial schema."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-18"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY"]
+check = "judgement"
+title = "Committees not listed in the summary"
+flag_if = "The protocol summary does not list the trial's committees and whether each is independent."
+fix = "List each committee (for example the DMC or adjudication committee) and its independence."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-19"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "TRIAL_DESIGN"]
+check = "judgement"
+title = "No trial schema"
+flag_if = "There is no schema showing the arms and the epochs (screening, run-in, randomisation, treatment, follow-up)."
+fix = "Add a trial schema showing arms and epochs."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-20"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Schedule of activities missing or lacks phone contacts"
+flag_if = "There is no schedule of activities, or it leaves out planned telephone contacts."
+fix = "Build the schedule of activities, including telephone contacts."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-21"
+family = "M11"
+severity = "S1"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "ASSESSMENTS_AND_PROCEDURES"]
+check = "deterministic"
+title = "Schedule of activities has no visit windows"
+flag_if = "Visits in the schedule of activities have no allowed time window."
+fix = "Add a window (for example ±3 days) to each visit."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-22"
+family = "M11"
+severity = "S1"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "ASSESSMENTS_AND_PROCEDURES", "TRIAL_POPULATION"]
+check = "judgement"
+title = "Decision test missing from the schedule"
+flag_if = "A test used to decide eligibility, randomisation, stratification or discontinuation does not appear in the schedule of activities."
+fix = "Add the test to the relevant column of the schedule of activities."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-23"
+family = "M11"
+severity = "S3"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["INTRODUCTION"]
+check = "judgement"
+title = "Trial purpose restates objectives or copies IB"
+flag_if = "The purpose section repeats the objectives or copies the investigator's brochure instead of explaining why the trial is needed."
+fix = "Explain the need for the trial and cross-refer to the brochure for background."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-24"
+family = "M11"
+severity = "S1"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["INTRODUCTION"]
+check = "judgement"
+title = "Risks listed without mitigation"
+flag_if = "The risk summary does not pair intervention, procedure (such as a placebo arm) and other risks with how each is mitigated."
+fix = "Pair every risk with its mitigation."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-25"
+family = "M11"
+severity = "S2"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["INTRODUCTION"]
+check = "judgement"
+title = "Benefit summary mixes or overstates benefit"
+flag_if = "The benefit summary mixes benefit to society with benefit to the participant, or overstates what a participant can expect."
+fix = "Separate societal from individual benefit and state individual benefit cautiously."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-26"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["INTRODUCTION"]
+check = "judgement"
+title = "No overall benefit-risk conclusion"
+flag_if = "The introduction does not end with an overall benefit-risk statement."
+fix = "Add a concluding benefit-risk statement."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-27"
+family = "M11"
+severity = "S1"
+detection = ["F", "J"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_DESIGN"]
+check = "judgement"
+title = "Superiority or non-inferiority not stated"
+flag_if = "The design does not say whether the trial tests superiority, non-inferiority or equivalence."
+fix = "State the design characteristic."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-28"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_DESIGN"]
+check = "judgement"
+title = "Design choices lack a rationale"
+flag_if = "No reason is given for the estimand, intervention model, control type or trial duration."
+fix = "Give a short rationale for each design choice."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-29"
+family = "M11"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_DESIGN", "STATISTICAL_CONSIDERATIONS"]
+check = "judgement"
+title = "Adaptive design or interim analysis unexplained"
+flag_if = "An adaptive design or interim analysis is mentioned without a rationale."
+fix = "Add the rationale for the adaptive elements or interim analysis."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-30"
+family = "M11"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_DESIGN", "STATISTICAL_CONSIDERATIONS", "DISCONTINUATION"]
+check = "judgement"
+title = "Stopping rules missing or inconsistent"
+flag_if = "Trial stopping rules are absent, or disagree with the stopping rules in the statistics section."
+fix = "Add stopping rules and align them with the statistics section."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-31"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_DESIGN"]
+check = "judgement"
+title = "Post-trial access not addressed"
+flag_if = "The protocol does not say whether participants can keep receiving the intervention after the trial."
+fix = "State the post-trial access plan, or state that there is none."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-32"
+family = "M11"
+severity = "S3"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_DESIGN"]
+check = "judgement"
+title = "Decentralised elements not described"
+flag_if = "The trial uses decentralised elements (home visits, remote assessments, direct-to-patient supply) without describing them."
+fix = "Describe each decentralised element."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-33"
+family = "M11"
+severity = "S3"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_DESIGN"]
+check = "judgement"
+title = "Patient or stakeholder input not addressed"
+flag_if = "The protocol does not say whether patients or other stakeholders contributed to the design."
+fix = "Describe the input received, or state that there was none."
+source = "SPIRIT 2025 statement"
+source_tier = "reporting_guideline"
+
+[[rule]]
+id = "M11-34"
+family = "M11"
+severity = "S2"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "No population rationale"
+flag_if = "There is no rationale for the population, or no statement of how the criteria reflect the people likely to use the drug."
+fix = "Add a population rationale linked to the intended users."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-35"
+family = "M11"
+severity = "S3"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "deterministic"
+title = "Age qualification timepoint not stated"
+flag_if = "The age criterion does not say when age is assessed."
+fix = "State when age is assessed, for example 'at screening'."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-36"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Contraception requirements incomplete"
+flag_if = "Definitions of childbearing potential, acceptable contraceptive methods or how long contraception is needed are missing."
+fix = "Define childbearing potential, list methods and give the duration, in line with reproductive toxicity data."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-37"
+family = "M11"
+severity = "S3"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Lifestyle restrictions section silent"
+flag_if = "The lifestyle restrictions section is missing or empty rather than stating that there are none."
+fix = "List any restrictions, or state that there are none."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-38"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "judgement"
+title = "Screen failure and rescreening rules missing"
+flag_if = "Rules for screen failures and rescreening are missing, or the rescreening window is not given."
+fix = "Add screen failure and rescreening rules with the allowed window."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-39"
+family = "M11"
+severity = "S1"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_POPULATION"]
+check = "deterministic"
+title = "Eligibility waivers allowed"
+flag_if = "The protocol allows waivers or exceptions to the eligibility criteria."
+fix = "Remove the waiver wording; M11 does not allow prospective eligibility waivers."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-40"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "judgement"
+title = "IMP and auxiliary products not designated"
+flag_if = "Interventions are not labelled as investigational or non-investigational (auxiliary) products."
+fix = "Label each intervention as IMP or NIMP/AxMP."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-41"
+family = "M11"
+severity = "S1"
+detection = ["J"]
+applies_when = ["INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "judgement"
+title = "No dose rationale"
+flag_if = "The chosen dose is not justified with nonclinical or clinical data."
+fix = "Add a dose rationale drawn from the brochure or earlier trials."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-42"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = ["INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Missed or delayed dose handling absent"
+flag_if = "The protocol does not say what to do when a dose is missed or delayed."
+fix = "Add instructions for missed and delayed doses."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-43"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = ["INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Dose modification rules absent"
+flag_if = "There are no dose modification rules, or no minimum interval before a dose is increased."
+fix = "Add dose modification rules with the minimum interval between dose increases."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-44"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = ["INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Overdose not defined or managed"
+flag_if = "The protocol does not define an overdose or say how it is managed."
+fix = "Define overdose and its management, consistent with the brochure."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-45"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = ["INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Preparation, storage or accountability missing"
+flag_if = "Preparation, storage, accountability, disposal or reconciliation of study products is not described."
+fix = "Describe each step, or refer to the pharmacy manual."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-46"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = ["IS_RANDOMIZED"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Randomisation method not described"
+flag_if = "The randomisation method, its timing, the generator or the interactive response system is not described."
+fix = "Describe how, when and by what system participants are randomised."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-47"
+family = "M11"
+severity = "S2"
+detection = ["P"]
+applies_when = ["IS_RANDOMIZED"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION", "STATISTICAL_CONSIDERATIONS"]
+check = "deterministic"
+title = "Randomisation block size disclosed"
+flag_if = "The protocol states the randomisation block size."
+fix = "Remove the block size from the protocol."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-48"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = ["IS_BLINDED"]
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Blinding and unblinding procedures missing"
+flag_if = "How blinding is kept, how planned or unplanned unblinding works, or the emergency unblinding procedure is missing."
+fix = "Describe blinding maintenance and each unblinding procedure."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-49"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Adherence measurement not defined"
+flag_if = "The protocol does not say how adherence is measured or which record is the source."
+fix = "Define the adherence measure and its source record, such as returned-unit counts."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-50"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["TRIAL_INTERVENTION"]
+check = "judgement"
+title = "Background, rescue and concomitant drugs mixed"
+flag_if = "Background therapy, rescue therapy and permitted or prohibited concomitant medication are not described separately."
+fix = "Describe background, rescue and concomitant medication in separate subsections."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-51"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["DISCONTINUATION"]
+check = "judgement"
+title = "Permanent discontinuation criteria absent"
+flag_if = "The protocol does not list the criteria for permanently stopping the trial intervention."
+fix = "List the permanent discontinuation criteria."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-52"
+family = "M11"
+severity = "S1"
+detection = ["J"]
+applies_when = []
+needs_inputs = []
+sections = ["DISCONTINUATION"]
+check = "judgement"
+title = "Stopping treatment ends follow-up"
+flag_if = "Participants who stop the trial intervention are withdrawn from follow-up, although only withdrawal of consent should end follow-up."
+fix = "Keep participants who stop treatment in the trial and continue their visits."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-53"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["DISCONTINUATION"]
+check = "judgement"
+title = "Interruption and rechallenge rules absent"
+flag_if = "Rules for temporarily interrupting and restarting treatment are missing, with no statement that rechallenge is not allowed."
+fix = "Add interruption and rechallenge rules, or state that rechallenge is not allowed."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-54"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["DISCONTINUATION"]
+check = "judgement"
+title = "No loss-to-follow-up definition or retention plan"
+flag_if = "Loss to follow-up is not defined, or no steps to retain participants are described."
+fix = "Define loss to follow-up, including the required contact attempts."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-55"
+family = "M11"
+severity = "S2"
+detection = ["P"]
+applies_when = []
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Scales or assays lack validation references"
+flag_if = "Scales, questionnaires or assays are used without a reference showing they are validated."
+fix = "Cite the validation for each scale, questionnaire and assay."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-56"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Laboratory type or late-result plan missing"
+flag_if = "The protocol does not say whether labs are central or local, or what happens when central results arrive late."
+fix = "State the laboratory type and the plan for late central results."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-57"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "No plan for out-of-range safety labs"
+flag_if = "There is no algorithm for managing safety laboratory results outside the normal range."
+fix = "Add a management algorithm for out-of-range safety labs."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-58"
+family = "M11"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES", "REGULATORY_AND_ETHICAL"]
+check = "deterministic"
+title = "Sample retention not stated or not matching consent"
+flag_if = "How long samples are kept is not stated, or differs from what the consent form says."
+fix = "State one retention period and match it to the consent form."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-59"
+family = "M11"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Optional and required samples not distinguished"
+flag_if = "Optional and required samples are not labelled, or required samples are not linked to an objective."
+fix = "Label each sample as optional or required and link required samples to objectives."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-60"
+family = "M11"
+severity = "S3"
+detection = ["J"]
+applies_when = ["INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Suicidality monitoring choice not justified"
+flag_if = "Suicidal ideation monitoring is included or left out without a reason where the drug class calls for one."
+fix = "Justify including or omitting suicidality monitoring."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-61"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "AE, SAE or product-complaint definitions missing"
+flag_if = "Definitions of adverse events, serious adverse events or product complaints are missing."
+fix = "Add each definition."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-62"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "No safety reporting timelines table"
+flag_if = "There is no table giving, per event type, the reporting period, the deadline to the sponsor and the reporting and backup methods."
+fix = "Add a safety reporting timelines table."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-63"
+family = "M11"
+severity = "S2"
+detection = ["J"]
+applies_when = ["INTERVENTION_IS_DRUG"]
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "No AESI list despite known class risks"
+flag_if = "The drug class has known risks but no adverse events of special interest are listed."
+fix = "List the adverse events of special interest for the class."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-64"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Disease-related events not defined"
+flag_if = "The protocol does not define which disease-related events are not reported as adverse events."
+fix = "Define the disease-related events that are not reported as adverse events."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-65"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["ASSESSMENTS_AND_PROCEDURES"]
+check = "judgement"
+title = "Pregnancy follow-up not described"
+flag_if = "Follow-up of pregnancies in participants and in partners of participants is not described."
+fix = "Describe pregnancy reporting and follow-up for participants and partners."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-66"
+family = "M11"
+severity = "S1"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "Consent process incomplete"
+flag_if = "The consent process, consent for rescreening or consent for future use of samples is missing."
+fix = "Describe each consent step."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-67"
+family = "M11"
+severity = "S2"
+detection = ["X"]
+applies_when = []
+needs_inputs = []
+sections = ["PROTOCOL_SUMMARY", "REGULATORY_AND_ETHICAL"]
+check = "deterministic"
+title = "Summary committees not described in governance"
+flag_if = "Committees listed in the protocol summary are not described in the governance section."
+fix = "Describe every committee in the governance section, with a charter summary."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-68"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "Insurance or indemnity not addressed"
+flag_if = "The protocol says nothing about insurance or indemnity."
+fix = "Add an insurance and indemnity statement."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-69"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "No risk-based quality management statement"
+flag_if = "There is no statement on risk-based quality management, such as critical-to-quality factors."
+fix = "Add a risk-based quality management statement naming the critical-to-quality factors."
+source = "ICH E6(R3) Good Clinical Practice, Principles and Annex 1"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-70"
+family = "M11"
+severity = "S2"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["REGULATORY_AND_ETHICAL"]
+check = "judgement"
+title = "Governance sections empty"
+flag_if = "Sections on data governance, data protection, source records, protocol deviations, early site closure or dissemination are empty."
+fix = "Fill each governance section."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
+[[rule]]
+id = "M11-71"
+family = "M11"
+severity = "S3"
+detection = ["F"]
+applies_when = []
+needs_inputs = []
+sections = ["OTHER", "REGULATORY_AND_ETHICAL"]
+check = "deterministic"
+title = "Required appendices missing"
+flag_if = "There is no laboratory appendix, regional differences appendix, glossary or reference list."
+fix = "Add each missing appendix."
+source = "ICH M11 Template, Step 4"
+source_tier = "ich"
+
 # ---------------------------------------------------------------------------
 # Family EST: Estimands and statistics (EST-01 to EST-26)
 # ---------------------------------------------------------------------------

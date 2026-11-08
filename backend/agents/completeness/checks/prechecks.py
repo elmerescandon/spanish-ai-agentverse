@@ -48,6 +48,9 @@ DIABETES_PRO_PATTERN = re.compile(
     r"|(?i:diabetes\s+treatment\s+satisfaction|diabetes\s+distress"
     r"|hypoglyc(?:a)?emia\s+fear)"
 )
+PHONE_CONTACT_PATTERN = re.compile(
+    r"\b(?:tele)?phone\b|\bcall\b|\bremote\b|\bvirtual\b", re.IGNORECASE
+)
 SHORT_TRIAL_WEEKS = 8.0  # below this, HbA1c cannot show the full effect
 CONFIRMATORY_PHASES = frozenset({TrialPhase.PHASE3, TrialPhase.PHASE4})
 SMALL_MOLECULE_CLASSES = frozenset(
@@ -582,6 +585,126 @@ def precheck_dm_42(
     )
 
 
+def precheck_m11_01(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """M11-01: Fires when a main section is missing; else Gemini decides.
+
+    Gemini still checks heading names and order.
+    """
+    if document.sections is None:
+        return None
+    present = {section.heading for section in document.sections}
+    missing = [
+        heading.value
+        for heading in M11Heading
+        if heading != M11Heading.OTHER and heading not in present
+    ]
+    if not missing:
+        return None
+    return absence_fired_outcome(
+        f"No section found for: {', '.join(missing)}."
+    )
+
+
+def precheck_m11_07(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """M11-07: Fires without a full title or phase; else Gemini decides.
+
+    Gemini still checks the protocol ID and version.
+    """
+    design = document.design
+    if design is None:
+        return None
+    missing = [
+        name
+        for name, value in (
+            ("full title", design.official_title),
+            ("phase", design.phase),
+        )
+        if value is None
+    ]
+    if not missing:
+        return None
+    return absence_fired_outcome(
+        f"The title page does not state: {', '.join(missing)}."
+    )
+
+
+def precheck_m11_18(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """M11-18: Passes when the summary lists committees; else Gemini."""
+    if document.synopsis_check is None:
+        return None
+    committees = document.synopsis_check.synopsis_committees
+    if not committees:
+        return None
+    return passed_outcome(
+        "The protocol summary lists the trial committees.",
+        evidence=[item.citation for item in committees],
+    )
+
+
+def precheck_m11_19(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """M11-19: Passes when a schema with epochs was found; else Gemini."""
+    if document.synopsis_check is None:
+        return None
+    epochs = document.synopsis_check.schema_epochs
+    if not epochs:
+        return None
+    return passed_outcome(
+        "The trial schema shows the trial epochs.",
+        evidence=[epoch.citation for epoch in epochs],
+    )
+
+
+def precheck_m11_20(
+    document: ProtocolDocument, _profile: TrialProfile
+) -> CheckOutcome | None:
+    """M11-20: Fires with no schedule; passes with phone contacts.
+
+    Otherwise Gemini decides whether phone contacts are needed.
+    """
+    if document.schedule is None:
+        return None
+    if not document.schedule:
+        return absence_fired_outcome("No schedule of activities was found.")
+    phone_visits = [
+        visit
+        for visit in document.schedule
+        if PHONE_CONTACT_PATTERN.search(
+            " ".join([visit.visit_name, *visit.procedures])
+        )
+    ]
+    if not phone_visits:
+        return None
+    return passed_outcome(
+        "The schedule of activities includes telephone contacts.",
+        evidence=[v.citation for v in phone_visits if v.citation],
+    )
+
+
+def precheck_m11_27(
+    _document: ProtocolDocument, profile: TrialProfile
+) -> CheckOutcome | None:
+    """M11-27: Passes when superiority or non-inferiority is stated."""
+    if profile.is_non_inferiority is None:
+        return None
+    kind = (
+        "non-inferiority"
+        if profile.is_non_inferiority.value
+        else "superiority"
+    )
+    return passed_outcome(
+        f"The design is stated as a {kind} trial.",
+        evidence=[profile.is_non_inferiority.citation],
+    )
+
+
 JUDGEMENT_PRECHECKS: Mapping[str, JudgementPrecheck] = {
     "EST-07": precheck_est_07,
     "EST-08": precheck_est_08,
@@ -610,4 +733,10 @@ JUDGEMENT_PRECHECKS: Mapping[str, JudgementPrecheck] = {
     "DM-36": precheck_dm_36,
     "DM-38": precheck_dm_38,
     "DM-42": precheck_dm_42,
+    "M11-01": precheck_m11_01,
+    "M11-07": precheck_m11_07,
+    "M11-18": precheck_m11_18,
+    "M11-19": precheck_m11_19,
+    "M11-20": precheck_m11_20,
+    "M11-27": precheck_m11_27,
 }

@@ -25,7 +25,7 @@ Automate formatting so the repo is standardised.
 | `make format` | `ruff format` + `ruff check --fix`. |
 | `make lint` | `ruff check` + `mypy`, no fixes. CI runs the same checks plus a format check and tests. |
 | `make test` | All tests except live and extended ones. Fast; part of `make check`. |
-| `make test-extended` | All tests except live ones, including slow `@pytest.mark.extended` checks (e.g. reading the real demo PDFs). |
+| `make test-extended` | All tests except live ones, including slow `@pytest.mark.extended` checks (e.g. reading the real demo PDFs). CI runs the same set. |
 | `make check` | format + lint + test in one go. Run before every push. |
 | `make test-live` | Live tests against real APIs. |
 | `make run` | Run agents once, no reload. |

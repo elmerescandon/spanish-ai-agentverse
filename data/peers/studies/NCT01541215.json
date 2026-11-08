@@ -1,0 +1,1387 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT01541215",
+      "briefTitle": "Efficacy and Safety of Liraglutide in Combination With Metformin Compared to Metformin Alone, in Children and Adolescents With Type 2 Diabetes",
+      "officialTitle": "Efficacy and Safety of Liraglutide in Combination With Metformin Versus Metformin Monotherapy on Glycaemic Control in Children and Adolescents With Type 2 Diabetes"
+    },
+    "statusModule": {
+      "overallStatus": "COMPLETED",
+      "startDateStruct": {
+        "date": "2012-11-13"
+      },
+      "completionDateStruct": {
+        "date": "2020-05-20"
+      },
+      "lastUpdatePostDateStruct": {
+        "date": "2021-07-02"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {
+        "name": "Novo Nordisk A/S",
+        "class": "INDUSTRY"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": false
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "DOUBLE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 135,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "Lira + Met"
+        },
+        {
+          "label": "Placebo + Met"
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "liraglutide"
+        },
+        {
+          "type": "DRUG",
+          "name": "placebo"
+        },
+        {
+          "type": "DRUG",
+          "name": "metformin"
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Change in HbA1c (Glycosylated Haemoglobin)",
+          "timeFrame": "Week 0, week 26"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Change From Baseline in Fasting Plasma Glucose (FPG)",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Number of Subjects Having HbA1c Below 7.0%",
+          "timeFrame": "Week 26"
+        },
+        {
+          "measure": "Change From Baseline in Body Mass Index (BMI) Standard Deviation Score (SDS)",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Number of Subjects Having HbA1c Below 7.0%",
+          "timeFrame": "Week 52"
+        },
+        {
+          "measure": "Number of Subjects Having HbA1c Maximum 6.5%",
+          "timeFrame": "Week 26"
+        },
+        {
+          "measure": "Number of Subjects Having HbA1c Maximum 6.5%",
+          "timeFrame": "Week 52"
+        },
+        {
+          "measure": "Number of Subjects Having HbA1c Below 7.0% Without Severe or Minor Hypoglycaemic Episodes",
+          "timeFrame": "Week 26"
+        },
+        {
+          "measure": "Number of Subjects Having HbA1c Below 7.0% Without Severe or Minor Hypoglycaemic Episodes",
+          "timeFrame": "Week 52"
+        },
+        {
+          "measure": "Number of Subjects Having HbA1c Below 7.5%",
+          "timeFrame": "Week 26"
+        },
+        {
+          "measure": "Number of Subjects Having HbA1c Below 7.5%",
+          "timeFrame": "Week 52"
+        },
+        {
+          "measure": "Change in HbA1c",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Change in FPG",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Change in Mean 7-point Self-measured Plasma Glucose",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Change From Baseline in 7-point Self-measured Plasma Glucose",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Change in Post-prandial Increments (From Before Meal to 90 Min After Breakfast, Lunch, and Dinner)",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Change in Post-prandial Increments (From Before Meal to 90 Min After Breakfast, Lunch, and Dinner)",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Change in Mean Post-prandial Increment Across All Three Meals (Breakfast, Lunch, and Dinner)",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Change in Mean Post-prandial Increment Across All Three Meals (Breakfast, Lunch, and Dinner)",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Change From Baseline in Body Weight",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Change From Baseline in Body Weight",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Change From Baseline in BMI Standard Deviation Score (SDS)",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Change in Blood Pressure (Systolic and Diastolic Blood Pressure)",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Change in Blood Pressure (Systolic and Diastolic Blood Pressure)",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Ratio to Baseline: Fasting Insulin",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Ratio to Baseline: Fasting Insulin",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Ratio to Baseline: Fasting Pro-insulin",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Ratio to Baseline: Fasting Pro-insulin",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Ratio to Baseline: Pro-insulin/Insulin Ratio",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Ratio to Baseline: Pro-insulin/Insulin Ratio",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Ratio to Baseline: Fasting Glucagon",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Ratio to Baseline: Fasting Glucagon",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Ratio to Baseline: Fasting C-peptide",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Ratio to Baseline: Fasting C-peptide",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Ratio to Baseline: Homeostasis Model Assessment of Beta-cell Function (HOMA-B)",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Ratio to Baseline: HOMA-B",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Ratio to Baseline: Homeostasis Model Assessment as an Index of Insulin Resistance (HOMA-IR)",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Ratio to Baseline: HOMA-IR",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Ratio to Baseline: Total Cholesterol",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Ratio to Baseline: Total Cholesterol",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Ratio to Baseline: Low Density Lipoprotein (LDL) Cholesterol",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Ratio to Baseline: LDL Cholesterol",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Ratio to Baseline: Very Low-density Lipoprotein (VLDL) Cholesterol",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Ratio to Baseline: VLDL Cholesterol",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Ratio to Baseline: High-density Lipoprotein (HDL) Cholesterol",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Ratio to Baseline: HDL Cholesterol",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Ratio to Baseline: Triglycerides",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Ratio to Baseline: Triglycerides",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Ratio to Baseline: Free Fatty Acids",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Ratio to Baseline: Free Fatty Acids",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Change From Baseline in Pulse",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Change From Baseline in Pulse",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Change From Baseline in Height SDS",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Change From Baseline in Height SDS",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Change in Bone Age Assessment (X-ray of Left Hand and Wrist)",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Pubertal Assessment/Progression (Tanner Staging)",
+          "timeFrame": "Week 0, week 26, week 52"
+        },
+        {
+          "measure": "Growth (Height Velocity)",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Growth (Height Velocity)",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Height Velocity SDS",
+          "timeFrame": "Week 0, week 26"
+        },
+        {
+          "measure": "Height Velocity SDS",
+          "timeFrame": "Week 0, week 52"
+        },
+        {
+          "measure": "Number of Hypoglycaemic Episodes",
+          "timeFrame": "0-26 weeks"
+        },
+        {
+          "measure": "Number of Hypoglycaemic Episodes",
+          "timeFrame": "0-52 weeks"
+        },
+        {
+          "measure": "Number of Adverse Events (Week 0-26)",
+          "timeFrame": "0-26 weeks"
+        },
+        {
+          "measure": "Number of Adverse Events (Week 0-52)",
+          "timeFrame": "0-52 weeks"
+        },
+        {
+          "measure": "Number of Serious Adverse Events (Week 0-26)",
+          "timeFrame": "0-26 weeks"
+        },
+        {
+          "measure": "Number of Serious Adverse Events (Week 0-52)",
+          "timeFrame": "0-52 weeks"
+        },
+        {
+          "measure": "Number of Adverse Events (Week 53-104)",
+          "timeFrame": "Week 53-104"
+        },
+        {
+          "measure": "Number of Serious Adverse Events (Week 53-104)",
+          "timeFrame": "Weeks 53-104"
+        },
+        {
+          "measure": "Growth (Height Velocity)- Week 104",
+          "timeFrame": "Week 0, week 104"
+        },
+        {
+          "measure": "Height Velocity SDS- Week 104",
+          "timeFrame": "Week 0, week 104"
+        },
+        {
+          "measure": "Change From Week 52 in Height SDS- Week 104",
+          "timeFrame": "Week 52, week 104"
+        },
+        {
+          "measure": "Change in Pubertal Assessment/Progression (Tanner Staging)- Week 104",
+          "timeFrame": "Week 52, week 104"
+        },
+        {
+          "measure": "Change From Week 52 in Bone Age Assessment (X-ray of Left Hand and Wrist)- Week 104",
+          "timeFrame": "Week 52, week 104"
+        },
+        {
+          "measure": "Number of Adverse Events (Week 53-156)",
+          "timeFrame": "Week 53-156"
+        },
+        {
+          "measure": "Number of Serious Adverse Events (Week 53-156)",
+          "timeFrame": "Weeks 53-156"
+        },
+        {
+          "measure": "Growth (Height Velocity)- Week 156",
+          "timeFrame": "Week 0, week 156"
+        },
+        {
+          "measure": "Height Velocity SDS- Week 156",
+          "timeFrame": "Week 0, week 156"
+        },
+        {
+          "measure": "Change From Week 52 in Height SDS- Week 156",
+          "timeFrame": "Week 52, week 156"
+        },
+        {
+          "measure": "Change in Pubertal Assessment/Progression (Tanner Staging)- Week 156",
+          "timeFrame": "Week 52, week 156"
+        },
+        {
+          "measure": "Change From Week 52 in Bone Age Assessment (X-ray of Left Hand and Wrist)- Week 156",
+          "timeFrame": "Week 52, week 156"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria: - Children and adolescents between the ages of 10-16 years. Subjects cannot turn 17 years and 11 months before the end of treatment (52 weeks) - Diagnosis of type 2 diabetes mellitus and treated for at least 30 days with: diet and exercise alone, diet and exercise in combination with metformin monotherapy, diet and exercise in combination with metformin and a stable (Stable is defined as basal insulin adjustments up to 15%) dose of basal insulin, diet and exercise in combination with a stable (Stable is defined as basal insulin adjustments up to 15%) dose of basal insulin - HbA1c: 7.0-11% (inclusive) if diet and exercise treated or 6.5-11% (inclusive) if treated with metformin as monotherapy, basal insulin as monotherapy or metformin and basal insulin in combination - Body mass index (BMI) above 85% percentile of the general age and gender matched population Exclusion Criteria: - Type 1 diabetes - Maturity onset diabetes of the young (MODY) - Use of any antidiabetic agent other than metformin and/or basal insulin within 90 days prior to screening - Recurrent severe hypoglycaemia or hypoglycaemic unawareness as judged by the investigator - History of chronic pancreatitis or idiopathic acute pancreatitis - Any clinically significant disorder, except for conditions associated with type 2 diabetes history which in the investigator's opinion could interfere with results of the trial - Uncontrolled hypertension, treated or untreated above 99th percentile for age and gender in children - Known or suspected abuse of alcohol or drugs/narcotics",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "10 Years",
+      "maximumAge": "17 Years",
+      "stdAges": [
+        "CHILD"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Birmingham",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Phoenix",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Tucson",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Corona",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Costa Mesa",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Long Beach",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Los Angeles",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Los Angeles",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Moreno Valley",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Palo Alto",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "San Diego",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Ventura",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "New Haven",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Wilmington",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Washington D.C.",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Jacksonville",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Melbourne",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Miami",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Miami",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Miami",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "St. Petersburg",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Tallahassee",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Tampa",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Atlanta",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Atlanta",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Columbus",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Bloomington",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Iowa City",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Topeka",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Lexington",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Lexington",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Silver Spring",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Worcester",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Detroit",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Grand Rapids",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Saint Paul",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Columbia",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Kansas City",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "St Louis",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Las Vegas",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Hackensack",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "West Orange",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Buffalo",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "New York",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "New York",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "New York",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Sleepy Hollow",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Cincinnati",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Toledo",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Hershey",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Philadelphia",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Philadelphia",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Pittsburgh",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Greenville",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Rapid City",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Chattanooga",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Memphis",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Memphis",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Memphis",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Nashville",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Amarillo",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Dallas",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Edinburg",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Fort Worth",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Houston",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Houston",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Kerrville",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "San Antonio",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Charlottesville",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Norfolk",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Charleston",
+          "country": "United States"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Ipswich",
+          "country": "Australia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Graz",
+          "country": "Austria"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Innsbruck",
+          "country": "Austria"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Salzburg",
+          "country": "Austria"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Wels",
+          "country": "Austria"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Brussels",
+          "country": "Belgium"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Brussels",
+          "country": "Belgium"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Leuven",
+          "country": "Belgium"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Porto Alegre",
+          "country": "Brazil"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Edmonton",
+          "country": "Canada"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Winnipeg",
+          "country": "Canada"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Brampton",
+          "country": "Canada"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Westmount",
+          "country": "Canada"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Rijeka",
+          "country": "Croatia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Zagreb",
+          "country": "Croatia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Herlev",
+          "country": "Denmark"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Næstved",
+          "country": "Denmark"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Al Mansurah",
+          "country": "Egypt"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Alexandria",
+          "country": "Egypt"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Cairo",
+          "country": "Egypt"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Cairo",
+          "country": "Egypt"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Marseille",
+          "country": "France"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Montpellier",
+          "country": "France"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Ludwigshafen",
+          "country": "Germany"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Mayen",
+          "country": "Germany"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Athens",
+          "country": "Greece"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Athens",
+          "country": "Greece"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Goudi/ Athens",
+          "country": "Greece"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Thessaloniki",
+          "country": "Greece"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Budapest",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Budapest",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Budapest",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Miskolc",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Szombathely",
+          "country": "Hungary"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Guntur",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Hyderabad",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Bangalore",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Bangalore",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Bangalore",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Bangalore",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Mumbai",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Mumbai",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Pune",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "New Dehli",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Chandigarh",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Ludhiana",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Jaipur",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Chennai",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Hyderbad",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Kolkata",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Kolkata",
+          "country": "India"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Beersheba",
+          "country": "Israel"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Haifa",
+          "country": "Israel"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Jerusalem",
+          "country": "Israel"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Petah Tikva",
+          "country": "Israel"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Tel HaShomer",
+          "country": "Israel"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Roma",
+          "country": "Italy"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Hazmiyeh",
+          "country": "Lebanon"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Lebanon - Beirut",
+          "country": "Lebanon"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Kuala Lumpur",
+          "country": "Malaysia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Tampico",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Puebla City",
+          "country": "Mexico"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Fes",
+          "country": "Morocco"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Rabat",
+          "country": "Morocco"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "'s-Hertogenbosch",
+          "country": "Netherlands"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Grafton",
+          "country": "New Zealand"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Skopje",
+          "country": "North Macedonia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Bergen",
+          "country": "Norway"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Katowice",
+          "country": "Poland"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Warsaw",
+          "country": "Poland"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Wroclaw",
+          "country": "Poland"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Braga",
+          "country": "Portugal"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Lisbon",
+          "country": "Portugal"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Lisbon",
+          "country": "Portugal"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Ponce",
+          "country": "Puerto Rico"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Timișoara",
+          "country": "Romania"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Bucharest",
+          "country": "Romania"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Bucharest",
+          "country": "Romania"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Constanța",
+          "country": "Romania"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Chelyabinsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Izhevsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Krasnoyarsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Moscow",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Moscow",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Novosibirsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Saint Petersburg",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Saint Petersburg",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Saratov",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Tomsk",
+          "country": "Russia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Belgrade",
+          "country": "Serbia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Belgrade",
+          "country": "Serbia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Niš",
+          "country": "Serbia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Novi Sad",
+          "country": "Serbia"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Leganés",
+          "country": "Spain"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Madrid",
+          "country": "Spain"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Madrid",
+          "country": "Spain"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Vigo",
+          "country": "Spain"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Vitoria-Gasteiz",
+          "country": "Spain"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Gothenburg",
+          "country": "Sweden"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Huddinge",
+          "country": "Sweden"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Uppsala",
+          "country": "Sweden"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Tainan",
+          "country": "Taiwan"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Taoyuan",
+          "country": "Taiwan"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Bangkok",
+          "country": "Thailand"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Chiang Mai",
+          "country": "Thailand"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Ankara",
+          "country": "Turkey (Türkiye)"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Ankara",
+          "country": "Turkey (Türkiye)"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Istanbul",
+          "country": "Turkey (Türkiye)"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Kocaeli",
+          "country": "Turkey (Türkiye)"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Birmingham",
+          "country": "United Kingdom"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "London",
+          "country": "United Kingdom"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Manchester",
+          "country": "United Kingdom"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Norwich",
+          "country": "United Kingdom"
+        },
+        {
+          "facility": "Novo Nordisk Investigational Site",
+          "city": "Southampton",
+          "country": "United Kingdom"
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Diabetes Mellitus"
+        },
+        {
+          "term": "Diabetes Mellitus, Type 2"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Liraglutide"
+        },
+        {
+          "term": "Metformin"
+        }
+      ]
+    }
+  },
+  "documentSection": {
+    "largeDocumentModule": {
+      "largeDocs": [
+        {
+          "typeAbbrev": "Prot",
+          "hasProtocol": true,
+          "hasSap": false,
+          "label": "Study Protocol",
+          "date": "2017-04-03",
+          "filename": "Prot_000.pdf"
+        },
+        {
+          "typeAbbrev": "SAP",
+          "hasProtocol": false,
+          "hasSap": true,
+          "label": "Statistical Analysis Plan",
+          "date": "2018-06-25",
+          "filename": "SAP_001.pdf"
+        }
+      ]
+    }
+  }
+}

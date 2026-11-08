@@ -1,0 +1,33 @@
+{
+  "trial_id": "NCT03170518",
+  "cache_key": "a30c97c6214819b6",
+  "read_at": "2026-11-08T03:47:47.784263Z",
+  "reply": {
+    "predicates": [
+      {
+        "variable": "HBA1C",
+        "operator": ">=",
+        "value": 6.5,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c of greater than or equal to (>=)6.5 percent (%) to less than or equal to (<=)11.0%"
+      },
+      {
+        "variable": "HBA1C",
+        "operator": "<=",
+        "value": 11.0,
+        "unit": "%",
+        "scope": "INCLUSION",
+        "source_text": "HbA1c of greater than or equal to (>=)6.5 percent (%) to less than or equal to (<=)11.0%"
+      },
+      {
+        "variable": "ALT",
+        "operator": ">",
+        "value": 5.0,
+        "unit": "times the upper limit of normal (ULN)",
+        "scope": "EXCLUSION",
+        "source_text": "Alanine aminotransferase level >5.0 times the upper limit of normal (ULN)"
+      }
+    ]
+  }
+}

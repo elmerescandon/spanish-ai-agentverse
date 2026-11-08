@@ -10,6 +10,8 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
+from backend.agents.protocol_comparison.demo import demo_recommendations
+from backend.agents.protocol_comparison.peer_store import PeerStoreError
 from backend.api.agent_runners import (
     build_ingest_step,
     run_checklist_agent,
@@ -59,12 +61,18 @@ router = APIRouter(prefix="/api")
 _protocols: dict[str, ProtocolSummary] = {}
 _recommendations: dict[str, dict[str, Recommendation]] = {}
 _documents: dict[str, ProtocolDocument] = {}
+# Protocols whose comparison-agent recommendations are already loaded.
+_comparison_loaded: set[str] = set()
 
 
 def _build_default_recommendations(
     protocol_id: str,
 ) -> dict[str, Recommendation]:
-    """Build default pipeline recommendations for a protocol."""
+    """Build mock recommendations for the steps not wired to agents yet.
+
+    Comparison recommendations come from the comparison agent instead;
+    see _load_comparison.
+    """
     items = [
         Recommendation(
             recommendation_id=f"rec-{uuid4().hex[:8]}",
@@ -75,17 +83,6 @@ def _build_default_recommendations(
             description=(
                 "Protocol lacks HbA1c 24-week follow-up endpoint "
                 "specifications."
-            ),
-        ),
-        Recommendation(
-            recommendation_id=f"rec-{uuid4().hex[:8]}",
-            protocol_id=protocol_id,
-            source_step=PipelineStep.COMPARISON,
-            severity=Severity.WARNING,
-            title="Comparator dosage mismatch with SOC",
-            description=(
-                "Metformin control arm dose is lower than current "
-                "standard of care guidelines."
             ),
         ),
         Recommendation(
@@ -108,6 +105,7 @@ def reset_mock_state() -> None:
     _protocols.clear()
     _recommendations.clear()
     _documents.clear()
+    _comparison_loaded.clear()
 
     demo_proto = ProtocolSummary(
         protocol_id=DEMO_PROTOCOL_ID,
@@ -123,6 +121,30 @@ def reset_mock_state() -> None:
 
 # Seed initial state upon module import
 reset_mock_state()
+
+
+async def _load_comparison(protocol_id: str) -> None:
+    """Add the comparison agent's recommendations, once per protocol.
+
+    Runs on first use rather than at startup, and never overwrites an
+    existing item, so reviewer decisions survive later reads.
+    """
+    if protocol_id in _comparison_loaded:
+        return
+    try:
+        recommendations = await demo_recommendations(protocol_id)
+    except PeerStoreError as error:
+        logger.exception(
+            "comparison agent failed: protocol_id=%s", protocol_id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Comparison agent unavailable: {error}",
+        ) from error
+    stored = _recommendations.setdefault(protocol_id, {})
+    for recommendation in recommendations:
+        stored.setdefault(recommendation.recommendation_id, recommendation)
+    _comparison_loaded.add(protocol_id)
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -172,13 +194,14 @@ def get_protocol(protocol_id: str) -> ProtocolSummary:
     "/protocols/{protocol_id}/recommendations",
     response_model=list[Recommendation],
 )
-def list_recommendations(protocol_id: str) -> list[Recommendation]:
+async def list_recommendations(protocol_id: str) -> list[Recommendation]:
     """List all recommendations associated with a given protocol."""
     if protocol_id not in _protocols:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Protocol '{protocol_id}' not found",
         )
+    await _load_comparison(protocol_id)
     return list(_recommendations.get(protocol_id, {}).values())
 
 
@@ -186,7 +209,7 @@ def list_recommendations(protocol_id: str) -> list[Recommendation]:
     "/protocols/{protocol_id}/recommendations/{recommendation_id}",
     response_model=Recommendation,
 )
-def update_recommendation(
+async def update_recommendation(
     protocol_id: str,
     recommendation_id: str,
     request: RecommendationDecisionRequest,
@@ -197,6 +220,7 @@ def update_recommendation(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Protocol '{protocol_id}' not found",
         )
+    await _load_comparison(protocol_id)
 
     proto_recs = _recommendations.get(protocol_id, {})
     recommendation = proto_recs.get(recommendation_id)

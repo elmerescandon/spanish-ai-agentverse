@@ -1,0 +1,148 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT00949221",
+      "briefTitle": "Study of Insulin Therapy Augmented by Real Time Sensor IN Type 1 Children and Adolescents (START-IN!)",
+      "officialTitle": "Evaluation of Long-term Efficacy of 2 Strategies of Real Time Continuous Glucose Monitoring, Compared to Self BG-monitoring in Children and Adolescent With Type 1 Diabetes: a Randomized, Multicenter, Open Trial"
+    },
+    "statusModule": {
+      "overallStatus": "COMPLETED",
+      "startDateStruct": {
+        "date": "2009-09"
+      },
+      "completionDateStruct": {
+        "date": "2012-07"
+      },
+      "lastUpdatePostDateStruct": {
+        "date": "2023-02-06"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "leadSponsor": {
+        "name": "Assistance Publique - Hôpitaux de Paris",
+        "class": "OTHER"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": false
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Type 1 Diabetes"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE2",
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "NONE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 150,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "Group 1"
+        },
+        {
+          "label": "Group 2"
+        },
+        {
+          "label": "Group 3"
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DEVICE",
+          "name": "monitor Paradigm 754 VEO, MINILINK Real Time, Medtronic, CE"
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Comparison of the effect of 2 strategies of real time continuous glucose monitoring vs conventional SMBG on glycated haemoglobin = HbA1c measured at inclusion, 3, 6, 9, 12 months",
+          "timeFrame": "1 year"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "HbA1c and associated factors with HbA1c changes, others parameters of glycemic control, tolerance, acceptability, quality of life, satisfaction after use of real time continuous glucose monitoring in 150 pediatric patients",
+          "timeFrame": "3 months"
+        },
+        {
+          "measure": "Frequency of acute metabolic events (severe hypoglycaemia or ketoacidosis)",
+          "timeFrame": "1 year"
+        },
+        {
+          "measure": "Frequency of non-severe or symptomatic hypoglycaemia",
+          "timeFrame": "1 year"
+        },
+        {
+          "measure": "Average blood glucose and glycemic variability",
+          "timeFrame": "1 year"
+        },
+        {
+          "measure": "Tolerance of using the device of continuous glucose monitoring (skin tolerance)",
+          "timeFrame": "1 year"
+        },
+        {
+          "measure": "Acceptability of the device (percentage of time of use)",
+          "timeFrame": "1 year"
+        },
+        {
+          "measure": "General and diabetes-related Quality of life",
+          "timeFrame": "1 year"
+        },
+        {
+          "measure": "Satisfaction to use the device",
+          "timeFrame": "1 year"
+        },
+        {
+          "measure": "Medico-economic evaluation",
+          "timeFrame": "1 year"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n* Age between 2 years and 17 years 11 months.\n* Onset of type 1 diabetes ≥ 1 year.\n* Centralized HPLC HbA1c ≥ 7.5% and \\< 11%.\n* Intensive insulin therapy either by multiple daily injections ≥ 3 / day (rapid insulin analogue before 3 meal and 1 to 2 injections of basal insulin) or by continuous subcutaneous insulin infusion (pump).\n* Followed in the centre for ≥ 3 months.\n* Blood glucose self-monitoring ≥ 2/day.\n* No significant change of regimen insulin therapy for at least 3 months.\n* Patient receiving medical health insurance.\n* Patient who has given his consent\n\nExclusion Criteria:\n\n* Non type 1 diabetes(type 2 diabetes or diabetes whose evolution suggest other origin).\n* Association with another pathology which, in the discretion of the investigator, could affect the monitoring or be disturbed by the participation in the study.\n* Association with chronic treatment (steroids, growth hormone…) or chronic disease, including hypothyroidism and celiac disease, non stabilized for 3 months.\n* Association with severe skin disease.\n* Deafness, hearing or visual defect.",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "2 Years",
+      "maximumAge": "18 Years",
+      "stdAges": [
+        "CHILD",
+        "ADULT"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "Hôpital Robert Debré",
+          "city": "Paris",
+          "country": "France"
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "term": "Diabetes Mellitus, Type 1"
+        }
+      ]
+    }
+  }
+}

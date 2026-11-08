@@ -43,7 +43,7 @@ is one agent, and each returns the same `StepData` shape to the UI.
 | **02** | **Find missing or conflicting parts** | Checks the protocol against 283 rules from ICH M11, EMA and FDA guidance, ICH E9(R1), FDAAA and SPIRIT. Every flag gets a second Gemini opinion. | `completeness/` · Alex, Stefan |
 | **03** | **Compare with similar trials** | Searches ClinicalTrials.gov for trials with the protocol's phase and age group, then compares its ages, enrollment and lab limits with theirs, weighted by drug, class and recency. Flags values outside the peers' 10th to 90th percentile. | `protocol_comparison/` · Theo |
 | **04** | **Count the patients you would lose** | Turns eligibility criteria into computable rules and runs them on a CDC NHANES diabetes cohort, showing which criteria remove the most patients. | `cohort/` · Alvaro |
-| **05** | **Doctors make the call** | Each finding becomes a Decision Card with its quote, page, reasoning and options. Nothing changes without physician sign-off. | `frontend/` · Raul |
+| **05** | **Doctors make the call** | Each finding becomes a Decision Card with its quote, page, reasoning and options. Nothing changes without physician sign-off; accepted changes are saved with their evidence in a SQLite review log. | `frontend/` · Raul |
 
 ### Every finding points to real data
 
@@ -123,7 +123,7 @@ API, behind one client in `backend/clients/gemini.py`.
 
 | Layer | Stack |
 | :--- | :--- |
-| Backend | Python 3.14 (`uv`), FastAPI, Pydantic, `google-genai`, `httpx`, `pypdf` |
+| Backend | Python 3.14 (`uv`), FastAPI, Pydantic, `google-genai`, `httpx`, `pypdf`, SQLite |
 | Frontend | Next.js 16, React 19, Tailwind 4, Radix UI, Bun |
 | Quality | ruff (79-character lines), mypy, pytest, pre-commit, GitHub Actions |
 | Hosting | Vercel (backend and frontend from one repository) |
@@ -193,7 +193,7 @@ so they can be picked in any order.
 | :--- | :--- |
 | **Draft amendment text** | For an accepted option, drafts redlined wording and a short rationale citing the evidence; a person edits and approves it. |
 | **Before/after view** | Re-runs the pipeline on the edited protocol and shows the change in eligible pool, subgroup coverage, burden score and findings resolved or created. |
-| **Review history** | Stores every decision, including the reason for each dismissed finding, with a full audit trail. |
+| **Dismissal reasons** | Accepted changes are already logged in the database; also record each dismissed finding and why, for every step, to learn which flags matter. |
 
 ### Finding the missing patients
 

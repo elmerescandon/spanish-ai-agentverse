@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DemoPage from "@/app/demo/page";
 import StepView from "@/components/demo/StepView";
+import type { ReviewThread } from "@/lib/demo/types";
 import { MOCK_PROTOCOL_PAGE_COUNT, MOCK_STEPS } from "@/lib/demo/mock";
 import {
   findTraceabilityErrors,
@@ -12,14 +13,21 @@ import type { StepData } from "@/lib/demo/types";
 
 type User = ReturnType<typeof userEvent.setup>;
 
-async function runStep(user: User, title: string) {
-  await user.click(screen.getByRole("button", { name: `Run ${title}` }));
+const SLOW_STEP_TIMEOUT_MS = 4000;
+
+async function loadPreset(user: User) {
+  await user.click(
+    screen.getByRole("button", { name: /Run Preselected Protocol/ })
+  );
+}
+
+async function waitForAllStepsDone() {
   await waitFor(
     () =>
       expect(
-        screen.getByRole("button", { name: `Open ${title}` })
-      ).toBeInTheDocument(),
-    { timeout: 2000 }
+        screen.getByRole("button", { name: "Cohort Comparison" })
+      ).toBeEnabled(),
+    { timeout: SLOW_STEP_TIMEOUT_MS }
   );
 }
 
@@ -68,178 +76,179 @@ describe("demo traceability mock data", () => {
   });
 });
 
-describe("demo pipeline zoom flow", () => {
+describe("demo pipeline step bar flow", () => {
   beforeEach(() => {
     mock.restore();
   });
 
-  it("starts zoomed out with only the first step runnable", () => {
+  it("shows the upload entry before any protocol is loaded", () => {
     render(<DemoPage />);
 
     expect(
-      screen.getByRole("button", { name: "Run Data Ingestion" })
-    ).toBeInTheDocument();
-    for (const title of [
-      "Completeness & Consistency",
-      "Protocol Comparison",
-      "Cohort Comparison",
-    ]) {
-      expect(
-        screen.queryByRole("button", { name: `Run ${title}` })
-      ).not.toBeInTheDocument();
-    }
-  });
-
-  it("unlocks the next step only after the previous one finishes", async () => {
-    const user = userEvent.setup();
-    render(<DemoPage />);
-
-    await runStep(user, "Data Ingestion");
-
-    expect(
-      screen.getByRole("button", { name: "Run Completeness & Consistency" })
+      screen.getByRole("button", { name: /Run Preselected Protocol/ })
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Run Protocol Comparison" })
+      screen.queryByRole("navigation", { name: "Pipeline steps" })
     ).not.toBeInTheDocument();
   });
 
-  it("zooms from pipeline to step to decision and back out", async () => {
+  it("shows the step bar on the first step after a preset loads", async () => {
     const user = userEvent.setup();
     render(<DemoPage />);
-    await runStep(user, "Data Ingestion");
-    await runStep(user, "Completeness & Consistency");
+    await loadPreset(user);
 
-    await user.click(
-      screen.getByRole("button", { name: "Open Completeness & Consistency" })
-    );
+    expect(
+      screen.getByRole("navigation", { name: "Pipeline steps" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Data Ingestion" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Data Ingestion" })
+    ).toBeEnabled();
+  });
+
+  it("completes steps in order and keeps later ones disabled until done", async () => {
+    const user = userEvent.setup();
+    render(<DemoPage />);
+    await loadPreset(user);
+
+    const check = screen.getByRole("button", {
+      name: "Completeness & Consistency",
+    });
+    const cohort = screen.getByRole("button", { name: "Cohort Comparison" });
+    expect(check).toBeDisabled();
+    expect(cohort).toBeDisabled();
+
+    await waitFor(() => expect(check).toBeEnabled(), {
+      timeout: SLOW_STEP_TIMEOUT_MS,
+    });
+    expect(cohort).toBeDisabled();
+
+    await waitForAllStepsDone();
+    // The user stayed on step 1 while later steps completed.
+    expect(
+      screen.getByRole("heading", { name: "Data Ingestion" })
+    ).toBeInTheDocument();
+  });
+
+  it("navigates with arrows, segments and keyboard keys", async () => {
+    const user = userEvent.setup();
+    render(<DemoPage />);
+    await loadPreset(user);
+    await waitForAllStepsDone();
+
+    expect(
+      screen.getByRole("button", { name: "Previous step" })
+    ).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Next step" }));
     expect(
       screen.getByRole("heading", { name: "Completeness & Consistency" })
     ).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole("button", { name: /Endpoint week conflicts/ })
+      screen.getByRole("button", { name: "Protocol Comparison" })
     );
-    const nav = screen.getByRole("navigation", { name: "Zoom level" });
-    expect(within(nav).getByText("Pipeline")).toBeInTheDocument();
     expect(
-      within(nav).getByText("Endpoint week conflicts with schedule")
-    ).toHaveAttribute("aria-current", "page");
-
-    // Evidence carries its document and page.
-    expect(
-      screen.getByText(/mean change in HbA1c from baseline at Week 24/)
-    ).toBeInTheDocument();
-    expect(screen.getByText("p. 12")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Zoom out" }));
-    expect(
-      screen.getByRole("heading", { name: "Completeness & Consistency" })
+      screen.getByRole("heading", { name: "Protocol Comparison" })
     ).toBeInTheDocument();
 
-    await user.click(within(nav).getByRole("button", { name: "Pipeline" }));
+    await user.keyboard("{ArrowRight}");
     expect(
-      screen.getByRole("heading", {
-        name: "From draft protocol to reviewed decisions",
-      })
+      screen.getByRole("heading", { name: "Cohort Comparison" })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next step" })).toBeDisabled();
+
+    await user.keyboard("{ArrowLeft}");
+    expect(
+      screen.getByRole("heading", { name: "Protocol Comparison" })
     ).toBeInTheDocument();
   });
 
-  it("follows a decision back to the earlier finding it builds on", async () => {
+  it("ignores arrow keys typed inside a text input", async () => {
     const user = userEvent.setup();
     render(<DemoPage />);
-    await runStep(user, "Data Ingestion");
-    await runStep(user, "Completeness & Consistency");
+    await loadPreset(user);
+    await waitForAllStepsDone();
 
-    await user.click(
-      screen.getByRole("button", { name: "Open Completeness & Consistency" })
-    );
-    await user.click(
-      screen.getByRole("button", { name: /Endpoint week conflicts/ })
-    );
-    await user.click(
-      screen.getByRole("button", {
-        name: "Schedule of Activities partly unreadable",
-      })
-    );
-
-    expect(
-      screen.getByRole("heading", {
-        name: "Schedule of Activities partly unreadable",
-      })
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("navigation", { name: "Zoom level" })).getByText(
-        "Data Ingestion"
-      )
-    ).toBeInTheDocument();
+    const field = document.createElement("input");
+    document.body.appendChild(field);
+    try {
+      fireEvent.keyDown(field, { key: "ArrowRight" });
+      expect(
+        screen.getByRole("heading", { name: "Data Ingestion" })
+      ).toBeInTheDocument();
+    } finally {
+      field.remove();
+    }
   });
 
-  it("requires a reason before a finding can be dismissed", async () => {
+  it("opens a finding under the step bar and goes back by button or Esc", async () => {
     const user = userEvent.setup();
     render(<DemoPage />);
-    await runStep(user, "Data Ingestion");
-    await user.click(
-      screen.getByRole("button", { name: "Open Data Ingestion" })
-    );
+    await loadPreset(user);
+
     await user.click(
       screen.getByRole("button", { name: /Eligibility criteria extracted/ })
     );
-
-    await user.click(screen.getByRole("button", { name: "Dismiss" }));
-    const confirm = screen.getByRole("button", { name: "Confirm dismissal" });
-    expect(confirm).toBeDisabled();
-
-    await user.type(
-      screen.getByLabelText("Reason for dismissing"),
-      "   "
-    );
-    expect(confirm).toBeDisabled();
-
-    await user.type(
-      screen.getByLabelText("Reason for dismissing"),
-      "Counts checked by hand"
-    );
-    await user.click(confirm);
-    expect(screen.getByText(/Counts checked by hand/)).toBeInTheDocument();
-  });
-
-  it("runs all four steps and shows an accepted decision in its step", async () => {
-    const user = userEvent.setup();
-    render(<DemoPage />);
-    for (const step of MOCK_STEPS) {
-      await runStep(user, step.title);
-    }
+    expect(
+      screen.getByRole("heading", { name: "Eligibility criteria extracted" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: "Pipeline steps" })
+    ).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole("button", { name: "Open Cohort Comparison" })
+      screen.getByRole("button", { name: "Back to findings" })
     );
-    await user.click(
-      screen.getByRole("button", { name: /eGFR exclusion removes/ })
-    );
-    await user.click(screen.getByRole("button", { name: "Accept" }));
-    await user.click(screen.getByRole("button", { name: "Zoom out" }));
+    expect(
+      screen.getByRole("heading", { name: "Data Ingestion" })
+    ).toBeInTheDocument();
 
-    const row = screen.getByRole("button", {
-      name: /eGFR exclusion removes/,
-    });
-    expect(within(row).getByText("Accepted")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: /Eligibility criteria extracted/ })
+    );
+    await user.keyboard("{Escape}");
+    expect(
+      screen.queryByRole("button", { name: "Back to findings" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Data Ingestion" })
+    ).toBeInTheDocument();
   });
 });
 
 describe("StepView in isolation", () => {
-  it("renders any step from props alone, without the pipeline", () => {
+  it("renders any step from props alone, showing thread status", () => {
     const peers = MOCK_STEPS.find((step) => step.id === "peers")!;
+    const firstId = peers.decisions[0].decision_id;
+    const threads: Record<string, ReviewThread> = {
+      [firstId]: {
+        decision_id: firstId,
+        resolution: "accepted",
+        comments: [
+          {
+            comment_id: "c-1",
+            author: "You",
+            body: "Looks right",
+            created_at: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      },
+    };
     render(
-      <StepView step={peers} humanDecisions={{}} onOpenDecision={() => {}} />
+      <StepView step={peers} threads={threads} onOpenDecision={() => {}} />
     );
 
     expect(
       screen.getByRole("heading", { name: "Protocol Comparison" })
     ).toBeInTheDocument();
     expect(screen.getByText("HbA1c ≥ 9.0")).toBeInTheDocument();
-    expect(screen.getAllByText("Pending")).toHaveLength(
-      peers.decisions.length
+    expect(screen.getByText("Accepted")).toBeInTheDocument();
+    expect(screen.getByText("1 comment")).toBeInTheDocument();
+    expect(screen.getAllByText("Open")).toHaveLength(
+      peers.decisions.length - 1
     );
   });
 });

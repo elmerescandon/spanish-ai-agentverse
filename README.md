@@ -41,7 +41,7 @@ is one agent, and each returns the same `StepData` shape to the UI.
 | :---: | :--- | :--- | :--- |
 | **01** | **Understand the protocol** | Parses the PDF into a typed `ProtocolDocument`: 11 facets under ICH M11 headings. Every fact has a quote and a page, checked against the PDF text. | `parser/` · Alex |
 | **02** | **Find missing or conflicting parts** | Checks the protocol against 283 rules from ICH M11, EMA and FDA guidance, ICH E9(R1), FDAAA and SPIRIT. Every flag gets a second Gemini opinion. | `completeness/` · Alex, Stefan |
-| **03** | **Compare with similar trials** | Compares the protocol's ages, enrollment and lab limits with similar ClinicalTrials.gov trials, weighted by drug, class and recency. Flags values outside the peers' 10th to 90th percentile. | `protocol_comparison/` · Theo |
+| **03** | **Compare with similar trials** | Searches ClinicalTrials.gov for trials with the protocol's phase and age group, then compares its ages, enrollment and lab limits with theirs, weighted by drug, class and recency. Flags values outside the peers' 10th to 90th percentile. | `protocol_comparison/` · Theo |
 | **04** | **Count the patients you would lose** | Turns eligibility criteria into computable rules and runs them on a CDC NHANES diabetes cohort, showing which criteria remove the most patients. | `cohort/` · Alvaro |
 | **05** | **Doctors make the call** | Each finding becomes a Decision Card with its quote, page, reasoning and options. Nothing changes without physician sign-off. | `frontend/` · Raul |
 
@@ -49,7 +49,7 @@ is one agent, and each returns the same `StepData` shape to the UI.
 
 | Source | Role |
 | :--- | :--- |
-| **ClinicalTrials.gov** | Peer type 2 diabetes trials to compare against (snapshot in `data/peers/`) |
+| **ClinicalTrials.gov** | Type 2 diabetes trials with the same phase and age group as the protocol, searched live |
 | **ICH M11, SPIRIT 2025, EMA and FDA guidance** | The checklist of what a complete protocol must contain |
 | **CDC NHANES** | Real patients to test who would qualify (`data/cohort/`) |
 
@@ -182,7 +182,6 @@ runs end to end today; these extend it.
 
 | Feature | What it adds |
 | :--- | :--- |
-| **Protocol-specific peer search** | Choose comparison trials from the protocol's own condition, phase, population and date, instead of the demo's fixed search. |
 | **More dimensions** | Washout periods, visit burden, study duration and sample-size assumptions alongside ages, enrollment and lab limits. |
 | **Like-for-like lab limits** | Compare eGFR cut-offs only between trials that use the same equation (CKD-EPI or MDRD). |
 

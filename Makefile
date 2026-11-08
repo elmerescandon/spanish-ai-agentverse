@@ -1,4 +1,4 @@
-.PHONY: install dev dev-frontend run format lint test test-live check demo
+.PHONY: install dev dev-frontend run parse format lint test test-extended test-live check demo
 
 install:
 	uv sync
@@ -14,6 +14,9 @@ dev-frontend:
 run:
 	uv run python -m backend.main
 
+parse:
+	uv run python -m backend.agents.parser $(PDF)
+
 format:
 	uv run ruff format .
 	uv run ruff check --fix .
@@ -28,8 +31,12 @@ test:
 	uv run pytest
 	bun run --cwd frontend test
 
+test-extended:
+	uv run pytest -m 'not live'
+	bun run --cwd frontend test
+
 test-live:
-	uv run pytest -m live
+	uv run pytest -m live -o log_cli=true --log-cli-level=INFO
 
 check: format lint test
 

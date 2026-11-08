@@ -17,3 +17,4 @@ Follow all rules in CONVENTIONS.md. They apply to every line you write or change
 - Never change `backend/shared/messages.py` or `backend/api/` without flagging it: other people's code depends on them.
 - Keep diffs small and focused on the task; no drive-by refactors.
 - Mark deliberate shortcuts with `# [TO REFACTOR:(name)]: reason`.
+- Before every `git pull`: check `git status` and run `make check`. If it fails, report and stop. If it passes, run `git pull` and then run `make check` again to validate the updated code.

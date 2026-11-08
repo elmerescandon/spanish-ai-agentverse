@@ -31,6 +31,10 @@ from backend.api.protocol_pipeline import (
     ProtocolPipeline,
     set_protocol_pipeline,
 )
+from backend.clients.document_store import (
+    MemoryDocumentStore,
+    set_document_store,
+)
 from backend.clients.gemini import (
     GeminiClient,
     JsonGenerator,
@@ -261,6 +265,14 @@ async def out_of_line_demo_comparison() -> DemoComparison:
         results=results,
         cards=cards,
     )
+
+
+@pytest.fixture(autouse=True)
+def _memory_document_store() -> Generator[None]:
+    """Every test starts with an empty in-memory document store, never Blob."""
+    set_document_store(MemoryDocumentStore())
+    yield
+    set_document_store(None)
 
 
 @pytest.fixture(autouse=True)

@@ -6,6 +6,9 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from backend.agents.protocol_comparison.demo import DemoComparison
+from backend.agents.protocol_comparison.peer_store import PeerStoreError
+from backend.api import agent_runners
 from backend.api.routes import reset_mock_state
 from backend.main import app
 from tests.conftest import make_pdf
@@ -159,3 +162,34 @@ def test_recommendation_route_called_twice_returns_same_result(
     first = client.post(route, json={"protocol_id": protocol_id})
     second = client.post(route, json={"protocol_id": protocol_id})
     assert first.json() == second.json()
+
+
+def test_protocol_recommendation_serves_the_comparison_agent(
+    client: TestClient, tmp_path: Path
+) -> None:
+    protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
+    body = client.post(
+        "/api/protocol-recommendation", json={"protocol_id": protocol_id}
+    ).json()
+    assert body["agent"] == "protocol_comparison"
+    assert body["data_sources"][0]["source"] == "aact"
+    assert body["data_sources"][0]["record_count"] > 0
+    assert all(
+        decision["decision_id"].startswith("comparison-")
+        for decision in body["decisions"]
+    )
+
+
+def test_protocol_recommendation_returns_500_when_peer_cache_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def missing_peers() -> DemoComparison:
+        raise PeerStoreError("expected cached demo peers, found none")
+
+    monkeypatch.setattr(agent_runners, "compare_demo_draft", missing_peers)
+    client = TestClient(app, raise_server_exceptions=False)
+    protocol_id = upload_pdf(client, tmp_path)["protocol_id"]
+    response = client.post(
+        "/api/protocol-recommendation", json={"protocol_id": protocol_id}
+    )
+    assert response.status_code == 500

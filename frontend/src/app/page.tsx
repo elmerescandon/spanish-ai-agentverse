@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AsciiProteinViewer } from "@/components/ascii-protein-viewer";
+import { InsulinIcon } from "@/components/insulin-icon";
 import type { ProtocolSummary, Recommendation } from "@/lib/api";
 
 export const DEFAULT_PROTOCOL: ProtocolSummary = {
@@ -72,10 +73,6 @@ interface StepData {
   readonly number: string;
   readonly phase: string;
   readonly title: string;
-  readonly owner: string;
-  readonly input: string;
-  readonly process: string;
-  readonly output: string;
   readonly summary: string;
 }
 
@@ -83,67 +80,42 @@ const PIPELINE_STEPS: readonly StepData[] = [
   {
     id: "step-00",
     number: "00",
-    phase: "Data Ingestion",
-    title: "ICH M11 Document Structuring",
-    owner: "Alex",
-    input: "Draft Protocol PDF + SAP + Consent Forms",
-    process:
-      "Hierarchical section parser mapping text to ICH M11 headings, Schedule of Activities tables, and discrete criteria items",
-    output: "Canonical ProtocolDocument JSON with page-level citations",
+    phase: "Read",
+    title: "Understand the protocol",
     summary:
-      "Extracts unstructured clinical trial PDFs into a verified JSON structure with verbatim page quotes and Schedule of Activities matrices.",
+      "Turns the PDF into structured sections and criteria, each linked to its source page.",
   },
   {
     id: "step-01",
     number: "01",
-    phase: "Rubric Audit",
-    title: "Completeness & Consistency",
-    owner: "Alex",
-    input: "Structured ProtocolDocument JSON",
-    process:
-      "SPIRIT 2025 guideline evaluator scoring completeness (present, weak, missing) & cross-checking endpoints vs consent forms",
-    output: "Consistency Audit Matrix & Missing Section Flags",
+    phase: "Check",
+    title: "Find missing or conflicting parts",
     summary:
-      "Audits trial design against SPIRIT 2025 guidelines and resolves contradictions between primary endpoints, visit tables, and consent forms.",
+      "Flags gaps and contradictions before they turn into amendments.",
   },
   {
     id: "step-02",
     number: "02",
-    phase: "Peer Benchmarking",
-    title: "Historical Peer Trial Comparison",
-    owner: "Theo",
-    input: "Protocol Eligibility & Design Rules",
-    process:
-      "AACT / ClinicalTrials.gov query matching 10-Yr Type 2 Diabetes trials by phase & intervention class across 10 clinical dimensions",
-    output: "Percentile Distribution Gauge & Outlier Alert Flags",
+    phase: "Compare",
+    title: "Compare with similar trials",
     summary:
-      "Flags statistical outliers outside peer 10th–90th percentiles for lab thresholds, washout periods, visit frequencies, and age boundaries.",
+      "Flags criteria that fall outside what comparable diabetes trials used.",
   },
   {
     id: "step-03",
     number: "03",
-    phase: "Cohort Simulation",
-    title: "Cohort Attrition & Diversity",
-    owner: "Alvaro",
-    input: "Computable Inclusion / Exclusion Rules",
-    process:
-      "OMOP SQL translation filtering real-world MIMIC-IV and Synthea patient populations to isolate recruitment drop-offs",
-    output: "Recruitment Attrition Waterfall & Demographic Parity Benchmarks",
+    phase: "Simulate",
+    title: "Count the patients you would lose",
     summary:
-      "Translates protocol criteria into executable SQL queries, simulating real patient attrition to identify criteria driving recruitment failure.",
+      "Shows how many real patients each criterion removes from the pool.",
   },
   {
     id: "step-04",
     number: "04",
-    phase: "Human-in-the-Loop Review",
-    title: "Clinician-Facing Decision Cards",
-    owner: "Raul",
-    input: "Multi-Agent Outlier & Feasibility Findings",
-    process:
-      "Decision Card synthesis bundling verbatim quotes, peer evidence, accrual deltas, and doctor approval actions",
-    output: "Clinician-Approved Protocol Amendments & Final Report",
+    phase: "Decide",
+    title: "Doctors make the call",
     summary:
-      "Presents actionable Decision Cards requiring explicit physician sign-off, ensuring deliberate safety boundaries are never auto-relaxed.",
+      "Each finding becomes a card. Nothing changes without physician sign-off.",
   },
 ];
 
@@ -154,8 +126,6 @@ export default function HomePage() {
   };
 
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
-  const [pipelineScrollProgress, setPipelineScrollProgress] =
-    useState<number>(0.2);
   const [decisionAction, setDecisionAction] = useState<"pending" | "approved">(
     "pending"
   );
@@ -170,8 +140,6 @@ export default function HomePage() {
       if (totalDist > 0) {
         const scrolled = -rect.top + viewportHeight * 0.25;
         const progress = Math.max(0, Math.min(1, scrolled / totalDist));
-        setPipelineScrollProgress(progress);
-
         const stepIdx = Math.min(
           PIPELINE_STEPS.length - 1,
           Math.max(0, Math.floor(progress * PIPELINE_STEPS.length))
@@ -197,8 +165,9 @@ export default function HomePage() {
             <a
               href="#"
               style={serifFont}
-              className="text-2xl sm:text-3xl font-normal tracking-tight text-zinc-900 hover:text-emerald-800 transition-colors"
+              className="flex items-center gap-2.5 text-2xl sm:text-3xl font-normal tracking-tight text-zinc-950"
             >
+              <InsulinIcon className="h-8 w-8 sm:h-9 sm:w-9 shrink-0" />
               ProtocolAI
             </a>
           </div>
@@ -231,23 +200,19 @@ export default function HomePage() {
 
       {/* Hero Section: Left-Aligned so the 3D ASCII Protein dominates the Right */}
       <section className="relative z-10 mx-auto min-h-[calc(100vh-70px)] max-w-7xl px-6 pt-12 pb-24 sm:px-10 sm:pt-20 lg:px-12 flex flex-col justify-center">
-        <div className="max-w-2xl lg:max-w-3xl space-y-8">
+        <div className="glass-panel max-w-2xl lg:max-w-3xl space-y-8">
           <h1
             style={serifFont}
             className="text-2xl sm:text-3xl md:text-4xl font-normal tracking-tight text-zinc-900 leading-snug max-w-xl not-italic"
           >
-            Catching avoidable clinical trial amendments and accrual bottlenecks
-            before the first patient is enrolled.
+            Find protocol problems before the first patient is enrolled.
           </h1>
 
           <p className="text-base sm:text-lg text-zinc-600 leading-relaxed font-sans max-w-xl">
-            Clinical trial protocols are the blueprint of medical discovery, yet
-            most require costly mid-trial amendments or stall due to overly
-            restrictive eligibility criteria. Focused on Type 2 Diabetes
-            Mellitus, ProtocolAI deploys a multi-agent verification pipeline
-            that stress-tests draft protocols against regulatory guidelines,
-            historical peer trials, and real-world patient cohorts prior to
-            trial launch.
+            More than half of trial protocols need amendments mid-study.
+            ProtocolAI checks a draft type 2 diabetes protocol against peer
+            trials and real patient data, then gives doctors clear cards to
+            act on.
           </p>
 
           <div className="pt-2 flex flex-wrap items-center gap-4">
@@ -267,8 +232,8 @@ export default function HomePage() {
         </div>
 
         {/* 3 Key Problem Metrics (#problem) without box borders */}
-        <div id="problem" className="pt-20 sm:pt-28">
-          <div className="grid grid-cols-1 gap-10 sm:grid-cols-3 max-w-4xl border-t border-zinc-200/40 pt-10">
+        <div id="problem" className="glass-panel mt-20 sm:mt-28 max-w-4xl">
+          <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
             <div className="space-y-2">
               <span
                 style={serifFont}
@@ -277,12 +242,10 @@ export default function HomePage() {
                 57%
               </span>
               <p className="text-sm font-medium text-zinc-900">
-                Protocols Require Major Amendments
+                Need major amendments
               </p>
               <p className="text-xs text-zinc-500 leading-relaxed">
-                More than half of all clinical trial protocols undergo at least
-                one substantial mid-study amendment, adding months to trial
-                timelines.
+                Over half change after the trial starts, adding months.
               </p>
             </div>
 
@@ -294,12 +257,10 @@ export default function HomePage() {
                 45%
               </span>
               <p className="text-sm font-medium text-zinc-900">
-                Amendments Are Entirely Preventable
+                Could have been avoided
               </p>
               <p className="text-xs text-zinc-500 leading-relaxed">
-                Nearly half of all protocol amendments stem from design flaws,
-                inconsistencies, or unrealistic criteria detectable prior to
-                study start.
+                Nearly half come from flaws visible before launch.
               </p>
             </div>
 
@@ -311,18 +272,15 @@ export default function HomePage() {
                 18%
               </span>
               <p className="text-sm font-medium text-zinc-900">
-                Trials Terminated Early for Accrual
+                Close early for low enrollment
               </p>
               <p className="text-xs text-zinc-500 leading-relaxed">
-                Nearly one in five trials close early or fail to reach target
-                enrollment due to recruitment bottlenecks and overly narrow
-                cohort filters.
+                Criteria that are too narrow leave trials short of patients.
               </p>
             </div>
           </div>
           <p className="pt-4 font-sans text-xs text-zinc-400">
-            Source: Getz et al., Tufts CSDD (2024); Wong et al., JNCI (2020);
-            AACT Database analysis.
+            Sources: Getz et al., Tufts CSDD (2024); Wong et al., JNCI (2020).
           </p>
         </div>
       </section>
@@ -334,51 +292,59 @@ export default function HomePage() {
         className="relative z-10 border-t border-zinc-200/40 bg-zinc-50/50 backdrop-blur-[2px] py-24 sm:py-32"
       >
         <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-12 space-y-16">
-          <div className="max-w-2xl space-y-4">
+          <div className="glass-panel max-w-2xl space-y-4">
             <span className="font-sans text-xs font-semibold uppercase tracking-wider text-emerald-800">
-              Interactive Process Flow
+              How it works
             </span>
             <h2
               style={serifFont}
               className="text-4xl sm:text-5xl md:text-6xl font-normal text-zinc-950 tracking-tight"
             >
-              End-to-End Multi-Agent Architecture
+              From draft protocol to doctor-approved changes
             </h2>
             <p className="text-base text-zinc-600 leading-relaxed">
-              Each step is an active process transformation. An autonomous
-              multi-agent loop converts draft protocol PDFs, SAPs, and consent
-              forms into computable rules and clinician-approved Decision Cards.
+              Five steps. Each one catches a different kind of problem.
             </p>
           </div>
 
           {/* Connected Process Flow Timeline */}
-          <div className="relative pl-8 sm:pl-12 max-w-4xl space-y-16 sm:space-y-20">
-            {/* Continuous Vertical Connecting Spine */}
-            <div className="absolute left-3.5 sm:left-5 top-4 bottom-8 w-0.5 bg-zinc-200/60">
-              <div
-                className="w-full bg-emerald-600 transition-all duration-300 ease-out"
-                style={{
-                  height: `${Math.max(8, pipelineScrollProgress * 100)}%`,
-                }}
-              />
-            </div>
-
+          <div className="max-w-4xl space-y-16 sm:space-y-20">
             {PIPELINE_STEPS.map((step, idx) => {
               const isActive = activeStepIndex === idx;
+              const isDone = idx < activeStepIndex;
+              const isLast = idx === PIPELINE_STEPS.length - 1;
               return (
                 <div
                   key={step.id}
-                  className={`relative transition-all duration-500 ${
+                  className={`relative pl-12 sm:pl-16 transition-opacity duration-500 ${
                     isActive ? "opacity-100" : "opacity-80 hover:opacity-100"
                   }`}
                   onClick={() => setActiveStepIndex(idx)}
                 >
-                  {/* Step Node Marker on the Spine */}
+                  {/* Connector to the next marker. It starts at the bottom of
+                      its own marker and ends at the top of the next one:
+                      step gap (64/80px) + marker offset (24/32px) below. */}
+                  {!isLast && (
+                    <div
+                      aria-hidden="true"
+                      className="absolute left-[15px] top-14 -bottom-[88px] w-0.5 bg-zinc-200 sm:top-16 sm:-bottom-28"
+                    >
+                      <div
+                        className={`w-full bg-emerald-600 transition-[height] duration-500 ease-out ${
+                          isDone ? "h-full" : "h-0"
+                        }`}
+                      />
+                    </div>
+                  )}
+
+                  {/* Step Node Marker: sits on the panel's first line */}
                   <div
-                    className={`absolute -left-8 sm:-left-12 top-0.5 flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border-2 transition-all duration-300 ${
+                    className={`absolute left-0 top-6 sm:top-8 z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors duration-300 ${
                       isActive
-                        ? "border-emerald-600 bg-emerald-50 text-emerald-800 scale-110 shadow-sm"
-                        : "border-zinc-300 bg-white text-zinc-500"
+                        ? "border-emerald-600 bg-emerald-50 text-emerald-800 shadow-sm"
+                        : isDone
+                          ? "border-emerald-600 bg-emerald-600 text-white"
+                          : "border-zinc-300 bg-white text-zinc-500"
                     }`}
                   >
                     <span className="font-sans text-xs font-semibold">
@@ -387,14 +353,10 @@ export default function HomePage() {
                   </div>
 
                   {/* Step Header */}
-                  <div className="space-y-3">
+                  <div className="glass-panel mx-0 space-y-3">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <span className="font-sans text-xs font-semibold uppercase tracking-wider text-emerald-800">
                         {step.phase}
-                      </span>
-                      <span className="text-zinc-300">·</span>
-                      <span className="font-sans text-xs font-medium text-zinc-500">
-                        Lead: {step.owner}
                       </span>
                     </div>
 
@@ -409,35 +371,7 @@ export default function HomePage() {
                       {step.summary}
                     </p>
 
-                    {/* Active Process Transformation Stage (Input ➔ Process ➔ Output) */}
                     <div className="pt-4 space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                        <div className="p-3 bg-white/80 rounded-lg border-l-2 border-zinc-200 space-y-1">
-                          <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wide block">
-                            Input
-                          </span>
-                          <span className="text-zinc-800 font-medium block">
-                            {step.input}
-                          </span>
-                        </div>
-                        <div className="p-3 bg-white/80 rounded-lg border-l-2 border-emerald-500 space-y-1">
-                          <span className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wide block">
-                            Agent Process
-                          </span>
-                          <span className="text-zinc-800 font-medium block">
-                            {step.process}
-                          </span>
-                        </div>
-                        <div className="p-3 bg-white/80 rounded-lg border-l-2 border-zinc-900 space-y-1">
-                          <span className="text-[11px] font-semibold text-zinc-900 uppercase tracking-wide block">
-                            Output Artifact
-                          </span>
-                          <span className="text-zinc-800 font-medium block">
-                            {step.output}
-                          </span>
-                        </div>
-                      </div>
-
                       {/* Specialized Interactive Visual Transformations */}
                       {step.id === "step-01" && (
                         <div className="p-4 bg-white/70 rounded-xl space-y-2.5 max-w-xl">
@@ -535,7 +469,7 @@ export default function HomePage() {
                       )}
 
                       {step.id === "step-04" && (
-                        <div className="p-4 bg-white/90 rounded-xl border-l-2 border-emerald-600 space-y-3 max-w-xl shadow-sm">
+                        <div className="p-4 bg-white/90 rounded-xl space-y-3 max-w-xl shadow-sm">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-semibold text-zinc-900">
                               Decision Card: Section 6.3 Renal Safety
@@ -594,107 +528,64 @@ export default function HomePage() {
         className="relative z-10 border-t border-zinc-200/40 bg-white py-24 sm:py-32"
       >
         <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-12 space-y-16">
-          <div className="max-w-2xl space-y-4">
+          <div className="glass-panel max-w-2xl space-y-4">
             <span className="font-sans text-xs font-semibold uppercase tracking-wider text-emerald-800">
-              Evidence & Ontology
+              Evidence
             </span>
             <h2
               style={serifFont}
               className="text-4xl sm:text-5xl md:text-6xl font-normal text-zinc-950 tracking-tight"
             >
-              Grounded in Regulatory Standards & Real-World Evidence
+              Every finding points to real data
             </h2>
             <p className="text-base text-zinc-600 leading-relaxed">
-              ProtocolAI does not rely on unconstrained general LLM speculation;
-              every validation check is anchored against authoritative clinical
-              trial registries, global protocol rubrics, and real-world EHR
-              ontologies.
+              No guessing. Each check is tied to a public source.
             </p>
           </div>
 
-          <div className="divide-y divide-zinc-200/40 max-w-4xl">
+          <div className="glass-panel divide-y divide-zinc-200/40 max-w-4xl py-0 sm:py-0">
             <div className="py-7 space-y-1.5">
               <span className="font-sans text-xs font-semibold uppercase tracking-wide text-emerald-800">
-                AACT / ClinicalTrials.gov
+                ClinicalTrials.gov
               </span>
               <h4
                 style={serifFont}
                 className="text-2xl font-normal text-zinc-900"
               >
-                Peer Protocol Corpus
+                Peer trials
               </h4>
               <p className="text-sm text-zinc-600 leading-relaxed">
-                Structured eligibility criteria, baseline enrolled
-                demographics, and historical amendment logs from peer Type 2
-                Diabetes trials over the last 10 years.
+                Ten years of type 2 diabetes trials to compare against.
               </p>
             </div>
 
             <div className="py-7 space-y-1.5">
               <span className="font-sans text-xs font-semibold uppercase tracking-wide text-emerald-800">
-                SPIRIT 2025 & ICH M11
+                SPIRIT 2025 &amp; ICH M11
               </span>
               <h4
                 style={serifFont}
                 className="text-2xl font-normal text-zinc-900"
               >
-                Global Protocol Guidelines
+                Clinical guidelines
               </h4>
               <p className="text-sm text-zinc-600 leading-relaxed">
-                Standardized completeness rubric covering trial estimands,
-                Schedule of Activities tables, and predefined safety stopping
-                rules.
+                A checklist of what a complete protocol must contain.
               </p>
             </div>
 
             <div className="py-7 space-y-1.5">
               <span className="font-sans text-xs font-semibold uppercase tracking-wide text-emerald-800">
-                MIMIC-IV Real-World EHR
+                MIMIC-IV &amp; Synthea
               </span>
               <h4
                 style={serifFont}
                 className="text-2xl font-normal text-zinc-900"
               >
-                Patient Cohort Filtering
+                Patient records
               </h4>
               <p className="text-sm text-zinc-600 leading-relaxed">
-                Real-world longitudinal patient records used to simulate
-                sequential criteria filtering, generate attrition waterfalls,
-                and analyze subgroup inclusion.
-              </p>
-            </div>
-
-            <div className="py-7 space-y-1.5">
-              <span className="font-sans text-xs font-semibold uppercase tracking-wide text-emerald-800">
-                Synthea Synthetic Populations
-              </span>
-              <h4
-                style={serifFont}
-                className="text-2xl font-normal text-zinc-900"
-              >
-                Deterministic Test Harness
-              </h4>
-              <p className="text-sm text-zinc-600 leading-relaxed">
-                Synthetic longitudinal patient records enabling rapid pipeline
-                development, deterministic criteria rule verification, and
-                continuous integration testing.
-              </p>
-            </div>
-
-            <div className="py-7 space-y-1.5">
-              <span className="font-sans text-xs font-semibold uppercase tracking-wide text-emerald-800">
-                OMOP Common Data Model & Athena
-              </span>
-              <h4
-                style={serifFont}
-                className="text-2xl font-normal text-zinc-900"
-              >
-                Standardized Vocabularies
-              </h4>
-              <p className="text-sm text-zinc-600 leading-relaxed">
-                Standardized SNOMED, RxNorm, and LOINC clinical concepts
-                powering unambiguous translation of free-text medical
-                eligibility criteria into computable cohort queries.
+                Real and synthetic patients to test who would qualify.
               </p>
             </div>
           </div>
@@ -707,31 +598,28 @@ export default function HomePage() {
         className="relative z-10 border-t border-zinc-200/40 bg-zinc-50/50 backdrop-blur-[2px] py-24 sm:py-32"
       >
         <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-12 space-y-16">
-          <div className="max-w-2xl space-y-4">
+          <div className="glass-panel max-w-2xl space-y-4">
             <span className="font-sans text-xs font-semibold uppercase tracking-wider text-emerald-800">
-              Clinical Safety & Governance
+              Safety
             </span>
             <h2
               style={serifFont}
               className="text-4xl sm:text-5xl md:text-6xl font-normal text-zinc-950 tracking-tight"
             >
-              Validation Rigor & Clinical Safety Guardrails
+              Built so doctors stay in control
             </h2>
             <p className="text-base text-zinc-600 leading-relaxed">
-              Clinical decision support requires uncompromised transparency.
-              ProtocolAI balances automated multi-agent extraction with strict
-              safety controls.
+              The tool suggests. Clinicians decide.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-12 md:grid-cols-2 max-w-4xl border-t border-zinc-200/40 pt-10">
-            {/* Left: Validation Metrics */}
+          <div className="glass-panel grid grid-cols-1 gap-12 md:grid-cols-2 max-w-4xl">
             <div className="space-y-6">
               <h3
                 style={serifFont}
                 className="text-2xl sm:text-3xl font-normal text-zinc-950"
               >
-                Ground-Truth Evaluation Metrics
+                How we measure accuracy
               </h3>
               <ul className="space-y-5 text-sm text-zinc-600">
                 <li className="flex items-start gap-3">
@@ -740,11 +628,9 @@ export default function HomePage() {
                   </span>
                   <div>
                     <strong className="text-zinc-900 block font-medium">
-                      Parser & Rule Extraction Accuracy
+                      Extraction
                     </strong>
-                    Section-by-section extraction precision and criteria
-                    fidelity benchmarked against hand-labeled gold standard
-                    protocols and physician review.
+                    Checked against hand-labeled protocols.
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -753,11 +639,9 @@ export default function HomePage() {
                   </span>
                   <div>
                     <strong className="text-zinc-900 block font-medium">
-                      Historical Amendment Hit-Rate
+                      Amendment hit-rate
                     </strong>
-                    Proportion of flagged outlier criteria that match actual
-                    post-launch amendments recorded in AACT&apos;s History of
-                    Changes.
+                    Flags compared with amendments that really happened.
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -766,23 +650,20 @@ export default function HomePage() {
                   </span>
                   <div>
                     <strong className="text-zinc-900 block font-medium">
-                      Cohort Demographic Fidelity
+                      Patient mix
                     </strong>
-                    Simulated eligible demographic distributions benchmarked
-                    against actual enrolled baseline populations reported on
-                    ClinicalTrials.gov and FDA Drug Trials Snapshots.
+                    Simulated cohorts compared with enrolled populations.
                   </div>
                 </li>
               </ul>
             </div>
 
-            {/* Right: Safety Guardrails */}
             <div className="space-y-6">
               <h3
                 style={serifFont}
                 className="text-2xl sm:text-3xl font-normal text-zinc-950"
               >
-                Clinical Risk Mitigations
+                How we manage risk
               </h3>
               <ul className="space-y-5 text-sm text-zinc-600">
                 <li className="flex items-start gap-3">
@@ -791,11 +672,9 @@ export default function HomePage() {
                   </span>
                   <div>
                     <strong className="text-zinc-900 block font-medium">
-                      No Silent Hallucinations
+                      No silent guesses
                     </strong>
-                    Criteria that cannot be reliably modeled in electronic
-                    health record data are explicitly labeled &ldquo;cannot
-                    simulate&rdquo; rather than guessed or silently omitted.
+                    Anything we cannot simulate is labeled as such.
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -804,11 +683,9 @@ export default function HomePage() {
                   </span>
                   <div>
                     <strong className="text-zinc-900 block font-medium">
-                      Transparent SQL / OMOP Query Inspection
+                      Visible logic
                     </strong>
-                    Generated computable query logic is rendered side-by-side
-                    with verbatim protocol text inside each Decision Card for
-                    immediate auditability.
+                    Each card shows the query next to the protocol text.
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -817,89 +694,60 @@ export default function HomePage() {
                   </span>
                   <div>
                     <strong className="text-zinc-900 block font-medium">
-                      Clinician-Owned Safety Thresholds
+                      Physician sign-off
                     </strong>
-                    Deliberate strict safety criteria flagged as outliers are
-                    routed as recommendations to reviewing physicians—never
-                    auto-relaxed without clinical sign-off.
+                    Safety criteria are never relaxed automatically.
                   </div>
                 </li>
               </ul>
-            </div>
-          </div>
-
-          {/* Team & Project Credits Footer */}
-          <div className="border-t border-zinc-200/40 pt-10 space-y-6 max-w-4xl">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <span
-                  style={serifFont}
-                  className="text-2xl font-normal text-zinc-950 block"
-                >
-                  ProtocolAI
-                </span>
-                <span className="text-xs text-zinc-500 font-sans">
-                  Multi-Agent Verification · Diabetes Track Pipeline
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-600" />
-                <span className="font-sans text-xs text-zinc-600 font-medium">
-                  Built with Multi-Agent Verification Architecture
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 font-sans text-xs pt-2">
-              <div className="space-y-1">
-                <span className="text-zinc-400 block text-[11px] uppercase tracking-wide">
-                  Clinical Lead
-                </span>
-                <span className="text-zinc-900 font-medium block">Stefan</span>
-                <span className="text-zinc-500 text-[11px]">
-                  Guidelines & Rubric
-                </span>
-              </div>
-              <div className="space-y-1">
-                <span className="text-zinc-400 block text-[11px] uppercase tracking-wide">
-                  Ingestion Lead
-                </span>
-                <span className="text-zinc-900 font-medium block">Alex</span>
-                <span className="text-zinc-500 text-[11px]">
-                  Parser & Completeness
-                </span>
-              </div>
-              <div className="space-y-1">
-                <span className="text-zinc-400 block text-[11px] uppercase tracking-wide">
-                  Comparison Lead
-                </span>
-                <span className="text-zinc-900 font-medium block">Theo</span>
-                <span className="text-zinc-500 text-[11px]">
-                  Peer Trial Agent
-                </span>
-              </div>
-              <div className="space-y-1">
-                <span className="text-zinc-400 block text-[11px] uppercase tracking-wide">
-                  Cohort Lead
-                </span>
-                <span className="text-zinc-900 font-medium block">Alvaro</span>
-                <span className="text-zinc-500 text-[11px]">
-                  Simulation & Waterfall
-                </span>
-              </div>
-              <div className="space-y-1">
-                <span className="text-zinc-400 block text-[11px] uppercase tracking-wide">
-                  Frontend & Demo
-                </span>
-                <span className="text-zinc-900 font-medium block">Raul</span>
-                <span className="text-zinc-500 text-[11px]">
-                  Decision Cards & UI
-                </span>
-              </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-zinc-200/60 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-12 sm:px-10 md:flex-row md:items-start md:justify-between lg:px-12">
+          <div className="max-w-sm space-y-3">
+            <a
+              href="#"
+              style={serifFont}
+              className="flex items-center gap-2.5 text-2xl font-normal tracking-tight text-zinc-950"
+            >
+              <InsulinIcon className="h-8 w-8 shrink-0" />
+              ProtocolAI
+            </a>
+            <p className="text-sm text-zinc-600 leading-relaxed">
+              Catch protocol problems in type 2 diabetes trials before the first
+              patient is enrolled.
+            </p>
+          </div>
+
+          <nav
+            aria-label="Footer"
+            className="flex flex-wrap gap-x-8 gap-y-3 font-sans text-sm font-medium text-zinc-600"
+          >
+            <a href="#problem" className="hover:text-zinc-950 transition-colors">
+              Problem
+            </a>
+            <a href="#pipeline" className="hover:text-zinc-950 transition-colors">
+              Pipeline
+            </a>
+            <a href="#data" className="hover:text-zinc-950 transition-colors">
+              Data
+            </a>
+            <a href="#validation" className="hover:text-zinc-950 transition-colors">
+              Validation
+            </a>
+          </nav>
+        </div>
+
+        <div className="border-t border-zinc-200/60">
+          <p className="mx-auto max-w-7xl px-6 py-5 font-sans text-xs text-zinc-500 sm:px-10 lg:px-12">
+            Decision support only. Clinicians make the final call.
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }

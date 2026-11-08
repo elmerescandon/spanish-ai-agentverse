@@ -122,6 +122,59 @@ def test_upload_stores_the_protocol(
     assert body["changes"] == []
 
 
+def test_review_survives_reopen_and_only_current_accept_enters_report(
+    client: TestClient, tmp_path: Path
+) -> None:
+    protocol_id = _upload(client, tmp_path)
+    url = f"/api/protocols/{protocol_id}/reviews"
+    payload = {
+        "decision_id": "cohort-representation",
+        "option_id": "target",
+        "status": "accepted",
+        "proposed_change": {
+            "path": "5.4 Recruitment",
+            "before": "No target",
+            "after": "Review female enrolment against a 45% target.",
+        },
+    }
+    assert client.post(url, json=payload).status_code == 200
+    assert client.post(url, json=payload).status_code == 200
+    set_protocol_db(ProtocolDb(tmp_path / "protocols.db"))
+    assert client.get(url).json()[0]["status"] == "accepted"
+    output = _fields(client, protocol_id)
+    assert len(output["changes"]) == 1
+    pdf = client.get("/api/protocols/latest/report.pdf")
+    text = "".join(
+        page.extract_text()
+        for page in PdfReader(io.BytesIO(pdf.content)).pages
+    )
+    assert "45% target" in text
+
+    payload["status"] = "rejected"
+    assert client.post(url, json=payload).status_code == 200
+    assert client.get(url).json()[0]["status"] == "rejected"
+    assert _fields(client, protocol_id)["changes"] == []
+    assert "45% target" not in str(_fields(client, protocol_id))
+
+
+def test_review_cannot_be_saved_for_unknown_protocol(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/api/protocols/missing/reviews",
+        json={
+            "decision_id": "decision",
+            "status": "accepted",
+            "proposed_change": {
+                "path": "section",
+                "before": "a",
+                "after": "b",
+            },
+        },
+    )
+    assert response.status_code == 404
+
+
 def test_peers_step_stores_the_comparison_fields_at_draft_values(
     client: TestClient, tmp_path: Path
 ) -> None:

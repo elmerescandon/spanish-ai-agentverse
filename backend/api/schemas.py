@@ -209,6 +209,15 @@ class ProposedChange(BaseModel):
     rationale: str | None = None
 
 
+class SavedDecisionReview(BaseModel):
+    """Reviewer-submitted amendment, separate from agent-validated offers."""
+
+    decision_id: str = Field(min_length=1, max_length=200)
+    option_id: str | None = Field(default=None, max_length=200)
+    status: RecommendationStatus
+    proposed_change: ProposedChange
+
+
 class MetricBenchmark(BaseModel):
     """Reference value a metric is compared against (e.g. peer median)."""
 

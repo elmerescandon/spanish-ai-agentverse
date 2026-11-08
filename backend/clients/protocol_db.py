@@ -96,6 +96,15 @@ class StoredField:
 
 
 @dataclass(frozen=True)
+class ReviewSource:
+    """Attribution for a clinician's saved review decision."""
+
+    decision_id: str
+    option_id: str
+    rationale: str
+
+
+@dataclass(frozen=True)
 class OfferedValue:
     """A value an agent proposed for a field, from real data."""
 
@@ -315,7 +324,7 @@ class ProtocolDb:
         self,
         protocol_id: str,
         new_field: StoredField,
-        offer: OfferedValue,
+        offer: OfferedValue | ReviewSource,
         changed_at: datetime,
     ) -> FieldChangeRecord | None:
         """Set a field to an offered value and log the change.
@@ -446,7 +455,7 @@ class ReviewStore(Protocol):
         self,
         protocol_id: str,
         new_field: StoredField,
-        offer: OfferedValue,
+        offer: OfferedValue | ReviewSource,
         changed_at: datetime,
     ) -> FieldChangeRecord | None: ...
 

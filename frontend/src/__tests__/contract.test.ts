@@ -33,6 +33,7 @@ import {
 import { MOCK_STEPS, MOCK_UPLOAD_RESPONSE } from "@/lib/demo/mock";
 import {
   MOCK_PROTOCOL,
+  MOCK_SAVED_REVIEW,
   MOCK_PROTOCOL_FIELDS,
   MOCK_RECOMMENDATIONS,
 } from "./fixtures";
@@ -208,6 +209,9 @@ describe("Frontend <-> Backend API Schema & Component Contract Alignment", () =>
     expect(
       Object.keys(openApi.paths["/api/protocols/{protocol_id}/fields"] ?? {})
     ).toContain("get");
+    expect(keysOf("SavedDecisionReview")).toEqual(
+      Object.keys(MOCK_SAVED_REVIEW).sort()
+    );
     expect(keysOf("FieldChangeRequest")).toEqual(
       [...FIELD_CHANGE_REQUEST_KEYS].sort()
     );

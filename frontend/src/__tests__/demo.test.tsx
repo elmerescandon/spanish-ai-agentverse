@@ -551,6 +551,38 @@ describe("live upload fans out to the recommendation agents", () => {
     expect(screen.getByRole("button", { name: "Protocol Comparison" })).toBeDisabled();
   });
 
+  it("saves live decisions and leaves failed saves unaccepted", async () => {
+    const user = userEvent.setup();
+    const saveReview = mock(async (id: string, review: api.SavedDecisionReview) => {
+      if (saveReview.mock.calls.length === 1) throw new Error("Storage offline");
+      return review;
+    });
+    const ingest = makeStep("ingest", "Data Ingestion");
+    ingest.decisions = [{
+      decision_id: "review-1", step_id: "ingest", severity: "warning",
+      title: "Review recruitment", claim: "Add a target", evidence: [], trace: [],
+      proposed_change: { path: "Recruitment", before: "None", after: "45% target" },
+    }];
+    render(<DemoPipeline
+      uploadFile={async () => ({ ...MOCK_UPLOAD_RESPONSE, protocol_id: "p-1", step: ingest })}
+      recommendationFetchers={MOCK_RECOMMENDATION_FETCHERS}
+      saveReview={saveReview}
+    />);
+    await uploadPdf(user);
+    await user.click(await screen.findByRole("button", { name: /Review recruitment/ }));
+    const accept = screen.getByRole("button", { name: "Accept recommendation" });
+    await user.click(accept);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Storage offline");
+    expect(accept).toHaveAttribute("aria-pressed", "false");
+    await user.click(accept);
+    await waitFor(() => expect(accept).toHaveAttribute("aria-pressed", "true"));
+    expect(saveReview.mock.calls[1][0]).toBe("p-1");
+    expect(saveReview.mock.calls[1][1].status).toBe("accepted");
+    expect(screen.getByRole("status")).toHaveTextContent("saved to protocol storage");
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+    await waitFor(() => expect(saveReview.mock.calls[2][1].status).toBe("rejected"));
+  });
+
   it("fills each step as soon as its own agent resolves", async () => {
     const user = userEvent.setup();
     const { pending } = setup();

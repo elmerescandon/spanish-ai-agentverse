@@ -1,4 +1,5 @@
 import type {
+  ProposedChange,
   RecommendationStepId,
   StepData,
   UploadFileResponse,
@@ -101,6 +102,28 @@ export interface UpdateRecommendationPayload {
 export interface FieldChangeRequest {
   field: string;
   value: number;
+}
+
+export interface SavedDecisionReview {
+  decision_id: string;
+  option_id: string | null;
+  status: RecommendationStatus;
+  proposed_change: ProposedChange;
+}
+
+export async function saveDecisionReview(
+  protocolId: string,
+  review: SavedDecisionReview
+): Promise<SavedDecisionReview> {
+  const response = await fetch(`/api/protocols/${protocolId}/reviews`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(review),
+  });
+  if (!response.ok) {
+    throw new Error(`Review not saved: ${await readErrorDetail(response)}`);
+  }
+  return response.json();
 }
 
 export interface ProtocolField {

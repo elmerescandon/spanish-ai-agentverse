@@ -10,6 +10,7 @@ import {
   LATEST_REPORT_PDF_URL,
   RECOMMENDATION_ENDPOINTS,
   uploadProtocolFile,
+  saveDecisionReview,
   type RecommendationFetcher,
 } from "@/lib/api";
 import {
@@ -35,6 +36,7 @@ export interface DemoPipelineProps {
   sampleFetchers?: Record<RecommendationStepId, RecommendationFetcher>;
   // Called once the last step is opened, so the page can offer the report.
   onReachEnd?: () => void;
+  saveReview?: typeof saveDecisionReview;
 }
 
 // Results of a real upload; each step fills in as its own call settles.
@@ -81,9 +83,15 @@ export default function DemoPipeline({
   sampleUpload = MOCK_UPLOAD_RESPONSE,
   sampleFetchers = MOCK_RECOMMENDATION_FETCHERS,
   onReachEnd,
+  saveReview = saveDecisionReview,
 }: DemoPipelineProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [protocolTitle, setProtocolTitle] = useState("");
+  const [protocolId, setProtocolId] = useState("");
+  const [reviewMessage, setReviewMessage] = useState("");
+  const [reviewError, setReviewError] = useState("");
+  const [isSavingReview, setIsSavingReview] = useState(false);
+  const savingReview = useRef(false);
   const [isSample, setIsSample] = useState(false);
   const [isInitialSampleLoad, setIsInitialSampleLoad] = useState(false);
   const [sampleRevealCount, setSampleRevealCount] = useState(0);
@@ -146,6 +154,9 @@ export default function DemoPipeline({
   ) => {
     setLiveRun({ results: { ingest: upload.step }, errors: {} });
     setProtocolTitle(upload.title);
+    setProtocolId(upload.protocol_id);
+    setReviewMessage("");
+    setReviewError("");
     setReviews({});
     setIsLoaded(true);
 
@@ -330,22 +341,48 @@ export default function DemoPipeline({
     (step) => liveRun?.results[step.id]?.status === "completed"
   );
 
-  const handleReview = (
+  const handleReview = async (
     decisionId: string,
     status: ReviewStatus,
     optionId?: string
   ) => {
-    setReviews((previous) => {
-      const current = previous[decisionId];
-      // Clicking the already-selected state toggles back to pending.
-      if (
-        current?.status === status &&
-        current?.optionId === optionId
-      ) {
-        return { ...previous, [decisionId]: { status: "pending" } };
+    if (savingReview.current) return;
+    const current = reviews[decisionId];
+    const nextStatus = current?.status === status &&
+      current?.optionId === optionId ? "pending" : status;
+    const decision = decisionsById.get(decisionId);
+    const change = optionId
+      ? decision?.options?.find((option) => option.option_id === optionId)
+          ?.proposed_change
+      : decision?.proposed_change;
+    if (!change) return;
+    setReviewError("");
+    if (!isSample) {
+      savingReview.current = true;
+      setIsSavingReview(true);
+      setReviewMessage("Saving review…");
+      try {
+        await saveReview(protocolId, {
+          decision_id: decisionId,
+          option_id: optionId ?? null,
+          status: nextStatus,
+          proposed_change: change,
+        });
+        setReviewMessage("Review saved to protocol storage.");
+      } catch (error) {
+        setReviewMessage("");
+        setReviewError(toErrorMessage(error));
+        return;
+      } finally {
+        savingReview.current = false;
+        setIsSavingReview(false);
       }
-      return { ...previous, [decisionId]: { status, optionId } };
-    });
+    } else {
+      setReviewMessage("Sample review: session only. Download JSON to keep it.");
+    }
+    setReviews((previous) => ({
+      ...previous, [decisionId]: { status: nextStatus, optionId },
+    }));
   };
 
   const exportReview = () => {
@@ -384,6 +421,12 @@ export default function DemoPipeline({
 
   return (
     <div className="space-y-2">
+      {reviewMessage && <p role="status" className="text-sm text-emerald-700">
+        {reviewMessage}
+      </p>}
+      {reviewError && <p role="alert" className="text-sm text-rose-700">
+        {reviewError} Please retry your decision.
+      </p>}
       <nav aria-label="Pipeline steps"
         className="grid gap-3 pb-6 sm:grid-cols-2 lg:grid-cols-4">
         {barItems.map((item, index) => (
@@ -436,6 +479,7 @@ export default function DemoPipeline({
             onToggleDecision={toggleDecision}
             getReviewStatus={(decisionId) => reviews[decisionId]?.status}
             renderDecision={(decision) => (
+              <fieldset disabled={isSavingReview} className="min-w-0">
               <DecisionView
                 decision={decision}
                 parents={(decision.derived_from ?? []).flatMap((id) => {
@@ -451,6 +495,7 @@ export default function DemoPipeline({
                   handleReview(decision.decision_id, status, optionId)
                 }
               />
+              </fieldset>
             )}
           />
         )}

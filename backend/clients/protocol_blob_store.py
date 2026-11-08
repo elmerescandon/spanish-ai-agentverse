@@ -36,6 +36,7 @@ from backend.clients.protocol_db import (
     OfferedValue,
     ProtocolRecord,
     ProtocolReview,
+    ReviewSource,
     StoredField,
 )
 
@@ -336,7 +337,7 @@ class BlobProtocolStore:
         self,
         protocol_id: str,
         new_field: StoredField,
-        offer: OfferedValue,
+        offer: OfferedValue | ReviewSource,
         changed_at: datetime,
     ) -> FieldChangeRecord | None:
         """Set a field to an offered value and log the change.

@@ -14,6 +14,7 @@ from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Protocol
 
 from backend.shared.config import load_settings
 
@@ -403,10 +404,45 @@ class ProtocolDb:
         return await self._run(load)
 
 
-_protocol_db: ProtocolDb | None = None
+class ReviewStore(Protocol):
+    """What the routes need from a protocol review store.
+
+    ProtocolDb (one local SQLite file) implements it, and so does the
+    Blob-backed store that every Vercel instance shares.
+    """
+
+    async def save_protocol(
+        self, record: ProtocolRecord, fields: Sequence[StoredField]
+    ) -> None: ...
+
+    async def save_offers(
+        self,
+        protocol_id: str,
+        starting_fields: Sequence[StoredField],
+        offers: Sequence[OfferedValue],
+    ) -> None: ...
+
+    async def has_protocol(self, protocol_id: str) -> bool: ...
+
+    async def offers_for(
+        self, protocol_id: str, field: str
+    ) -> list[OfferedValue]: ...
+
+    async def apply_change(
+        self,
+        protocol_id: str,
+        new_field: StoredField,
+        offer: OfferedValue,
+        changed_at: datetime,
+    ) -> FieldChangeRecord | None: ...
+
+    async def load_review(self, protocol_id: str) -> ProtocolReview | None: ...
 
 
-def get_protocol_db() -> ProtocolDb:
+_protocol_db: ReviewStore | None = None
+
+
+def get_protocol_db() -> ReviewStore:
     """The app's database, at the configured path, created on first use."""
     global _protocol_db
     if _protocol_db is None:
@@ -414,7 +450,7 @@ def get_protocol_db() -> ProtocolDb:
     return _protocol_db
 
 
-def set_protocol_db(protocol_db: ProtocolDb | None) -> None:
+def set_protocol_db(protocol_db: ReviewStore | None) -> None:
     """Replace the app's database (tests); None resets it."""
     global _protocol_db
     _protocol_db = protocol_db

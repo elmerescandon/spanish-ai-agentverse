@@ -93,7 +93,7 @@ class BlobDocumentStore:
                 allow_overwrite=True,
             )
 
-        await _with_retries("save", document.protocol_id, put)
+        await with_blob_retries("save", document.protocol_id, put)
         logger.info(
             "document stored: protocol_id=%s bytes=%d",
             document.protocol_id,
@@ -117,7 +117,7 @@ class BlobDocumentStore:
                 return None
             return result.body
 
-        content = await _with_retries("load", protocol_id, get)
+        content = await with_blob_retries("load", protocol_id, get)
         if content is None:
             return None
         try:
@@ -129,7 +129,7 @@ class BlobDocumentStore:
             ) from error
 
 
-async def _with_retries[ResultT](
+async def with_blob_retries[ResultT](
     action: str,
     protocol_id: str,
     operation: Callable[[], Awaitable[ResultT]],

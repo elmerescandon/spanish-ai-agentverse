@@ -13,6 +13,7 @@ from backend.clients.document_store import (
     set_document_store,
 )
 from backend.shared.messages import PageText, ProtocolDocument
+from tests.fake_blob import FakeBlobBackend
 
 PROTOCOL_ID = "proto-abc12345"
 
@@ -26,38 +27,9 @@ def _document(protocol_id: str = PROTOCOL_ID) -> ProtocolDocument:
     )
 
 
-class FakeBlobBackend:
-    """In-memory stand-in for the vercel.blob calls the store makes."""
-
-    def __init__(self) -> None:
-        self.objects: dict[str, bytes] = {}
-        self.failures: list[Exception] = []
-        self.call_count = 0
-
-    async def put_blob(
-        self, pathname: str, body: bytes, **_options: object
-    ) -> None:
-        self.call_count += 1
-        if self.failures:
-            raise self.failures.pop(0)
-        self.objects[pathname] = body
-
-    async def get_blob(self, pathname: str, **_options: object) -> object:
-        self.call_count += 1
-        if self.failures:
-            raise self.failures.pop(0)
-        if pathname not in self.objects:
-            raise blob.BlobNotFoundError()
-        return type("Result", (), {"body": self.objects[pathname]})()
-
-
 @pytest.fixture
-def backend(monkeypatch: pytest.MonkeyPatch) -> FakeBlobBackend:
-    fake = FakeBlobBackend()
-    monkeypatch.setattr(blob, "put_blob", fake.put_blob)
-    monkeypatch.setattr(blob, "get_blob", fake.get_blob)
-    monkeypatch.setattr(document_store, "RETRY_BACKOFF_SECONDS", 0.0)
-    return fake
+def backend(fake_blob: FakeBlobBackend) -> FakeBlobBackend:
+    return fake_blob
 
 
 async def test_blob_store_returns_the_saved_document(

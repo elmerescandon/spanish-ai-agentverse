@@ -51,3 +51,4 @@ htmlcov/
 .ruff_cache/
 scratch/
 data/uploads/
+data/cache/

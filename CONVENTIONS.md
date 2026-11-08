@@ -31,6 +31,7 @@ Automate formatting so the repo is standardised.
 | `make test-live` | Live tests against real APIs. |
 | `make run` | Run agents once, no reload. |
 | `make demo` | `test-live`, then run. Use this on stage. |
+| `make clear-cache` | Delete saved analyses (`data/cache`) so the next upload re-runs Gemini. |
 
 **Pre-commit hooks** (on every `git commit`): `ruff format`, `ruff check --fix`, `mypy`. Tests stay out of pre-commit to keep commits fast; CI runs them.
 
